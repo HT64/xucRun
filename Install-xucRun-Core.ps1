@@ -37,6 +37,10 @@ $uninstallRegistryPath =
 $brokerStoreDirectory = Join-Path $env:ProgramData 'xucRun'
 $machineEnvironmentPath =
     'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+$serviceSecurityDescriptor =
+    'D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCRPRC;;;AU)'
+$restrictedServiceSecurityDescriptor =
+    'D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)'
 
 function Assert-WindowsPowerShell {
     if ($PSVersionTable.PSEdition -ne 'Desktop' -or
@@ -290,12 +294,25 @@ function Uninstall-Core {
     Invoke-ServiceControl -Arguments @(
         'config', $serviceName, 'binPath=', $quotedBroker, 'start=', 'demand',
         'obj=', 'LocalSystem', 'DisplayName=', $serviceDisplayName)
-    Invoke-ServiceControl -Arguments @('start', $serviceName, 'uninstall-purge')
-    Wait-ServiceState -Name $serviceName -Status Stopped
-    $stoppedService = Get-CimInstance -ClassName Win32_Service `
-        -Filter "Name='$serviceName'"
-    if ($stoppedService -and [int]$stoppedService.ExitCode -ne 0) {
-        throw "The broker could not purge its stored data (error $($stoppedService.ExitCode))."
+    $purgeCompleted = $false
+    try {
+        Invoke-ServiceControl -Arguments @(
+            'sdset', $serviceName, $restrictedServiceSecurityDescriptor)
+        Invoke-ServiceControl -Arguments @('start', $serviceName, 'uninstall-purge')
+        Wait-ServiceState -Name $serviceName -Status Stopped
+        $stoppedService = Get-CimInstance -ClassName Win32_Service `
+            -Filter "Name='$serviceName'"
+        if ($stoppedService -and [int]$stoppedService.ExitCode -ne 0) {
+            throw "The broker could not purge its stored data (error $($stoppedService.ExitCode))."
+        }
+        $purgeCompleted = $true
+    }
+    finally {
+        if (-not $purgeCompleted -and
+            (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) {
+            Invoke-ServiceControl -Arguments @(
+                'sdset', $serviceName, $serviceSecurityDescriptor)
+        }
     }
     Invoke-ServiceControl -Arguments @('delete', $serviceName)
 
@@ -414,8 +431,7 @@ try {
     }
     Invoke-ServiceControl -Arguments @('sidtype', $serviceName, 'unrestricted')
     Invoke-ServiceControl -Arguments @(
-        'sdset', $serviceName,
-        'D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCRPRC;;;AU)')
+        'sdset', $serviceName, $serviceSecurityDescriptor)
     Invoke-ServiceControl -Arguments @(
         'description', $serviceName,
         'Local privileged credential and process launch broker for xucRun.')

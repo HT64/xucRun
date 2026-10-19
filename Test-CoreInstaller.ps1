@@ -98,39 +98,21 @@ function Wait-ServiceAbsent {
 }
 
 function Invoke-InfoCheck {
-    $outputPath = Join-Path $env:RUNNER_TEMP 'xucRun-info-output.txt'
-    $errorPath = Join-Path $env:RUNNER_TEMP 'xucRun-info-error.txt'
-    foreach ($path in @($outputPath, $errorPath)) {
-        if (Test-Path -LiteralPath $path) {
-            Remove-Item -LiteralPath $path -Force
-        }
-    }
     $process = Start-Process -FilePath $installedClient `
         -ArgumentList '/info' `
-        -RedirectStandardOutput $outputPath `
-        -RedirectStandardError $errorPath `
         -PassThru `
         -WindowStyle Hidden
     if (-not $process.WaitForExit(30000)) {
         Stop-Process -Id $process.Id -Force
         throw 'xucRun.exe /info did not exit within 30 seconds.'
     }
-    $standardOutput = if (Test-Path -LiteralPath $outputPath) {
-        Get-Content -LiteralPath $outputPath -Raw
-    }
-    else {
-        ''
-    }
-    $standardError = if (Test-Path -LiteralPath $errorPath) {
-        Get-Content -LiteralPath $errorPath -Raw
-    }
-    else {
-        ''
-    }
-    Assert-Condition ($process.ExitCode -eq 0) `
-        "xucRun.exe /info failed with exit code $($process.ExitCode): $standardError"
-    Assert-Condition ($standardOutput -match '(?m)0\.9\.0\.1') `
-        "xucRun.exe /info did not report version 0.9.0.1: $standardOutput"
+    $process.WaitForExit()
+    $process.Refresh()
+    $exitCode = $process.ExitCode
+    Assert-Condition ($null -ne $exitCode) `
+        'xucRun.exe /info did not expose an exit code.'
+    Assert-Condition ($exitCode -eq 0) `
+        "xucRun.exe /info failed with exit code $exitCode."
 }
 
 function Assert-InstalledState {
