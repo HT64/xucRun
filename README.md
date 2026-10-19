@@ -62,7 +62,8 @@ vertrauliche Meldeweg und die unterstützten Versionen sind in `SECURITY.md` bes
 
 ## Build und Installation
 
-Die `XUCRun.sln` enthält die acht Projekte des Core und wird im Debug-Modus gebaut und getestet:
+Die `XUCRun.sln` enthält die acht Projekte des Core. Debug und Release werden für x64 gebaut und
+getestet. Das folgende Beispiel erzeugt einen Debug-Build:
 
 ```powershell
 & MSBuild.exe .\XUCRun.sln `
@@ -76,6 +77,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\New-xucRun-CorePackage.ps1 `
   -Configuration Debug
 ```
+
+Für einen optimierten unsigned Release-Build und das zugehörige Paket wird stattdessen
+`Configuration=Release` beziehungsweise `-Configuration Release` verwendet. Normale Builds
+verändern weder Versionsdateien noch andere getrackte Quellen.
 
 Das Paket enthält Client, Broker, Approval-Helper, die beiden Core-Sprachressourcen und den
 Core-Installer. Vor der Installation müssen die Paketdateien einheitlich signiert sein. Für lokale
@@ -108,8 +113,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -Uninstall
 ```
 
-Der Release-Build und die abschließende Release-Anleitung sind noch nicht abgeschlossen. Dieser
-Entwicklungsstand stellt deshalb keine Veröffentlichungsfreigabe dar.
+Die GitHub-CI prüft Debug und Release unabhängig und stellt beide unsigned Pakete als kurzlebige
+Buildartefakte bereit. Die signierte Veröffentlichung und die praktische Installer-Freigabe sind
+noch nicht abgeschlossen. Dieser Entwicklungsstand stellt deshalb keine Veröffentlichungsfreigabe
+dar.
 
 ## Lizenz
 

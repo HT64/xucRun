@@ -245,20 +245,4 @@
     <Message Text="[Post-Build] Stage Approval-Helper..." Importance="high" />
     <Copy SourceFiles="$(SolutionDir)xucRunApproval\x64\$(Configuration)\xucRunApproval.exe" DestinationFiles="$(OutDir)xucRunApproval.exe" />
   </Target>
-  <Target Name="SignReleaseExecutable" AfterTargets="Link" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Message Text="[Post-Build] Signiere Release-EXE..." Importance="high" />
-    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(TargetPath)&quot;" />
-    <Message Text="[Post-Build] Erzeuge und signiere Installationsskript..." Importance="high" />
-    <Copy SourceFiles="$(SolutionDir)Install-xucRun.ps1" DestinationFiles="$(OutDir)Install-xucRun.ps1" />
-    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(OutDir)Install-xucRun.ps1&quot;" />
-    <Message Text="[Post-Build] Erzeuge und signiere benutzerspezifischen Icon-Installer..." Importance="high" />
-    <Copy SourceFiles="$(SolutionDir)Install-xucRun-Icon.ps1" DestinationFiles="$(OutDir)Install-xucRun-Icon.ps1" />
-    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(OutDir)Install-xucRun-Icon.ps1&quot;" />
-    <Message Text="[Post-Build] Stage signierten Broker im Installationspaket..." Importance="high" />
-    <Copy SourceFiles="$(SolutionDir)xucRunBroker\x64\Release\xucRunBroker.exe" DestinationFiles="$(OutDir)xucRunBroker.exe" />
-    <Message Text="[Post-Build] Erzeuge und signiere Anwenderwerkzeug..." Importance="high" />
-    <MakeDir Directories="$(OutDir)UserCodeSigning" />
-    <Copy SourceFiles="$(SolutionDir)UserCodeSigning\Sign-xucRunPackage.ps1;$(SolutionDir)UserCodeSigning\README.md" DestinationFolder="$(OutDir)UserCodeSigning" />
-    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(OutDir)UserCodeSigning\Sign-xucRunPackage.ps1&quot;" />
-  </Target>
 </Project>

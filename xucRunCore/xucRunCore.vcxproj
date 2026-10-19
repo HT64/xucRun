@@ -95,10 +95,6 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PreBuildEvent Condition="'$(BuildingSolutionFile)'=='true'">
-      <Command>powershell.exe -ExecutionPolicy Bypass -File "$(SolutionDir)xucRunSharedResources\Increment-BuildNumber.ps1" -ProjectDir "$(SolutionDir)xucRunSharedResources\"</Command>
-      <Message>Incrementing shared build number...</Message>
-    </PreBuildEvent>
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>

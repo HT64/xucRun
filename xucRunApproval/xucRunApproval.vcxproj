@@ -51,7 +51,4 @@
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
-  <Target Name="SignReleaseExecutable" AfterTargets="Link" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(TargetPath)&quot;" />
-  </Target>
 </Project>

@@ -53,8 +53,4 @@
     <ResourceCompile Include="..\xucRunSharedResources\ClientResources.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Target Name="SignReleaseLanguageResource" AfterTargets="Link" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Message Text="[Post-Build] Signiere englische Sprachressource..." Importance="high" />
-    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(TargetPath)&quot;" />
-  </Target>
 </Project>
