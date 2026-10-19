@@ -83,10 +83,12 @@ $ciWorkflow = [IO.File]::ReadAllText(
     (Join-Path $repositoryRoot '.github\workflows\core-ci.yml'))
 foreach ($requiredCiContract in @(
     'XUCRun.sln',
+    'configuration: Release',
     'xucRunCoreTests.exe',
     'Test-Architecture.ps1',
     'New-xucRun-CorePackage.ps1',
-    '0.9.0.1'
+    '0.9.0.1',
+    'git status --porcelain=v1 --untracked-files=no'
 )) {
     Assert-PublicArchitecture ($ciWorkflow.Contains($requiredCiContract)) `
         "The Core CI workflow must enforce $requiredCiContract."
@@ -100,6 +102,18 @@ Assert-PublicArchitecture ($ciWorkflow -match
 Assert-PublicArchitecture ($ciWorkflow -match
     'actions/upload-artifact@[0-9a-f]{40}') `
     'The Core CI artifact action must be pinned to a commit SHA.'
+
+$projectFiles = @(Get-ChildItem -LiteralPath $repositoryRoot -Recurse `
+    -Filter '*.vcxproj' -File)
+$projectDefinitions = ($projectFiles | ForEach-Object {
+    [IO.File]::ReadAllText($_.FullName)
+}) -join "`n"
+Assert-PublicArchitecture ($projectDefinitions -notmatch
+    '(?i)Sign-Executable|Sign-xucRunPackage|Install-xucRun-Icon|Install-xucRun\.ps1') `
+    'Public Core projects must not depend on private signing or installer files.'
+Assert-PublicArchitecture ($projectDefinitions -notmatch
+    '(?i)Increment-BuildNumber|<PreBuildEvent') `
+    'Public Core builds must not modify tracked version files.'
 
 $gitIgnore = [IO.File]::ReadAllText(
     (Join-Path $repositoryRoot '.gitignore'))

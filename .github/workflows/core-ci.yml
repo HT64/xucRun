@@ -19,9 +19,17 @@ concurrency:
 
 jobs:
   build-test-package:
-    name: Build, test, and package
+    name: Build, test, and package (${{ matrix.configuration }})
     runs-on: windows-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - configuration: Debug
+            artifact-suffix: debug
+          - configuration: Release
+            artifact-suffix: release
 
     steps:
       - name: Check out source
@@ -30,12 +38,12 @@ jobs:
       - name: Configure MSBuild
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2
 
-      - name: Build Debug x64
+      - name: Build ${{ matrix.configuration }} x64
         shell: powershell
         run: |
           msbuild.exe .\XUCRun.sln `
             /t:Build `
-            /p:Configuration=Debug `
+            /p:Configuration=${{ matrix.configuration }} `
             /p:Platform=x64 `
             /m `
             /nologo `
@@ -47,7 +55,7 @@ jobs:
       - name: Run Core tests
         shell: powershell
         run: |
-          & .\xucRunCoreTests\x64\Debug\xucRunCoreTests.exe
+          & .\xucRunCoreTests\x64\${{ matrix.configuration }}\xucRunCoreTests.exe
           if ($LASTEXITCODE -ne 0) {
               throw "Core tests failed with exit code $LASTEXITCODE."
           }
@@ -65,18 +73,28 @@ jobs:
         shell: powershell
         run: |
           $version = (Get-Item -LiteralPath `
-            '.\xucRun\x64\Debug\xucRun.exe').VersionInfo.ProductVersion
+            '.\xucRun\x64\${{ matrix.configuration }}\xucRun.exe').
+            VersionInfo.ProductVersion
           if ($version -ne '0.9.0.1') {
               throw "Expected xucRun.exe version 0.9.0.1, found '$version'."
+          }
+
+      - name: Verify tracked files are unchanged
+        shell: powershell
+        run: |
+          $changes = @(git status --porcelain=v1 --untracked-files=no)
+          if ($changes.Count -ne 0) {
+              throw "The build modified tracked files.`n$($changes -join "`n")"
           }
 
       - name: Create and verify unsigned package
         shell: powershell
         run: |
-          $package = Join-Path $PWD 'artifacts\CorePackage\Debug'
+          $package = Join-Path $PWD `
+            'artifacts\CorePackage\${{ matrix.configuration }}'
           powershell.exe -NoProfile -ExecutionPolicy Bypass `
             -File .\New-xucRun-CorePackage.ps1 `
-            -Configuration Debug `
+            -Configuration ${{ matrix.configuration }} `
             -DestinationDirectory $package
           if ($LASTEXITCODE -ne 0) {
               throw "Package creation failed with exit code $LASTEXITCODE."
@@ -102,10 +120,10 @@ jobs:
                 ($actual -join "`n")
           }
 
-      - name: Upload unsigned Debug package
+      - name: Upload unsigned ${{ matrix.configuration }} package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: xucRun-Core-0.9.0.1-unsigned-debug
-          path: artifacts/CorePackage/Debug
+          name: xucRun-Core-0.9.0.1-unsigned-${{ matrix.artifact-suffix }}
+          path: artifacts/CorePackage/${{ matrix.configuration }}
           if-no-files-found: error
           retention-days: 7
