@@ -1,0 +1,63 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XUCRun", "xucRun\XUCRun.vcxproj", "{A8BC8E8D-1234-4567-89AB-CDEF01234567}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xucRunCore", "xucRunCore\xucRunCore.vcxproj", "{E6E73158-D76B-4B69-A637-6ED09C10C8E6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xucRunCoreTests", "xucRunCoreTests\xucRunCoreTests.vcxproj", "{708C2DF1-9A08-442A-A551-80B6404373AB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xucRunBroker", "xucRunBroker\xucRunBroker.vcxproj", "{D8417194-F6BB-4E50-AF39-66D07835B318}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xucRunApproval", "xucRunApproval\xucRunApproval.vcxproj", "{9B80228B-79A7-43D5-A65D-6FE8F0D05831}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xucRunLanguageEnUs", "xucRunLanguageEnUs\xucRunLanguageEnUs.vcxproj", "{B63DAD0D-1E91-4D33-9EE3-9C4F60D16E01}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xucRunLanguageDeDe", "xucRunLanguageDeDe\xucRunLanguageDeDe.vcxproj", "{E59F311C-8E41-47C0-A934-2823E97CD202}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xucRunClientCommon", "xucRunClientCommon\xucRunClientCommon.vcxproj", "{6D8F613B-052A-4B5D-9C76-2E0B646F7A12}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A8BC8E8D-1234-4567-89AB-CDEF01234567}.Debug|x64.ActiveCfg = Debug|x64
+		{A8BC8E8D-1234-4567-89AB-CDEF01234567}.Debug|x64.Build.0 = Debug|x64
+		{A8BC8E8D-1234-4567-89AB-CDEF01234567}.Release|x64.ActiveCfg = Release|x64
+		{A8BC8E8D-1234-4567-89AB-CDEF01234567}.Release|x64.Build.0 = Release|x64
+		{E6E73158-D76B-4B69-A637-6ED09C10C8E6}.Debug|x64.ActiveCfg = Debug|x64
+		{E6E73158-D76B-4B69-A637-6ED09C10C8E6}.Debug|x64.Build.0 = Debug|x64
+		{E6E73158-D76B-4B69-A637-6ED09C10C8E6}.Release|x64.ActiveCfg = Release|x64
+		{E6E73158-D76B-4B69-A637-6ED09C10C8E6}.Release|x64.Build.0 = Release|x64
+		{708C2DF1-9A08-442A-A551-80B6404373AB}.Debug|x64.ActiveCfg = Debug|x64
+		{708C2DF1-9A08-442A-A551-80B6404373AB}.Debug|x64.Build.0 = Debug|x64
+		{708C2DF1-9A08-442A-A551-80B6404373AB}.Release|x64.ActiveCfg = Release|x64
+		{708C2DF1-9A08-442A-A551-80B6404373AB}.Release|x64.Build.0 = Release|x64
+		{D8417194-F6BB-4E50-AF39-66D07835B318}.Debug|x64.ActiveCfg = Debug|x64
+		{D8417194-F6BB-4E50-AF39-66D07835B318}.Debug|x64.Build.0 = Debug|x64
+		{D8417194-F6BB-4E50-AF39-66D07835B318}.Release|x64.ActiveCfg = Release|x64
+		{D8417194-F6BB-4E50-AF39-66D07835B318}.Release|x64.Build.0 = Release|x64
+		{9B80228B-79A7-43D5-A65D-6FE8F0D05831}.Debug|x64.ActiveCfg = Debug|x64
+		{9B80228B-79A7-43D5-A65D-6FE8F0D05831}.Debug|x64.Build.0 = Debug|x64
+		{9B80228B-79A7-43D5-A65D-6FE8F0D05831}.Release|x64.ActiveCfg = Release|x64
+		{9B80228B-79A7-43D5-A65D-6FE8F0D05831}.Release|x64.Build.0 = Release|x64
+		{B63DAD0D-1E91-4D33-9EE3-9C4F60D16E01}.Debug|x64.ActiveCfg = Debug|x64
+		{B63DAD0D-1E91-4D33-9EE3-9C4F60D16E01}.Debug|x64.Build.0 = Debug|x64
+		{B63DAD0D-1E91-4D33-9EE3-9C4F60D16E01}.Release|x64.ActiveCfg = Release|x64
+		{B63DAD0D-1E91-4D33-9EE3-9C4F60D16E01}.Release|x64.Build.0 = Release|x64
+		{E59F311C-8E41-47C0-A934-2823E97CD202}.Debug|x64.ActiveCfg = Debug|x64
+		{E59F311C-8E41-47C0-A934-2823E97CD202}.Debug|x64.Build.0 = Debug|x64
+		{E59F311C-8E41-47C0-A934-2823E97CD202}.Release|x64.ActiveCfg = Release|x64
+		{E59F311C-8E41-47C0-A934-2823E97CD202}.Release|x64.Build.0 = Release|x64
+		{6D8F613B-052A-4B5D-9C76-2E0B646F7A12}.Debug|x64.ActiveCfg = Debug|x64
+		{6D8F613B-052A-4B5D-9C76-2E0B646F7A12}.Debug|x64.Build.0 = Debug|x64
+		{6D8F613B-052A-4B5D-9C76-2E0B646F7A12}.Release|x64.ActiveCfg = Release|x64
+		{6D8F613B-052A-4B5D-9C76-2E0B646F7A12}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

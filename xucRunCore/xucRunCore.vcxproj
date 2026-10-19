@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Purpose: Builds shared protocol, serialization, and security primitives. -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+	<ClCompile Include="ApplicationIcon.cpp" />
+    <ClCompile Include="ApprovalSerialization.cpp" />
+	<ClCompile Include="BrokerBackupArchive.cpp" />
+    <ClCompile Include="BrokerContracts.cpp" />
+    <ClCompile Include="BrokerPipeClient.cpp" />
+    <ClCompile Include="BrokerSerialization.cpp" />
+    <ClCompile Include="ClientCommandLine.cpp" />
+    <ClCompile Include="ClientProcessContext.cpp" />
+    <ClCompile Include="FileIdentity.cpp" />
+    <ClCompile Include="SecureDesktopHost.cpp" />
+    <ClCompile Include="SensitiveString.cpp" />
+    <ClCompile Include="TargetNaming.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+	<ClInclude Include="ApplicationIcon.h" />
+    <ClInclude Include="ApprovalSerialization.h" />
+	<ClInclude Include="BrokerBackupArchive.h" />
+    <ClInclude Include="BrokerContracts.h" />
+    <ClInclude Include="BrokerPipeClient.h" />
+    <ClInclude Include="BrokerSerializationAdministration.inl" />
+    <ClInclude Include="BrokerSerializationApprovals.inl" />
+    <ClInclude Include="BrokerSerializationCore.inl" />
+    <ClInclude Include="BrokerSerializationCredentials.inl" />
+    <ClInclude Include="BrokerSerialization.h" />
+    <ClInclude Include="ClientCommandLine.h" />
+    <ClInclude Include="ClientProcessContext.h" />
+    <ClInclude Include="FileIdentity.h" />
+    <ClInclude Include="SecureDesktopHost.h" />
+    <ClInclude Include="SensitiveString.h" />
+    <ClInclude Include="TargetNaming.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{E6E73158-D76B-4B69-A637-6ED09C10C8E6}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>xucRunCore</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)xucRunCore\x64\Debug\</OutDir>
+    <IntDir>$(SolutionDir)xucRunCore\x64\Debug\Intermediate\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)xucRunCore\x64\Release\</OutDir>
+    <IntDir>$(SolutionDir)xucRunCore\x64\Release\Intermediate\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PreBuildEvent Condition="'$(BuildingSolutionFile)'=='true'">
+      <Command>powershell.exe -ExecutionPolicy Bypass -File "$(SolutionDir)xucRunSharedResources\Increment-BuildNumber.ps1" -ProjectDir "$(SolutionDir)xucRunSharedResources\"</Command>
+      <Message>Incrementing shared build number...</Message>
+    </PreBuildEvent>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <Optimization>MinSpace</Optimization>
+      <AdditionalOptions>/Qspectre /guard:ehcont /utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

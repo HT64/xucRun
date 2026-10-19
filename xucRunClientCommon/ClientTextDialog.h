@@ -1,0 +1,13 @@
+// Purpose: Defines a unified display path for longer read-only client text.
+// Behavior: Uses an existing console when possible, otherwise a scrollable Win32 dialog.
+#pragma once
+
+#include <Windows.h>
+
+#include <string>
+
+namespace xucrun::text_dialog
+{
+	void Show(const std::wstring& windowTitle, const std::wstring& heading,
+		const std::wstring& content, HWND owner);
+}
