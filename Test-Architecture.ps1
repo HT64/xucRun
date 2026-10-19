@@ -64,6 +64,7 @@ foreach ($forbiddenDirectory in @(
 foreach ($requiredFile in @(
     '.gitattributes',
     '.gitignore',
+    '.github\workflows\core-ci.yml',
     'README.md',
     'LICENSE',
     'NOTICE',
@@ -77,6 +78,28 @@ foreach ($requiredFile in @(
         (Join-Path $repositoryRoot $requiredFile) -PathType Leaf) `
         "Required public repository file is missing: $requiredFile"
 }
+
+$ciWorkflow = [IO.File]::ReadAllText(
+    (Join-Path $repositoryRoot '.github\workflows\core-ci.yml'))
+foreach ($requiredCiContract in @(
+    'XUCRun.sln',
+    'xucRunCoreTests.exe',
+    'Test-Architecture.ps1',
+    'New-xucRun-CorePackage.ps1',
+    '0.9.0.1'
+)) {
+    Assert-PublicArchitecture ($ciWorkflow.Contains($requiredCiContract)) `
+        "The Core CI workflow must enforce $requiredCiContract."
+}
+Assert-PublicArchitecture ($ciWorkflow -match
+    'actions/checkout@[0-9a-f]{40}') `
+    'The Core CI checkout action must be pinned to a commit SHA.'
+Assert-PublicArchitecture ($ciWorkflow -match
+    'microsoft/setup-msbuild@[0-9a-f]{40}') `
+    'The Core CI MSBuild action must be pinned to a commit SHA.'
+Assert-PublicArchitecture ($ciWorkflow -match
+    'actions/upload-artifact@[0-9a-f]{40}') `
+    'The Core CI artifact action must be pinned to a commit SHA.'
 
 $gitIgnore = [IO.File]::ReadAllText(
     (Join-Path $repositoryRoot '.gitignore'))
