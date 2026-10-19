@@ -113,10 +113,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -Uninstall
 ```
 
-Die GitHub-CI prüft Debug und Release unabhängig und stellt beide unsigned Pakete als kurzlebige
-Buildartefakte bereit. Die signierte Veröffentlichung und die praktische Installer-Freigabe sind
-noch nicht abgeschlossen. Dieser Entwicklungsstand stellt deshalb keine Veröffentlichungsfreigabe
-dar.
+Die GitHub-CI baut und testet Debug und Release unabhängig und stellt beide unsignierten Pakete als
+kurzlebige Buildartefakte bereit. Das Release-Paket wird außerdem auf einem frischen Windows-Runner
+mit einem temporären lokalen Testzertifikat signiert. Anschließend prüft die CI automatisiert die
+Installation, den installierten Dienst und seine Signiererbindung, den Aufruf von `/info`, eine
+erneute Installation als Update sowie die vollständige Deinstallation und Bereinigung.
+
+Diese automatisierte technische Prüfung ersetzt keine Veröffentlichungsfreigabe. Die Signierung mit
+dem vorgesehenen Veröffentlichungszertifikat, ein abschließender interaktiver Test auf einer sauberen
+Windows-VM und die endgültige Freigabe der Sicherheits- und Release-Dokumentation stehen noch aus.
 
 ## Lizenz
 
