@@ -72,6 +72,7 @@ foreach ($requiredFile in @(
     'SECURITY.md',
     'Install-xucRun-Core.ps1',
     'New-xucRun-CorePackage.ps1',
+    'Test-CoreInstaller.ps1',
     'UserCodeSigning\Sign-xucRunCorePackage.ps1'
 )) {
     Assert-PublicArchitecture (Test-Path -LiteralPath `
@@ -86,6 +87,7 @@ foreach ($requiredCiContract in @(
     'configuration: Release',
     'xucRunCoreTests.exe',
     'Test-Architecture.ps1',
+    'Test-CoreInstaller.ps1',
     'New-xucRun-CorePackage.ps1',
     '0.9.0.1',
     'git status --porcelain=v1 --untracked-files=no'
@@ -102,6 +104,9 @@ Assert-PublicArchitecture ($ciWorkflow -match
 Assert-PublicArchitecture ($ciWorkflow -match
     'actions/upload-artifact@[0-9a-f]{40}') `
     'The Core CI artifact action must be pinned to a commit SHA.'
+Assert-PublicArchitecture ($ciWorkflow -match
+    'actions/download-artifact@[0-9a-f]{40}') `
+    'The Core CI download action must be pinned to a commit SHA.'
 
 $projectFiles = @(Get-ChildItem -LiteralPath $repositoryRoot -Recurse `
     -Filter '*.vcxproj' -File)
@@ -164,6 +169,7 @@ Assert-PublicArchitecture ($packageBuilder -match
 foreach ($script in @(
     'Install-xucRun-Core.ps1',
     'New-xucRun-CorePackage.ps1',
+    'Test-CoreInstaller.ps1',
     'UserCodeSigning\Sign-xucRunCorePackage.ps1'
 )) {
     $tokens = $null
