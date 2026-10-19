@@ -1,0 +1,264 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Purpose: Builds the command-line Core client executable. -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+  <ClCompile Include="ClientAdministrativeCommands.cpp" />
+  <ClCompile Include="ClientApprovalManagement.cpp" />
+  <ClCompile Include="ClientApprovalSelectionDialog.cpp" />
+  <ClCompile Include="ClientConsoleReplacement.cpp" />
+  <ClCompile Include="ClientConsoleSession.cpp" />
+  <ClCompile Include="ClientCredentialPrompt.cpp" />
+  <ClCompile Include="ClientElevatedWrapperLaunch.cpp" />
+  <ClCompile Include="ClientElevatedWrapperPreparation.cpp" />
+  <ClCompile Include="ClientElevatedWrapperParsing.cpp" />
+  <ClCompile Include="ClientElevatedWrapperReporter.cpp" />
+  <ClCompile Include="ClientHiddenLaunchModifiers.cpp" />
+	<ClCompile Include="ClientInfoCommand.cpp" />
+	<ClCompile Include="ClientLanguageChange.cpp" />
+  <ClCompile Include="ClientInternalBrokerTests.cpp">
+    <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+  </ClCompile>
+  <ClCompile Include="ClientProcessMonitoring.cpp" />
+  <ClCompile Include="ClientSameUserLaunch.cpp" />
+  <ClCompile Include="ClientProgramHashUpdateDialog.cpp" />
+  <ClCompile Include="ClientSecurityAudit.cpp" />
+  <ClCompile Include="ClientSensitiveString.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\xucRunSharedResources\Create-AppIcon.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\xucRunSharedResources\buildcounter.txt" />
+    <Text Include="..\xucRunSharedResources\version.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\xucRunCore\ApprovalSerialization.h" />
+    <ClInclude Include="..\xucRunCore\BrokerContracts.h" />
+    <ClInclude Include="..\xucRunCore\ClientCommandLine.h" />
+    <ClInclude Include="..\xucRunCore\ClientProcessContext.h" />
+    <ClInclude Include="..\xucRunCore\FileIdentity.h" />
+    <ClInclude Include="..\xucRunCore\TargetNaming.h" />
+    <ClInclude Include="..\xucRunSharedResources\BuildVersion.h" />
+    <ClInclude Include="ClientAdministrativeCommands.h" />
+    <ClInclude Include="ClientLanguageChange.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientAdministrativeStatus.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientBackupManagement.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientAccountIdentity.h" />
+    <ClInclude Include="ClientApprovalManagement.h" />
+    <ClInclude Include="ClientApprovalSelectionDialog.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientBrokerStatus.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientBrokerLaunch.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientBrokerCredentialManagement.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientBrokerCredentialSelection.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientConsoleOutput.h" />
+    <ClInclude Include="ClientConsoleReplacement.h" />
+    <ClInclude Include="ClientConsoleSession.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientCredentialFormatting.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientCredentialInfo.h" />
+    <ClInclude Include="ClientCredentialPrompt.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientCredentialSelectionDialog.h" />
+    <ClInclude Include="ClientElevatedWrapperLaunch.h" />
+    <ClInclude Include="ClientElevatedWrapperPreparation.h" />
+    <ClInclude Include="ClientElevatedWrapperParsing.h" />
+    <ClInclude Include="ClientElevatedWrapperReporter.h" />
+    <ClInclude Include="ClientHiddenLaunchModifiers.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientImageTrust.h" />
+    <ClInclude Include="ClientInfoCommand.h" />
+    <ClInclude Include="ClientInternalBrokerTests.h" />
+    <ClInclude Include="ClientMainArguments.inl" />
+    <ClInclude Include="ClientMainExecution.inl" />
+    <ClInclude Include="ClientMainModes.inl" />
+    <ClInclude Include="..\xucRunClientCommon\ClientLaunchDetection.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientLocalAccountEnumeration.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientLocalAccountSelectionDialog.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientLogging.h" />
+    <ClInclude Include="ClientProcessMonitoring.h" />
+    <ClInclude Include="ClientSameUserLaunch.h" />
+    <ClInclude Include="ClientProgramHashUpdateDialog.h" />
+    <ClInclude Include="ClientSecurityAudit.h" />
+    <ClInclude Include="ClientSensitiveString.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientTableDialog.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientTextDialog.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientUiCommon.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientWindowActivation.h" />
+    <ClInclude Include="..\xucRunClientCommon\ClientWindowsError.h" />
+    <ClInclude Include="..\xucRunClientCommon\Localization.h" />
+    <ClInclude Include="..\xucRunSharedResources\ClientResourceIds.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\xucRunCore\xucRunCore.vcxproj">
+      <Project>{e6e73158-d76b-4b69-a637-6ed09c10c8e6}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\xucRunClientCommon\xucRunClientCommon.vcxproj">
+      <Project>{6d8f613b-052a-4b5d-9c76-2e0b646f7a12}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\xucRunBroker\xucRunBroker.vcxproj">
+      <Project>{d8417194-f6bb-4e50-af39-66d07835b318}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\xucRunApproval\xucRunApproval.vcxproj">
+      <Project>{9b80228b-79a7-43d5-a65d-6fe8f0d05831}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\xucRunLanguageEnUs\xucRunLanguageEnUs.vcxproj">
+      <Project>{b63dad0d-1e91-4d33-9ee3-9c4f60d16e01}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\xucRunLanguageDeDe\xucRunLanguageDeDe.vcxproj">
+      <Project>{e59f311c-8e41-47c0-a934-2823e97cd202}</Project>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\xucRunSharedResources\xucRun.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\xucRunSharedResources\ClientResources.rc">
+      <PreprocessorDefinitions>XUCRUN_EXTERNAL_LANGUAGES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{A8BC8E8D-1234-4567-89AB-CDEF01234567}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>XUCRun</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <!-- Debug Configuration -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)xucRun\x64\Debug\</OutDir>
+    <IntDir>$(SolutionDir)xucRun\x64\Debug\Intermediate\</IntDir>
+    <TargetName>xucRun</TargetName>
+  </PropertyGroup>
+  <!-- Release Configuration -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)xucRun\x64\Release\</OutDir>
+    <IntDir>$(SolutionDir)xucRun\x64\Release\Intermediate\</IntDir>
+    <TargetName>xucRun</TargetName>
+  </PropertyGroup>
+  <!-- Debug Compiler Settings -->
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(SolutionDir)xucRunSharedResources;$(SolutionDir)xucRunClientCommon;$(SolutionDir)xucRunCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>Shell32.lib;Advapi32.lib;Credui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <UACExecutionLevel>AsInvoker</UACExecutionLevel>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <CETCompat>true</CETCompat>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <HighEntropyVA>true</HighEntropyVA>
+    </Link>
+  </ItemDefinitionGroup>
+  <!-- Release Compiler Settings -->
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(SolutionDir)xucRunSharedResources;$(SolutionDir)xucRunClientCommon;$(SolutionDir)xucRunCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MinSpace</Optimization>
+      <StringPooling>true</StringPooling>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>Shell32.lib;Advapi32.lib;Credui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <UACExecutionLevel>AsInvoker</UACExecutionLevel>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <CETCompat>true</CETCompat>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <HighEntropyVA>true</HighEntropyVA>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <Target Name="StageApprovalHelper" AfterTargets="Link">
+    <Message Text="[Post-Build] Stage Approval-Helper..." Importance="high" />
+    <Copy SourceFiles="$(SolutionDir)xucRunApproval\x64\$(Configuration)\xucRunApproval.exe" DestinationFiles="$(OutDir)xucRunApproval.exe" />
+  </Target>
+  <Target Name="SignReleaseExecutable" AfterTargets="Link" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Message Text="[Post-Build] Signiere Release-EXE..." Importance="high" />
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(TargetPath)&quot;" />
+    <Message Text="[Post-Build] Erzeuge und signiere Installationsskript..." Importance="high" />
+    <Copy SourceFiles="$(SolutionDir)Install-xucRun.ps1" DestinationFiles="$(OutDir)Install-xucRun.ps1" />
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(OutDir)Install-xucRun.ps1&quot;" />
+    <Message Text="[Post-Build] Erzeuge und signiere benutzerspezifischen Icon-Installer..." Importance="high" />
+    <Copy SourceFiles="$(SolutionDir)Install-xucRun-Icon.ps1" DestinationFiles="$(OutDir)Install-xucRun-Icon.ps1" />
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(OutDir)Install-xucRun-Icon.ps1&quot;" />
+    <Message Text="[Post-Build] Stage signierten Broker im Installationspaket..." Importance="high" />
+    <Copy SourceFiles="$(SolutionDir)xucRunBroker\x64\Release\xucRunBroker.exe" DestinationFiles="$(OutDir)xucRunBroker.exe" />
+    <Message Text="[Post-Build] Erzeuge und signiere Anwenderwerkzeug..." Importance="high" />
+    <MakeDir Directories="$(OutDir)UserCodeSigning" />
+    <Copy SourceFiles="$(SolutionDir)UserCodeSigning\Sign-xucRunPackage.ps1;$(SolutionDir)UserCodeSigning\README.md" DestinationFolder="$(OutDir)UserCodeSigning" />
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(OutDir)UserCodeSigning\Sign-xucRunPackage.ps1&quot;" />
+  </Target>
+</Project>

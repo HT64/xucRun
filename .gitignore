@@ -1,0 +1,16 @@
+# Purpose: Excludes public Core build outputs, IDE state, and generated packages.
+.vs/
+*.user
+*.suo
+*.VC.db
+*.VC.VC.opendb
+Thumbs.db
+Desktop.ini
+
+# Build and package outputs
+x64/
+artifacts/
+CorePackage/
+
+# Use the maintained Visual Studio solution
+*.slnx

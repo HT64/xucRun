@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Purpose: Builds the LocalSystem broker service executable. -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+  <ClCompile Include="BrokerDirectoryOperations.cpp" />
+	<ClCompile Include="BrokerTemporaryBatch.cpp" />
+  <ClCompile Include="ApprovalStore.cpp" />
+	<ClCompile Include="AuthenticityMarkerStore.cpp" />
+  <ClCompile Include="BrokerBackupStore.cpp" />
+    <ClCompile Include="AccountIdentity.cpp" />
+    <ClCompile Include="BrokerTargetNaming.cpp" />
+    <ClCompile Include="BrokerPipeServer.cpp" />
+    <ClCompile Include="ClientImageIdentity.cpp" />
+    <ClCompile Include="CredentialMetadataStore.cpp" />
+    <ClCompile Include="CredentialStore.cpp" />
+    <ClCompile Include="CredentialStoreSelfTest.cpp" />
+    <ClCompile Include="CredentialValidator.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="SecurityAclAudit.cpp" />
+    <ClCompile Include="SessionTestLauncher.cpp" />
+    <ClCompile Include="SensitiveClientAuthorization.cpp" />
+    <ClCompile Include="TargetImageIdentity.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+  <ClInclude Include="BrokerDirectoryOperations.h" />
+	<ClInclude Include="BrokerTemporaryBatch.h" />
+  <ClInclude Include="ApprovalStore.h" />
+	<ClInclude Include="AuthenticityMarkerStore.h" />
+  <ClInclude Include="BrokerBackupStore.h" />
+    <ClInclude Include="BrokerPipeApprovalHandlers.inl" />
+    <ClInclude Include="BrokerPipeControlHandlers.inl" />
+    <ClInclude Include="BrokerPipeCredentialHandlers.inl" />
+    <ClInclude Include="BrokerPipeProcessHandlers.inl" />
+    <ClInclude Include="BrokerPipeRequestDecoder.inl" />
+    <ClInclude Include="BrokerPipeRequestDispatcher.inl" />
+    <ClInclude Include="BrokerRequestPolicy.h" />
+    <ClInclude Include="AccountIdentity.h" />
+    <ClInclude Include="BrokerTargetNaming.h" />
+    <ClInclude Include="BrokerPipeServer.h" />
+    <ClInclude Include="ClientImageIdentity.h" />
+    <ClInclude Include="CredentialMetadataStore.h" />
+    <ClInclude Include="CredentialStore.h" />
+    <ClInclude Include="CredentialStoreSelfTest.h" />
+    <ClInclude Include="CredentialValidator.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="SessionLaunchExecution.inl" />
+    <ClInclude Include="SessionLaunchOperations.inl" />
+    <ClInclude Include="SessionLaunchPreparation.inl" />
+    <ClInclude Include="SessionTestLauncher.h" />
+    <ClInclude Include="SecurityAclAudit.h" />
+    <ClInclude Include="SensitiveClientAuthorization.h" />
+    <ClInclude Include="TargetImageIdentity.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="xucRunBroker.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="xucRunBroker.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\xucRunCore\xucRunCore.vcxproj">
+      <Project>{e6e73158-d76b-4b69-a637-6ed09c10c8e6}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{D8417194-F6BB-4E50-AF39-66D07835B318}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>xucRunBroker</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)xucRunBroker\x64\Debug\</OutDir>
+    <IntDir>$(SolutionDir)xucRunBroker\x64\Debug\Intermediate\</IntDir>
+    <TargetName>xucRunBroker</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)xucRunBroker\x64\Release\</OutDir>
+    <IntDir>$(SolutionDir)xucRunBroker\x64\Release\Intermediate\</IntDir>
+    <TargetName>xucRunBroker</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(SolutionDir)xucRunCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>Advapi32.lib;Bcrypt.lib;Crypt32.lib;Ncrypt.lib;Netapi32.lib;Ole32.lib;Shell32.lib;Userenv.lib;Wer.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <UACExecutionLevel>AsInvoker</UACExecutionLevel>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <CETCompat>true</CETCompat>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <HighEntropyVA>true</HighEntropyVA>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(SolutionDir)xucRunCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Qspectre /guard:ehcont /utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MinSpace</Optimization>
+      <StringPooling>true</StringPooling>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>Advapi32.lib;Bcrypt.lib;Crypt32.lib;Ncrypt.lib;Netapi32.lib;Ole32.lib;Shell32.lib;Userenv.lib;Wer.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <UACExecutionLevel>AsInvoker</UACExecutionLevel>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <CETCompat>true</CETCompat>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <HighEntropyVA>true</HighEntropyVA>
+      <AdditionalOptions>/guard:ehcont %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+  <Target Name="SignReleaseExecutable" AfterTargets="Link" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Message Text="[Post-Build] Signiere Broker-Release-EXE..." Importance="high" />
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Sign-Executable.ps1&quot; -Path &quot;$(TargetPath)&quot;" />
+  </Target>
+</Project>

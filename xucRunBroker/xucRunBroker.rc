@@ -1,0 +1,4 @@
+// Purpose: Defines icon and version resources for the xucRun broker service executable.
+#include "resource.h"
+
+IDI_XUCRUN_BROKER ICON "xucRunBroker.ico"

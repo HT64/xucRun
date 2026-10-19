@@ -1,0 +1,4 @@
+// Purpose: Defines icon and version resources for the xucRun approval helper executable.
+#include "resource.h"
+
+IDI_XUCRUN_APPROVAL ICON "xucRunApproval.ico"

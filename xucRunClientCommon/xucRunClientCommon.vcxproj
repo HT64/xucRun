@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Purpose: Builds client logic shared by Core and Tray. -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ClientAccountIdentity.cpp" />
+    <ClCompile Include="ClientAdministrativeStatus.cpp" />
+    <ClCompile Include="ClientBackupManagement.cpp" />
+    <ClCompile Include="ClientBrokerCredentialManagement.cpp" />
+    <ClCompile Include="ClientBrokerCredentialSelection.cpp" />
+    <ClCompile Include="ClientBrokerLaunch.cpp" />
+    <ClCompile Include="ClientBrokerStatus.cpp" />
+    <ClCompile Include="ClientConsoleOutput.cpp" />
+    <ClCompile Include="ClientCredentialFormatting.cpp" />
+    <ClCompile Include="ClientCredentialSelectionDialog.cpp" />
+    <ClCompile Include="ClientImageTrust.cpp" />
+    <ClCompile Include="ClientLaunchDetection.cpp" />
+    <ClCompile Include="ClientLocalAccountEnumeration.cpp" />
+    <ClCompile Include="ClientLocalAccountSelectionDialog.cpp" />
+    <ClCompile Include="ClientLogging.cpp" />
+    <ClCompile Include="ClientTableDialog.cpp" />
+    <ClCompile Include="ClientTextDialog.cpp" />
+    <ClCompile Include="ClientUiCommon.cpp" />
+    <ClCompile Include="ClientWindowActivation.cpp" />
+    <ClCompile Include="ClientWindowsError.cpp" />
+    <ClCompile Include="Localization.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ClientAccountIdentity.h" />
+    <ClInclude Include="ClientAdministrativeStatus.h" />
+    <ClInclude Include="ClientBackupManagement.h" />
+    <ClInclude Include="ClientBrokerCredentialManagement.h" />
+    <ClInclude Include="ClientBrokerCredentialSelection.h" />
+    <ClInclude Include="ClientBrokerLaunch.h" />
+    <ClInclude Include="ClientBrokerStatus.h" />
+    <ClInclude Include="ClientConsoleOutput.h" />
+    <ClInclude Include="ClientCredentialFormatting.h" />
+    <ClInclude Include="ClientCredentialInfo.h" />
+    <ClInclude Include="ClientCredentialSelectionDialog.h" />
+    <ClInclude Include="ClientImageTrust.h" />
+    <ClInclude Include="ClientLaunchDetection.h" />
+    <ClInclude Include="ClientLocalAccountEnumeration.h" />
+    <ClInclude Include="ClientLocalAccountSelectionDialog.h" />
+    <ClInclude Include="ClientLogging.h" />
+    <ClInclude Include="ClientTableDialog.h" />
+    <ClInclude Include="ClientTextDialog.h" />
+    <ClInclude Include="ClientUiCommon.h" />
+    <ClInclude Include="ClientWindowActivation.h" />
+    <ClInclude Include="ClientWindowsError.h" />
+    <ClInclude Include="Localization.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\xucRunCore\xucRunCore.vcxproj">
+      <Project>{e6e73158-d76b-4b69-a637-6ed09c10c8e6}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{6D8F613B-052A-4B5D-9C76-2E0B646F7A12}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>xucRunClientCommon</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
+      Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
+      Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
+      Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
+      Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)x64\Debug\</OutDir>
+    <IntDir>$(ProjectDir)x64\Debug\Intermediate\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)x64\Release\</OutDir>
+    <IntDir>$(ProjectDir)x64\Release\Intermediate\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\xucRunSharedResources;$(ProjectDir)..\xucRunCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <Optimization>MinSpace</Optimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\xucRunSharedResources;$(ProjectDir)..\xucRunCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Qspectre /guard:ehcont /utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>
