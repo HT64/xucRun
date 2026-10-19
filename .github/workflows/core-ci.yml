@@ -1,0 +1,111 @@
+# Purpose: Builds and validates the public xucRun Core on a clean Windows runner.
+name: Core CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-package:
+    name: Build, test, and package
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Configure MSBuild
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2
+
+      - name: Build Debug x64
+        shell: powershell
+        run: |
+          msbuild.exe .\XUCRun.sln `
+            /t:Build `
+            /p:Configuration=Debug `
+            /p:Platform=x64 `
+            /m `
+            /nologo `
+            /verbosity:minimal
+          if ($LASTEXITCODE -ne 0) {
+              throw "MSBuild failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Run Core tests
+        shell: powershell
+        run: |
+          & .\xucRunCoreTests\x64\Debug\xucRunCoreTests.exe
+          if ($LASTEXITCODE -ne 0) {
+              throw "Core tests failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Validate public architecture
+        shell: powershell
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass `
+            -File .\Test-Architecture.ps1
+          if ($LASTEXITCODE -ne 0) {
+              throw "Architecture validation failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Verify client version
+        shell: powershell
+        run: |
+          $version = (Get-Item -LiteralPath `
+            '.\xucRun\x64\Debug\xucRun.exe').VersionInfo.ProductVersion
+          if ($version -ne '0.9.0.1') {
+              throw "Expected xucRun.exe version 0.9.0.1, found '$version'."
+          }
+
+      - name: Create and verify unsigned package
+        shell: powershell
+        run: |
+          $package = Join-Path $PWD 'artifacts\CorePackage\Debug'
+          powershell.exe -NoProfile -ExecutionPolicy Bypass `
+            -File .\New-xucRun-CorePackage.ps1 `
+            -Configuration Debug `
+            -DestinationDirectory $package
+          if ($LASTEXITCODE -ne 0) {
+              throw "Package creation failed with exit code $LASTEXITCODE."
+          }
+
+          $actual = @(Get-ChildItem -LiteralPath $package -Recurse -File |
+            ForEach-Object {
+              $_.FullName.Substring($package.Length).TrimStart('\')
+            } |
+            Sort-Object)
+          $expected = @(
+            'Install-xucRun-Core.ps1'
+            'Languages\xucRun.de-DE.dll'
+            'Languages\xucRun.en-US.dll'
+            'SHA256SUMS.json'
+            'UserCodeSigning\Sign-xucRunCorePackage.ps1'
+            'xucRun.exe'
+            'xucRunApproval.exe'
+            'xucRunBroker.exe'
+          ) | Sort-Object
+          if (($actual -join "`n") -cne ($expected -join "`n")) {
+              throw "Package contents differ from the exact Core package contract.`n" +
+                ($actual -join "`n")
+          }
+
+      - name: Upload unsigned Debug package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: xucRun-Core-0.9.0.1-unsigned-debug
+          path: artifacts/CorePackage/Debug
+          if-no-files-found: error
+          retention-days: 7
