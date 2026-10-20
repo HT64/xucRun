@@ -62,7 +62,7 @@ Paket und legt zunächst einen Draft Release zur manuellen Kontrolle an. Sobald 
 öffentlich ist, erzeugt der Workflow zusätzlich eine GitHub-Artefaktattestierung. GitHub bietet
 diese Funktion für benutzereigene private Repositories nicht an.
 
-Vor dem Tag müssen `CHANGELOG.md` und `CHANGELOG.en.md` einen nicht leeren Abschnitt für dieselbe
+Vor dem Tag müssen `CHANGELOG.md` und `CHANGELOG.de.md` einen nicht leeren Abschnitt für dieselbe
 Version enthalten. Der Workflow übernimmt beide Abschnitte in die Release-Beschreibung und bricht
 bei einer fehlenden oder abweichenden Version ab. Ein bereits vorhandener Draft Release wird
 aktualisiert; ein bereits veröffentlichter Release derselben Version wird nicht überschrieben.
