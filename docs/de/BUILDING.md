@@ -58,5 +58,6 @@ kommerzielles Herausgeberzertifikat bereitgestellt; die lokale Signierung erfolg
 Zielrechner über den grafischen Installer oder vor der manuellen Installation.
 
 Ein Tag im Format `v0.9.0.1` startet den GitHub-Release-Workflow. Er prüft Build, Tests, Version und
-Paket, erzeugt eine GitHub-Artefaktattestierung und legt zunächst einen Draft Release zur manuellen
-Kontrolle an.
+Paket und legt zunächst einen Draft Release zur manuellen Kontrolle an. Sobald das Repository
+öffentlich ist, erzeugt der Workflow zusätzlich eine GitHub-Artefaktattestierung. GitHub bietet
+diese Funktion für benutzereigene private Repositories nicht an.

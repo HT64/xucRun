@@ -58,5 +58,6 @@ without a commercial publisher certificate; local signing takes place on the tar
 through the graphical installer or before manual installation.
 
 A tag in the format `v0.9.0.1` starts the GitHub release workflow. It verifies the build, tests,
-version, and package; creates a GitHub artifact attestation; and initially creates a draft release
-for manual review.
+version, and package and initially creates a draft release for manual review. Once the repository
+is public, the workflow also creates a GitHub artifact attestation. GitHub does not provide this
+feature for user-owned private repositories.
