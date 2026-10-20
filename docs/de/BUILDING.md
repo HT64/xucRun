@@ -42,14 +42,14 @@ Einzelinstaller, das vollständige ZIP-Archiv und die öffentliche SHA-256-Datei
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\New-xucRun-Release.ps1 `
-  -ExpectedVersion 0.9.0.1
+  -ExpectedVersion 0.9.0.2
 ```
 
-Die Dateien entstehen unter `artifacts\Release\0.9.0.1`:
+Die Dateien entstehen unter `artifacts\Release\0.9.0.2`:
 
 ```text
-xucRun-Installer-0.9.0.1-x64.exe
-xucRun-0.9.0.1-x64.zip
+xucRun-Installer-0.9.0.2-x64.exe
+xucRun-0.9.0.2-x64.zip
 SHA256SUMS.txt
 ```
 
@@ -57,7 +57,7 @@ Das Release-Skript lehnt signierte Buildausgaben bewusst ab. Öffentliche Releas
 kommerzielles Herausgeberzertifikat bereitgestellt; die lokale Signierung erfolgt auf dem
 Zielrechner über den grafischen Installer oder vor der manuellen Installation.
 
-Ein Tag im Format `v0.9.0.1` startet den GitHub-Release-Workflow. Er prüft Build, Tests, Version und
+Ein Tag im Format `v0.9.0.2` startet den GitHub-Release-Workflow. Er prüft Build, Tests, Version und
 Paket und legt zunächst einen Draft Release zur manuellen Kontrolle an. Sobald das Repository
 öffentlich ist, erzeugt der Workflow zusätzlich eine GitHub-Artefaktattestierung. GitHub bietet
 diese Funktion für benutzereigene private Repositories nicht an.

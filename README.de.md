@@ -291,7 +291,7 @@ deshalb beim ersten Start einen unbekannten Herausgeber melden.
 
 Der einfachste Installationsweg ist
 `xucRun-Installer-<Version>-x64.exe`, beispielsweise
-`xucRun-Installer-0.9.0.1-x64.exe`. Vor dem Start sollte die Datei nur aus der
+`xucRun-Installer-0.9.0.2-x64.exe`. Vor dem Start sollte die Datei nur aus der
 vertrauenswürdigen Veröffentlichungsquelle bezogen, ihre SHA-256-Prüfsumme mit der dort
 veröffentlichten Prüfsumme verglichen und eine vorhandene Authenticode-Signatur geprüft werden.
 

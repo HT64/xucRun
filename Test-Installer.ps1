@@ -171,8 +171,8 @@ function Assert-InstalledState {
         [string]$uninstallKey.GetValue('DisplayName', '') -eq 'xucRun') `
         'The uninstall DisplayName is not xucRun.'
     Assert-Condition (
-        [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.0.1') `
-        'The uninstall DisplayVersion is not 0.9.0.1.'
+        [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.0.2') `
+        'The uninstall DisplayVersion is not 0.9.0.2.'
     Assert-Condition (
         [int]$uninstallKey.GetValue('AddedToSystemPath', 0) -eq 1) `
         'The uninstall entry does not record the PATH registration.'

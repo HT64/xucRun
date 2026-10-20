@@ -266,7 +266,7 @@ it is first started.
 
 The easiest installation method is
 `xucRun-Installer-<Version>-x64.exe`, for example
-`xucRun-Installer-0.9.0.1-x64.exe`. Before starting it, obtain the file only from the trusted
+`xucRun-Installer-0.9.0.2-x64.exe`. Before starting it, obtain the file only from the trusted
 release source, compare its SHA-256 checksum with the checksum published there, and verify any
 available Authenticode signature.
 

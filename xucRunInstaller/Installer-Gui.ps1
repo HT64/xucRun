@@ -307,8 +307,11 @@ function Invoke-HiddenPowerShell {
     $powerShellPath =
         Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $id = [Guid]::NewGuid().ToString('N')
-    $standardOutputPath = Join-Path $PackageDirectory "$id.stdout.log"
-    $standardErrorPath = Join-Path $PackageDirectory "$id.stderr.log"
+    $logDirectory = [IO.Path]::GetTempPath()
+    $standardOutputPath =
+        Join-Path $logDirectory "xucRun-Installer-$id.stdout.log"
+    $standardErrorPath =
+        Join-Path $logDirectory "xucRun-Installer-$id.stderr.log"
     try {
         $process = Start-Process -FilePath $powerShellPath -ArgumentList $Arguments `
             -WindowStyle Hidden -RedirectStandardOutput $standardOutputPath `

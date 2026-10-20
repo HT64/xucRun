@@ -25,14 +25,14 @@ Der empfohlene Installationsweg ist ein Doppelklick auf:
 xucRun-Installer-<Version>-x64.exe
 ```
 
-Bei Version 0.9.0.1 heißt die Datei beispielsweise
-`xucRun-Installer-0.9.0.1-x64.exe`. Der Dateiname wird bei der Paketerzeugung automatisch aus
+Bei Version 0.9.0.2 heißt die Datei beispielsweise
+`xucRun-Installer-0.9.0.2-x64.exe`. Der Dateiname wird bei der Paketerzeugung automatisch aus
 der Produktversion der intern weiterhin als `Installer.exe` gebauten Datei erzeugt.
 
 Die lokale SHA-256-Prüfsumme kann beispielsweise so angezeigt werden:
 
 ```powershell
-Get-FileHash .\xucRun-Installer-0.9.0.1-x64.exe -Algorithm SHA256
+Get-FileHash .\xucRun-Installer-0.9.0.2-x64.exe -Algorithm SHA256
 ```
 
 Der ausgegebene Hash muss vollständig mit dem Eintrag für diese Datei in der zum GitHub Release

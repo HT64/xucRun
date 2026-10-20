@@ -42,14 +42,14 @@ installer, complete ZIP archive, and public SHA-256 file:
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\New-xucRun-Release.ps1 `
-  -ExpectedVersion 0.9.0.1
+  -ExpectedVersion 0.9.0.2
 ```
 
-The files are created under `artifacts\Release\0.9.0.1`:
+The files are created under `artifacts\Release\0.9.0.2`:
 
 ```text
-xucRun-Installer-0.9.0.1-x64.exe
-xucRun-0.9.0.1-x64.zip
+xucRun-Installer-0.9.0.2-x64.exe
+xucRun-0.9.0.2-x64.zip
 SHA256SUMS.txt
 ```
 
@@ -57,7 +57,7 @@ The release script deliberately rejects signed build outputs. Public releases ar
 without a commercial publisher certificate; local signing takes place on the target computer
 through the graphical installer or before manual installation.
 
-A tag in the format `v0.9.0.1` starts the GitHub release workflow. It verifies the build, tests,
+A tag in the format `v0.9.0.2` starts the GitHub release workflow. It verifies the build, tests,
 version, and package and initially creates a draft release for manual review. Once the repository
 is public, the workflow also creates a GitHub artifact attestation. GitHub does not provide this
 feature for user-owned private repositories.
