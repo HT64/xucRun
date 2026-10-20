@@ -1,5 +1,5 @@
-# Purpose: Builds, attests, and stages unsigned xucRun Core assets as a draft GitHub Release.
-name: Core Release
+# Purpose: Builds, attests, and stages unsigned xucRun assets as a draft GitHub Release.
+name: xucRun Release
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   attestations: write
 
 concurrency:
-  group: core-release-${{ github.ref }}
+  group: xucRun-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -59,19 +59,19 @@ jobs:
             throw "MSBuild failed with exit code $LASTEXITCODE."
           }
 
-      - name: Run Core tests
+      - name: Run tests
         shell: powershell
         run: |
           & .\xucRunCoreTests\x64\Release\xucRunCoreTests.exe
           if ($LASTEXITCODE -ne 0) {
-            throw "Core tests failed with exit code $LASTEXITCODE."
+            throw "Tests failed with exit code $LASTEXITCODE."
           }
 
       - name: Create unsigned release assets
         shell: powershell
         run: |
           powershell.exe -NoProfile -ExecutionPolicy Bypass `
-            -File .\New-xucRun-CoreRelease.ps1 `
+            -File .\New-xucRun-Release.ps1 `
             -ExpectedVersion $env:XUCRUN_RELEASE_VERSION
           if ($LASTEXITCODE -ne 0) {
             throw "Release packaging failed with exit code $LASTEXITCODE."
@@ -97,7 +97,7 @@ jobs:
       - name: Upload release preparation artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: xucRun-Core-${{ env.XUCRUN_RELEASE_VERSION }}-release-assets
+          name: xucRun-${{ env.XUCRUN_RELEASE_VERSION }}-release-assets
           path: artifacts/Release/${{ env.XUCRUN_RELEASE_VERSION }}
           if-no-files-found: error
           retention-days: 30
@@ -110,39 +110,46 @@ jobs:
           $version = $env:XUCRUN_RELEASE_VERSION
           $tag = $env:GITHUB_REF_NAME
           $releaseDirectory = Join-Path $PWD "artifacts\Release\$version"
-          $installerName = "xucRun-Core-Installer-$version-x64.exe"
-          $archiveName = "xucRun-Core-$version-x64.zip"
-          $checksums = Get-Content -LiteralPath (
-            Join-Path $releaseDirectory 'SHA256SUMS.txt') -Raw
+          $installerName = "xucRun-Installer-$version-x64.exe"
+          $archiveName = "xucRun-$version-x64.zip"
           $notesPath = Join-Path $releaseDirectory 'RELEASE-NOTES.md'
-          @"
-          ## Wichtiger Hinweis / Important notice
-
-          xucRun Core ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte
-          Installer-Datei besitzt keine Signatur eines öffentlich vertrauenswürdigen
-          Herausgebers. Windows kann deshalb beim ersten Start einen unbekannten Herausgeber
-          melden. Laden Sie die Dateien ausschließlich aus diesem GitHub Release herunter und
-          vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
-
-          xucRun Core is a non-commercial open-source project. The provided installer is not
-          signed by a publicly trusted publisher. Windows may therefore report an unknown
-          publisher when it is first started. Download the files only from this GitHub Release
-          and compare the SHA-256 checksum before starting the installer.
-
-          ## SHA-256
-
-          ~~~text
-          $checksums
-          ~~~
-          "@ | Set-Content -LiteralPath $notesPath -Encoding UTF8
+          powershell.exe -NoProfile -ExecutionPolicy Bypass `
+            -File .\New-xucRun-ReleaseNotes.ps1 `
+            -Version $version `
+            -ChecksumPath (Join-Path $releaseDirectory 'SHA256SUMS.txt') `
+            -DestinationPath $notesPath
+          if ($LASTEXITCODE -ne 0) {
+            throw "Creating release notes failed with exit code $LASTEXITCODE."
+          }
 
           $existingReleases = @(
             gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" |
               ConvertFrom-Json |
               Where-Object { $_.tag_name -eq $tag }
           )
-          if ($existingReleases.Count -ne 0) {
-            throw "A GitHub Release already exists for tag '$tag'."
+          if ($existingReleases.Count -gt 1) {
+            throw "Multiple GitHub Releases exist for tag '$tag'."
+          }
+          if ($existingReleases.Count -eq 1 -and -not $existingReleases[0].draft) {
+            throw "A published GitHub Release already exists for tag '$tag'."
+          }
+          if ($existingReleases.Count -eq 1) {
+            gh release edit $tag `
+              --title "xucRun $version" `
+              --notes-file $notesPath `
+              --draft
+            if ($LASTEXITCODE -ne 0) {
+              throw "Updating the draft GitHub Release failed with exit code $LASTEXITCODE."
+            }
+            gh release upload $tag `
+              (Join-Path $releaseDirectory $installerName) `
+              (Join-Path $releaseDirectory $archiveName) `
+              (Join-Path $releaseDirectory 'SHA256SUMS.txt') `
+              --clobber
+            if ($LASTEXITCODE -ne 0) {
+              throw "Updating draft release assets failed with exit code $LASTEXITCODE."
+            }
+            exit 0
           }
           gh release create $tag `
             (Join-Path $releaseDirectory $installerName) `
@@ -150,7 +157,7 @@ jobs:
             (Join-Path $releaseDirectory 'SHA256SUMS.txt') `
             --draft `
             --verify-tag `
-            --title "xucRun Core $version" `
+            --title "xucRun $version" `
             --notes-file $notesPath
           if ($LASTEXITCODE -ne 0) {
             throw "Creating the draft GitHub Release failed with exit code $LASTEXITCODE."

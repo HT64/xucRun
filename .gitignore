@@ -1,4 +1,4 @@
-# Purpose: Excludes public Core build outputs, IDE state, and generated packages.
+# Purpose: Excludes xucRun build outputs, IDE state, and generated packages.
 .vs/
 *.user
 *.suo
@@ -10,7 +10,7 @@ Desktop.ini
 # Build and package outputs
 x64/
 artifacts/
-CorePackage/
+Package/
 
 # Use the maintained Visual Studio solution
 *.slnx

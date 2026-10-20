@@ -1,4 +1,4 @@
-# Contributing to xucRun Core
+# Contributing to xucRun
 
 **Language:** [Deutsch](CONTRIBUTING.de.md) | English
 

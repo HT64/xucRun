@@ -1,4 +1,4 @@
-# Beiträge zu xucRun Core
+# Beiträge zu xucRun
 
 **Sprache:** Deutsch | [English](CONTRIBUTING.md)
 

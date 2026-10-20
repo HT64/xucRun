@@ -1,4 +1,4 @@
-// Purpose: Embeds the Core package and version metadata into Installer.exe.
+// Purpose: Embeds the xucRun package and version metadata into Installer.exe.
 #pragma code_page(65001)
 
 #include <windows.h>
@@ -22,8 +22,8 @@ IDR_LANGUAGE_DE RCDATA "..\\xucRun\\x64\\Debug\\Languages\\xucRun.de-DE.dll"
 IDR_LANGUAGE_EN RCDATA "..\\xucRun\\x64\\Debug\\Languages\\xucRun.en-US.dll"
 #endif
 
-IDR_MACHINE_INSTALLER RCDATA "..\\Install-xucRun-Core.ps1"
-IDR_SIGN_PACKAGE RCDATA "..\\UserCodeSigning\\Sign-xucRunCorePackage.ps1"
+IDR_MACHINE_INSTALLER RCDATA "..\\Install-xucRun.ps1"
+IDR_SIGN_PACKAGE RCDATA "..\\UserCodeSigning\\Sign-xucRunPackage.ps1"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,BUILD_NUMBER
@@ -43,12 +43,12 @@ BEGIN
         BLOCK "040704b0"
         BEGIN
             VALUE "CompanyName", "HT64"
-            VALUE "FileDescription", "xucRun Core Installer"
+            VALUE "FileDescription", "xucRun Installer"
             VALUE "FileVersion", VERSION_STRING
             VALUE "InternalName", "Installer"
             VALUE "LegalCopyright", "Copyright (C) 2024-2026"
             VALUE "OriginalFilename", "Installer.exe"
-            VALUE "ProductName", "xucRun Core"
+            VALUE "ProductName", "xucRun"
             VALUE "ProductVersion", VERSION_STRING
         END
     END

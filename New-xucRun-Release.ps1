@@ -1,4 +1,4 @@
-# Purpose: Creates the unsigned standalone installer, ZIP archive, and public checksums for a Core release.
+# Purpose: Creates the unsigned standalone installer, ZIP archive, and public release checksums.
 [CmdletBinding()]
 param(
     [ValidateSet('Release')]
@@ -32,9 +32,9 @@ if ([string]::IsNullOrWhiteSpace($DestinationDirectory)) {
 }
 $destination = [IO.Path]::GetFullPath($DestinationDirectory)
 $packageDirectory =
-    Join-Path $repositoryRoot "artifacts\CorePackage\$Configuration"
-$installerName = "xucRun-Core-Installer-$version-x64.exe"
-$archiveName = "xucRun-Core-$version-x64.zip"
+    Join-Path $repositoryRoot "artifacts\Package\$Configuration"
+$installerName = "xucRun-Installer-$version-x64.exe"
+$archiveName = "xucRun-$version-x64.zip"
 $checksumName = 'SHA256SUMS.txt'
 $expectedAssets = @($installerName, $archiveName, $checksumName)
 
@@ -63,11 +63,11 @@ else {
 }
 
 & powershell.exe -NoProfile -ExecutionPolicy Bypass `
-    -File (Join-Path $repositoryRoot 'New-xucRun-CorePackage.ps1') `
+    -File (Join-Path $repositoryRoot 'New-xucRun-Package.ps1') `
     -Configuration $Configuration `
     -DestinationDirectory $packageDirectory
 if ($LASTEXITCODE -ne 0) {
-    throw "Core package creation failed with exit code $LASTEXITCODE."
+    throw "Package creation failed with exit code $LASTEXITCODE."
 }
 
 $packageInstaller = Join-Path $packageDirectory $installerName
@@ -80,7 +80,7 @@ $unsignedFiles = @(
     (Join-Path $packageDirectory 'xucRun.exe'),
     (Join-Path $packageDirectory 'xucRunBroker.exe'),
     (Join-Path $packageDirectory 'xucRunApproval.exe'),
-    (Join-Path $packageDirectory 'Install-xucRun-Core.ps1'),
+    (Join-Path $packageDirectory 'Install-xucRun.ps1'),
     (Join-Path $packageDirectory 'Languages\xucRun.de-DE.dll'),
     (Join-Path $packageDirectory 'Languages\xucRun.en-US.dll')
 )
@@ -111,7 +111,7 @@ $checksumPath = Join-Path $destination $checksumName
     $checksumLines,
     [Text.UTF8Encoding]::new($false))
 
-Write-Host "Unsigned xucRun Core release created: $destination"
+Write-Host "Unsigned xucRun release created: $destination"
 Write-Host "Version: $version"
 foreach ($assetName in $expectedAssets) {
     Write-Host "Asset: $assetName"

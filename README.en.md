@@ -2,9 +2,11 @@
 
 **Language:** [Deutsch](README.md) | English
 
+**Documentation:** [Changelog](CHANGELOG.en.md)
+
 **xucRun** stands for **eXecute Under User Context**.
 
-> **Status:** xucRun Core is under development. The source can be built and installed with a local
+> **Status:** xucRun is under development. The source can be built and installed with a local
 > test certificate.
 
 ## Motivation and purpose
@@ -212,22 +214,22 @@ trigger deceptive or legitimate dialogs and hope that the user confirms them wit
 attention. The security identifier helps only if the user actually compares it. xucRun should
 therefore be used only as described in the security notice below.
 
-## xucRun Core scope
+## xucRun scope
 
-xucRun Core contains the independently usable fundamental components:
+xucRun contains:
 
 - the `xucRun.exe` client,
 - the demand-start `xucRunBroker` service, which manages credentials protected by xucRun and
   starts programs under the selected user account,
 - the Approval Helper,
 - shared protocol, serialization, and security components,
-- German and English Core language resources.
+- German and English language resources.
 
-xucRun Core can be built, installed, and used independently.
+xucRun can be built, installed, and used independently.
 
 ## Requirements and intended use
 
-xucRun Core supports Windows 10 and Windows 11 on x64 systems. It requires the current Microsoft
+xucRun supports Windows 10 and Windows 11 on x64 systems. It requires the current Microsoft
 Visual C++ Redistributable v14 for x64.
 
 xucRun is intended for experienced private users and developers on self-managed computers and in
@@ -238,7 +240,7 @@ fleet management, or systems requiring a particularly high level of protection.
 > security mechanisms. For Windows to start a program under another user account, however, the
 > required credentials must be processed temporarily. Complete protection against reading or
 > misuse by sufficiently privileged malware or an already compromised system therefore cannot be
-> guaranteed. The source code of xucRun Core is
+> guaranteed. The source code of xucRun is
 > disclosed so that the implemented protections, their technical limits, and the remaining
 > risks can be understood and independently reviewed. Disclosure alone is neither a security
 > guarantee nor evidence of an independent security audit. Use xucRun at your own responsibility.
@@ -252,19 +254,19 @@ fleet management, or systems requiring a particularly high level of protection.
 
 ## Installation overview
 
-Installation requires a complete xucRun Core package. All installable package files must be signed
+Installation requires a complete xucRun package. All installable package files must be signed
 with the same trusted Authenticode certificate. For self-built packages, xucRun includes a script
 for local test signing.
 
 ### Graphical installation
 
-xucRun Core is a non-commercial open-source project. The provided installer is currently not
+xucRun is a non-commercial open-source project. The provided installer is currently not
 signed by a publicly trusted publisher. Windows may therefore report an unknown publisher when
 it is first started.
 
 The easiest installation method is
-`xucRun-Core-Installer-<Version>-x64.exe`, for example
-`xucRun-Core-Installer-0.9.0.1-x64.exe`. Before starting it, obtain the file only from the trusted
+`xucRun-Installer-<Version>-x64.exe`, for example
+`xucRun-Installer-0.9.0.1-x64.exe`. Before starting it, obtain the file only from the trusted
 release source, compare its SHA-256 checksum with the checksum published there, and verify any
 available Authenticode signature.
 
@@ -293,11 +295,11 @@ Alternatively, run the PowerShell installation script from that package again. S
 credentials, approvals, and INI settings not managed by the installer are preserved.
 
 Uninstall through **Installed apps**. Alternatively, no separate uninstallation script is needed:
-run the installed `Install-xucRun-Core.ps1` under `%ProgramFiles%\xucRun` with `-Uninstall`:
+run the installed `Install-xucRun.ps1` under `%ProgramFiles%\xucRun` with `-Uninstall`:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File "$env:ProgramFiles\xucRun\Install-xucRun-Core.ps1" `
+  -File "$env:ProgramFiles\xucRun\Install-xucRun.ps1" `
   -Uninstall
 ```
 
@@ -627,13 +629,13 @@ process and supported versions are documented in [SECURITY.md](SECURITY.md).
 
 ## Build and install
 
-The [build instructions](docs/en/BUILDING.md) describe how to create a Core package from source.
+The [build instructions](docs/en/BUILDING.md) describe how to create an xucRun package from source.
 The [installation instructions](docs/en/INSTALLATION.md) cover local test signing, installation,
 updates, and uninstall.
 
 ## License
 
-xucRun Core is licensed under the Apache License 2.0. `LICENSE` and `NOTICE` are authoritative.
+xucRun is licensed under the Apache License 2.0. `LICENSE` and `NOTICE` are authoritative.
 
 External code contributions are not accepted at this time. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for details.

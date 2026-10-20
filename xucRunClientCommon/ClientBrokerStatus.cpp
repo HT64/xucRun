@@ -1,4 +1,4 @@
-// Purpose: Queries and formats broker service health for Core and Tray status surfaces.
+// Purpose: Queries and formats broker service health for client status surfaces.
 #include "ClientBrokerStatus.h"
 
 #include <Windows.h>

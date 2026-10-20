@@ -1,4 +1,4 @@
-# Purpose: Installs or removes the public xucRun Core package.
+# Purpose: Installs or removes the public xucRun package.
 [CmdletBinding(DefaultParameterSetName = 'Install')]
 param(
     [Parameter(ParameterSetName = 'Install')]
@@ -28,12 +28,12 @@ $languageDirectory = Join-Path $installDirectory 'Languages'
 $installedBroker = Join-Path $installDirectory 'xucRunBroker.exe'
 $installedClient = Join-Path $installDirectory 'xucRun.exe'
 $installedApproval = Join-Path $installDirectory 'xucRunApproval.exe'
-$installedInstaller = Join-Path $installDirectory 'Install-xucRun-Core.ps1'
+$installedInstaller = Join-Path $installDirectory 'Install-xucRun.ps1'
 $configurationPath = Join-Path $installDirectory 'xucRun.ini'
 $parametersPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$serviceName\Parameters"
 $eventSourcePath = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$serviceName"
 $uninstallRegistryPath =
-    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRunCore'
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun'
 $brokerStoreDirectory = Join-Path $env:ProgramData 'xucRun'
 $machineEnvironmentPath =
     'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
@@ -109,14 +109,14 @@ function Get-PackageFiles {
         'xucRun.exe',
         'xucRunBroker.exe',
         'xucRunApproval.exe',
-        'Install-xucRun-Core.ps1',
+        'Install-xucRun.ps1',
         'Languages\xucRun.de-DE.dll',
         'Languages\xucRun.en-US.dll'
     )
     foreach ($relativePath in $relativePaths) {
         $path = Join-Path $Root $relativePath
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            throw "Core package file is missing: $path"
+            throw "Package file is missing: $path"
         }
         [pscustomobject]@{
             RelativePath = $relativePath
@@ -136,7 +136,7 @@ function Assert-ConsistentPackageSignatures {
             $expected = $encodedSigner
         }
         elseif ($encodedSigner -ne $expected) {
-            throw 'All Core package files must have the same trusted signer.'
+            throw 'All package files must have the same trusted signer.'
         }
     }
     return ,([Convert]::FromBase64String($expected))
@@ -259,10 +259,10 @@ function Assert-NoDistributionInstallation {
     }
 }
 
-function Uninstall-Core {
+function Uninstall-xucRun {
     Assert-NoDistributionInstallation
     if (-not (Test-Path -LiteralPath $installedBroker -PathType Leaf)) {
-        throw "The installed Core broker is missing: $installedBroker"
+        throw "The installed broker is missing: $installedBroker"
     }
     if (-not (Test-Path -LiteralPath $parametersPath)) {
         throw 'The installed broker authorization policy is missing.'
@@ -339,7 +339,7 @@ function Uninstall-Core {
     Remove-PathCompletely -Path $uninstallRegistryPath
     Remove-PathCompletely -Path $brokerStoreDirectory
     Remove-PathCompletely -Path $installDirectory
-    Write-Host 'xucRun Core and its stored product data were uninstalled.'
+    Write-Host 'xucRun and its stored product data were uninstalled.'
 }
 
 Assert-WindowsPowerShell
@@ -347,7 +347,7 @@ Assert-Administrator
 Assert-NotReparsePoint -Path $installDirectory
 
 if ($Uninstall) {
-    Uninstall-Core
+    Uninstall-xucRun
     return
 }
 
@@ -370,7 +370,7 @@ else {
 }
 
 $stagingDirectory = Join-Path $env:ProgramData (
-    'xucRun-CoreInstaller-' + [Guid]::NewGuid().ToString('N'))
+    'xucRun-Installer-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $stagingDirectory | Out-Null
 Set-InstallDirectoryAcl -Path $stagingDirectory
 try {
@@ -451,9 +451,13 @@ try {
         -PropertyType Binary -Value $signerSha256 -Force | Out-Null
 
     $fileVersion = (Get-Item -LiteralPath $installedClient).VersionInfo.ProductVersion
+    $pathWasPreviouslyAdded =
+        (Test-Path -LiteralPath $uninstallRegistryPath) -and
+        [int](Get-Item -LiteralPath $uninstallRegistryPath).GetValue(
+            'AddedToSystemPath', 0) -eq 1
     New-Item -Path $uninstallRegistryPath -Force | Out-Null
     New-ItemProperty -Path $uninstallRegistryPath -Name DisplayName `
-        -PropertyType String -Value 'xucRun Core' -Force | Out-Null
+        -PropertyType String -Value 'xucRun' -Force | Out-Null
     New-ItemProperty -Path $uninstallRegistryPath -Name DisplayVersion `
         -PropertyType String -Value $fileVersion -Force | Out-Null
     New-ItemProperty -Path $uninstallRegistryPath -Name Publisher `
@@ -471,9 +475,6 @@ try {
     New-ItemProperty -Path $uninstallRegistryPath -Name NoRepair `
         -PropertyType DWord -Value 1 -Force | Out-Null
 
-    $uninstallKey = Get-Item -LiteralPath $uninstallRegistryPath
-    $pathWasPreviouslyAdded =
-        [int]$uninstallKey.GetValue('AddedToSystemPath', 0) -eq 1
     $pathWasAdded = $pathWasPreviouslyAdded
     if ($AddToSystemPath -and -not $pathWasPreviouslyAdded) {
         $pathWasAdded = Set-SystemPathRegistration -Enabled $true
@@ -485,7 +486,7 @@ try {
     New-ItemProperty -Path $uninstallRegistryPath -Name AddedToSystemPath `
         -PropertyType DWord -Value ([int]$pathWasAdded) -Force | Out-Null
 
-    Write-Host "xucRun Core was installed in $installDirectory."
+    Write-Host "xucRun was installed in $installDirectory."
 }
 finally {
     if (Test-Path -LiteralPath $stagingDirectory) {

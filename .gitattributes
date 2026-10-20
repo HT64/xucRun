@@ -1,4 +1,4 @@
-# Purpose: Defines the .gitattributes content exported to the public Core repository root.
+# Purpose: Defines the .gitattributes content exported to the public repository root.
 * text=auto
 
 *.bat text eol=crlf

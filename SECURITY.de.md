@@ -4,10 +4,10 @@
 
 ## Unterstützte Versionen
 
-Nach der ersten öffentlichen Veröffentlichung von xucRun Core wird nur die jeweils neueste
-veröffentlichte Core-Version unterstützt.
+Nach der ersten öffentlichen Veröffentlichung von xucRun wird nur die jeweils neueste
+veröffentlichte Version unterstützt.
 
-Vor der ersten Veröffentlichung wird keine öffentliche Core-Version unterstützt.
+Vor der ersten Veröffentlichung wird keine öffentliche Version unterstützt.
 
 ## Eine Schwachstelle melden
 

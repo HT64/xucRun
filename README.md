@@ -2,9 +2,11 @@
 
 **Sprache:** Deutsch | [English](README.en.md)
 
+**Dokumentation:** [Änderungsprotokoll](CHANGELOG.md)
+
 **xucRun** steht für **eXecute Under User Context**.
 
-> **Status:** xucRun Core befindet sich in Entwicklung. Der Quellcode kann selbst gebaut und mit
+> **Status:** xucRun befindet sich in Entwicklung. Der Quellcode kann selbst gebaut und mit
 > einem lokalen Testzertifikat installiert werden.
 
 ## Motivation und Zweck
@@ -234,22 +236,22 @@ Angreifer kann täuschende oder legitime Dialoge auslösen und auf eine unaufmer
 hoffen. Das Sicherheitsmerkmal hilft nur, wenn der Benutzer es tatsächlich vergleicht. xucRun
 sollte deshalb nur entsprechend dem nachfolgenden Sicherheitshinweis eingesetzt werden.
 
-## Umfang von xucRun Core
+## Umfang von xucRun
 
-xucRun Core enthält die eigenständig nutzbaren Grundfunktionen:
+xucRun enthält:
 
 - den Client `xucRun.exe`,
 - den bedarfsgestarteten Brokerdienst `xucRunBroker`, der die von xucRun geschützten Anmeldedaten
   verwaltet und Programmstarts unter dem gewählten Benutzerkonto ausführt,
 - den Approval-Helper,
 - gemeinsame Protokoll-, Serialisierungs- und Sicherheitskomponenten,
-- deutsche und englische Core-Sprachressourcen.
+- deutsche und englische Sprachressourcen.
 
-xucRun Core ist eigenständig baubar, installierbar und nutzbar.
+xucRun ist eigenständig baubar, installierbar und nutzbar.
 
 ## Voraussetzungen und Einsatzbereich
 
-xucRun Core unterstützt Windows 10 und Windows 11 auf x64-Systemen. Er benötigt die aktuelle
+xucRun unterstützt Windows 10 und Windows 11 auf x64-Systemen. Es benötigt die aktuelle
 Microsoft Visual C++ Redistributable v14 für x64.
 
 xucRun ist für erfahrene Privatanwender und Entwickler auf selbst verwalteten Rechnern sowie in
@@ -261,7 +263,7 @@ Rechteerhöhung, zentrale Flottenverwaltung oder besonders schutzbedürftige Sys
 > Benutzerkonto starten kann, müssen die benötigten Anmeldedaten jedoch vorübergehend verarbeitet
 > werden. Ein vollständiger Schutz vor dem Auslesen oder Missbrauch durch ausreichend
 > privilegierte Malware oder ein bereits kompromittiertes System kann deshalb nicht gewährleistet
-> werden. Der Quellcode von xucRun Core wird
+> werden. Der Quellcode von xucRun wird
 > offengelegt, damit die eingesetzten Schutzmaßnahmen, ihre technischen Grenzen und die
 > verbleibenden Risiken nachvollzogen und unabhängig geprüft werden können. Die Offenlegung allein
 > ist jedoch weder eine Sicherheitsgarantie noch der Nachweis einer unabhängigen
@@ -277,19 +279,19 @@ Rechteerhöhung, zentrale Flottenverwaltung oder besonders schutzbedürftige Sys
 
 ## Installation in Kürze
 
-Für die Installation wird ein vollständiges xucRun-Core-Paket benötigt. Alle installierbaren
+Für die Installation wird ein vollständiges xucRun-Paket benötigt. Alle installierbaren
 Paketdateien müssen mit demselben vertrauenswürdigen Authenticode-Zertifikat signiert sein. Für
 selbst erzeugte Pakete enthält xucRun ein Skript zur lokalen Testsignierung.
 
 ### Grafische Installation
 
-xucRun Core ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei
+xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei
 besitzt derzeit keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann
 deshalb beim ersten Start einen unbekannten Herausgeber melden.
 
 Der einfachste Installationsweg ist
-`xucRun-Core-Installer-<Version>-x64.exe`, beispielsweise
-`xucRun-Core-Installer-0.9.0.1-x64.exe`. Vor dem Start sollte die Datei nur aus der
+`xucRun-Installer-<Version>-x64.exe`, beispielsweise
+`xucRun-Installer-0.9.0.1-x64.exe`. Vor dem Start sollte die Datei nur aus der
 vertrauenswürdigen Veröffentlichungsquelle bezogen, ihre SHA-256-Prüfsumme mit der dort
 veröffentlichten Prüfsumme verglichen und eine vorhandene Authenticode-Signatur geprüft werden.
 
@@ -321,11 +323,11 @@ verwaltete INI-Einstellungen bleiben erhalten.
 
 Die Deinstallation ist über **Installierte Apps** möglich. Alternativ wird kein separates
 Deinstallationsskript benötigt, sondern das bei der Installation nach
-`%ProgramFiles%\xucRun` kopierte `Install-xucRun-Core.ps1` mit `-Uninstall` aufgerufen:
+`%ProgramFiles%\xucRun` kopierte `Install-xucRun.ps1` mit `-Uninstall` aufgerufen:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File "$env:ProgramFiles\xucRun\Install-xucRun-Core.ps1" `
+  -File "$env:ProgramFiles\xucRun\Install-xucRun.ps1" `
   -Uninstall
 ```
 
@@ -664,13 +666,13 @@ beschrieben.
 
 ## Selbst bauen und installieren
 
-Die [Buildanleitung](docs/de/BUILDING.md) beschreibt die Erzeugung eines Core-Pakets aus dem
+Die [Buildanleitung](docs/de/BUILDING.md) beschreibt die Erzeugung eines xucRun-Pakets aus dem
 Quellcode. Die anschließende lokale Testsignierung, Installation, Aktualisierung und Deinstallation
 stehen in der [Installationsanleitung](docs/de/INSTALLATION.md).
 
 ## Lizenz
 
-xucRun Core steht unter der Apache License 2.0. Maßgeblich sind `LICENSE` und `NOTICE`.
+xucRun steht unter der Apache License 2.0. Maßgeblich sind `LICENSE` und `NOTICE`.
 
 Externe Codebeiträge werden derzeit nicht angenommen; Einzelheiten stehen in
 [CONTRIBUTING.de.md](CONTRIBUTING.de.md).

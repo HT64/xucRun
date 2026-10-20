@@ -1,4 +1,4 @@
-# Purpose: Creates an unsigned xucRun Core package from public build outputs.
+# Purpose: Creates an unsigned xucRun package from public build outputs.
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')]
@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($DestinationDirectory)) {
-    $DestinationDirectory = Join-Path $repositoryRoot "artifacts\CorePackage\$Configuration"
+    $DestinationDirectory = Join-Path $repositoryRoot "artifacts\Package\$Configuration"
 }
 $destination = [IO.Path]::GetFullPath($DestinationDirectory)
 $installerSource = "xucRun\x64\$Configuration\Installer.exe"
@@ -24,16 +24,16 @@ if ($installerProductVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
     throw "Installer.exe has an invalid product version: $installerProductVersion"
 }
 $publishedInstallerName =
-    "xucRun-Core-Installer-$installerProductVersion-x64.exe"
+    "xucRun-Installer-$installerProductVersion-x64.exe"
 $sourceFiles = [ordered]@{}
 $sourceFiles[$publishedInstallerName] = $installerSource
 $sourceFiles += [ordered]@{
     'xucRun.exe' = "xucRun\x64\$Configuration\xucRun.exe"
     'xucRunBroker.exe' = "xucRunBroker\x64\$Configuration\xucRunBroker.exe"
     'xucRunApproval.exe' = "xucRun\x64\$Configuration\xucRunApproval.exe"
-    'Install-xucRun-Core.ps1' = 'Install-xucRun-Core.ps1'
-    'UserCodeSigning\Sign-xucRunCorePackage.ps1' =
-        'UserCodeSigning\Sign-xucRunCorePackage.ps1'
+    'Install-xucRun.ps1' = 'Install-xucRun.ps1'
+    'UserCodeSigning\Sign-xucRunPackage.ps1' =
+        'UserCodeSigning\Sign-xucRunPackage.ps1'
     'Languages\xucRun.de-DE.dll' =
         "xucRun\x64\$Configuration\Languages\xucRun.de-DE.dll"
     'Languages\xucRun.en-US.dll' =
@@ -66,7 +66,7 @@ if (Test-Path -LiteralPath $destination) {
         $relativePath -notin $allowedExistingFiles -and
         $relativePath -ne 'Installer.exe' -and
         $relativePath -notmatch
-            '^xucRun-Core-Installer-\d+\.\d+\.\d+\.\d+-x64\.exe$'
+            '^xucRun-Installer-\d+\.\d+\.\d+\.\d+-x64\.exe$'
     })
     if ($unexpectedFiles.Count -ne 0) {
         throw "The package destination contains unexpected files: " +
@@ -82,7 +82,7 @@ if (Test-Path -LiteralPath $destination) {
         Where-Object {
             $_.Name -eq 'Installer.exe' -or
             $_.Name -match
-                '^xucRun-Core-Installer-\d+\.\d+\.\d+\.\d+-x64\.exe$'
+                '^xucRun-Installer-\d+\.\d+\.\d+\.\d+-x64\.exe$'
         })
     foreach ($obsoleteInstaller in $obsoleteInstallers) {
         Remove-Item -LiteralPath $obsoleteInstaller.FullName -Force
@@ -112,6 +112,6 @@ $packageFiles = @(Get-ChildItem -LiteralPath $destination -Recurse -File |
     Sort-Object Path)
 $manifestPath = Join-Path $destination 'SHA256SUMS.json'
 $packageFiles | ConvertTo-Json | Set-Content -LiteralPath $manifestPath -Encoding UTF8
-Write-Host "Unsigned xucRun Core package created: $destination"
+Write-Host "Unsigned xucRun package created: $destination"
 Write-Host "Graphical installer: $publishedInstallerName"
-Write-Host 'Sign it before installation with UserCodeSigning\Sign-xucRunCorePackage.ps1.'
+Write-Host 'Sign it before installation with UserCodeSigning\Sign-xucRunPackage.ps1.'

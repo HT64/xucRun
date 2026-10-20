@@ -1,8 +1,8 @@
-# xucRun Core bauen
+# xucRun bauen
 
 **Sprache:** Deutsch | [English](../en/BUILDING.md)
 
-Dieses Dokument beschreibt ausschließlich den öffentlichen xucRun Core.
+Dieses Dokument beschreibt den Build von xucRun.
 
 ## Voraussetzungen
 
@@ -15,7 +15,7 @@ Dieses Dokument beschreibt ausschließlich den öffentlichen xucRun Core.
 Die Projekte verwenden das jeweils verfügbare Standard-MSVC-Toolset. Unterstützt werden nur die
 x64-Konfigurationen `Debug` und `Release`.
 
-## Core bauen
+## xucRun bauen
 
 ```powershell
 & MSBuild.exe .\XUCRun.sln `
@@ -26,11 +26,11 @@ x64-Konfigurationen `Debug` und `Release`.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\New-xucRun-CorePackage.ps1 `
+  -File .\New-xucRun-Package.ps1 `
   -Configuration Release
 ```
 
-Das Paket entsteht unter `artifacts\CorePackage\Release`. Vor der Installation müssen seine sechs
+Das Paket entsteht unter `artifacts\Package\Release`. Vor der Installation müssen seine sechs
 installierbaren Dateien einheitlich signiert werden. Die dafür vorgesehene lokale Testsignierung
 ist in [INSTALLATION.md](INSTALLATION.md) beschrieben.
 
@@ -41,15 +41,15 @@ Einzelinstaller, das vollständige ZIP-Archiv und die öffentliche SHA-256-Datei
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\New-xucRun-CoreRelease.ps1 `
+  -File .\New-xucRun-Release.ps1 `
   -ExpectedVersion 0.9.0.1
 ```
 
 Die Dateien entstehen unter `artifacts\Release\0.9.0.1`:
 
 ```text
-xucRun-Core-Installer-0.9.0.1-x64.exe
-xucRun-Core-0.9.0.1-x64.zip
+xucRun-Installer-0.9.0.1-x64.exe
+xucRun-0.9.0.1-x64.zip
 SHA256SUMS.txt
 ```
 
@@ -61,3 +61,8 @@ Ein Tag im Format `v0.9.0.1` startet den GitHub-Release-Workflow. Er prüft Buil
 Paket und legt zunächst einen Draft Release zur manuellen Kontrolle an. Sobald das Repository
 öffentlich ist, erzeugt der Workflow zusätzlich eine GitHub-Artefaktattestierung. GitHub bietet
 diese Funktion für benutzereigene private Repositories nicht an.
+
+Vor dem Tag müssen `CHANGELOG.md` und `CHANGELOG.en.md` einen nicht leeren Abschnitt für dieselbe
+Version enthalten. Der Workflow übernimmt beide Abschnitte in die Release-Beschreibung und bricht
+bei einer fehlenden oder abweichenden Version ab. Ein bereits vorhandener Draft Release wird
+aktualisiert; ein bereits veröffentlichter Release derselben Version wird nicht überschrieben.

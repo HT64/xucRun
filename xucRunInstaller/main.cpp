@@ -1,4 +1,4 @@
-// Purpose: Extracts the embedded Core package securely and launches its graphical installer.
+// Purpose: Extracts the embedded xucRun package securely and launches its graphical installer.
 #include <Windows.h>
 #include <ShlObj.h>
 #include <sddl.h>
@@ -74,7 +74,7 @@ namespace
         security.nLength = sizeof(security);
         security.lpSecurityDescriptor = descriptor;
         const std::filesystem::path directory =
-            programDataPath / (L"xucRun-Core-Installer-" + std::wstring(identifierText));
+            programDataPath / (L"xucRun-Installer-" + std::wstring(identifierText));
         const BOOL created = CreateDirectoryW(directory.c_str(), &security);
         const DWORD createError = created ? ERROR_SUCCESS : GetLastError();
         LocalFree(descriptor);
@@ -173,8 +173,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         temporaryDirectory = CreateTemporaryDirectory();
         const PayloadFile payloadFiles[] = {
             { IDR_GUI_SCRIPT, L"Installer-Gui.ps1", true },
-            { IDR_MACHINE_INSTALLER, L"Install-xucRun-Core.ps1", false },
-            { IDR_SIGN_PACKAGE, L"UserCodeSigning\\Sign-xucRunCorePackage.ps1", false },
+            { IDR_MACHINE_INSTALLER, L"Install-xucRun.ps1", false },
+            { IDR_SIGN_PACKAGE, L"UserCodeSigning\\Sign-xucRunPackage.ps1", false },
             { IDR_CLIENT, L"xucRun.exe", false },
             { IDR_BROKER, L"xucRunBroker.exe", false },
             { IDR_APPROVAL_HELPER, L"xucRunApproval.exe", false },
@@ -188,7 +188,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         const std::wstring cleanupWarning = RemoveTemporaryDirectory(temporaryDirectory);
         if (!cleanupWarning.empty())
         {
-            MessageBoxW(nullptr, cleanupWarning.c_str(), L"xucRun Core Installer",
+            MessageBoxW(nullptr, cleanupWarning.c_str(), L"xucRun Installer",
                 MB_OK | MB_ICONWARNING);
         }
         return static_cast<int>(exitCode);
@@ -201,7 +201,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         const std::wstring cleanupWarning = RemoveTemporaryDirectory(temporaryDirectory);
         if (!cleanupWarning.empty())
             message += L"\n\n" + cleanupWarning;
-        MessageBoxW(nullptr, message.c_str(), L"xucRun Core Installer",
+        MessageBoxW(nullptr, message.c_str(), L"xucRun Installer",
             MB_OK | MB_ICONERROR);
         return ERROR_INSTALL_FAILURE;
     }

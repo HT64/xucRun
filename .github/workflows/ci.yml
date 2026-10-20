@@ -1,5 +1,5 @@
-# Purpose: Builds and validates the public xucRun Core on a clean Windows runner.
-name: Core CI
+# Purpose: Builds and validates xucRun on a clean Windows runner.
+name: xucRun CI
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: core-ci-${{ github.ref }}
+  group: xucRun-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -52,12 +52,12 @@ jobs:
               throw "MSBuild failed with exit code $LASTEXITCODE."
           }
 
-      - name: Run Core tests
+      - name: Run tests
         shell: powershell
         run: |
           & .\xucRunCoreTests\x64\${{ matrix.configuration }}\xucRunCoreTests.exe
           if ($LASTEXITCODE -ne 0) {
-              throw "Core tests failed with exit code $LASTEXITCODE."
+              throw "Tests failed with exit code $LASTEXITCODE."
           }
 
       - name: Verify client version
@@ -74,7 +74,7 @@ jobs:
           if ($installer.VersionInfo.ProductVersion -ne '0.9.0.1') {
               throw "Installer.exe has unexpected version '$($installer.VersionInfo.ProductVersion)'."
           }
-          if ($installer.VersionInfo.FileDescription -ne 'xucRun Core Installer') {
+          if ($installer.VersionInfo.FileDescription -ne 'xucRun Installer') {
               throw "Installer.exe has unexpected description '$($installer.VersionInfo.FileDescription)'."
           }
 
@@ -90,9 +90,9 @@ jobs:
         shell: powershell
         run: |
           $package = Join-Path $PWD `
-            'artifacts\CorePackage\${{ matrix.configuration }}'
+            'artifacts\Package\${{ matrix.configuration }}'
           powershell.exe -NoProfile -ExecutionPolicy Bypass `
-            -File .\New-xucRun-CorePackage.ps1 `
+            -File .\New-xucRun-Package.ps1 `
             -Configuration ${{ matrix.configuration }} `
             -DestinationDirectory $package
           if ($LASTEXITCODE -ne 0) {
@@ -104,20 +104,20 @@ jobs:
               $_.FullName.Substring($package.Length).TrimStart('\')
             } |
             Sort-Object)
-          $installerName = 'xucRun-Core-Installer-0.9.0.1-x64.exe'
+          $installerName = 'xucRun-Installer-0.9.0.1-x64.exe'
           $expected = @(
-            'Install-xucRun-Core.ps1'
+            'Install-xucRun.ps1'
             $installerName
             'Languages\xucRun.de-DE.dll'
             'Languages\xucRun.en-US.dll'
             'SHA256SUMS.json'
-            'UserCodeSigning\Sign-xucRunCorePackage.ps1'
+            'UserCodeSigning\Sign-xucRunPackage.ps1'
             'xucRun.exe'
             'xucRunApproval.exe'
             'xucRunBroker.exe'
           ) | Sort-Object
           if (($actual -join "`n") -cne ($expected -join "`n")) {
-              throw "Package contents differ from the exact Core package contract.`n" +
+              throw "Package contents differ from the exact package contract.`n" +
                 ($actual -join "`n")
           }
           $publishedInstaller = Get-Item -LiteralPath (
@@ -131,7 +131,7 @@ jobs:
         shell: powershell
         run: |
           powershell.exe -NoProfile -ExecutionPolicy Bypass `
-            -File .\New-xucRun-CoreRelease.ps1 `
+            -File .\New-xucRun-Release.ps1 `
             -ExpectedVersion 0.9.0.1
           if ($LASTEXITCODE -ne 0) {
             throw "Release packaging failed with exit code $LASTEXITCODE."
@@ -139,8 +139,8 @@ jobs:
           $releaseDirectory = '.\artifacts\Release\0.9.0.1'
           $expected = @(
             'SHA256SUMS.txt'
-            'xucRun-Core-0.9.0.1-x64.zip'
-            'xucRun-Core-Installer-0.9.0.1-x64.exe'
+            'xucRun-0.9.0.1-x64.zip'
+            'xucRun-Installer-0.9.0.1-x64.exe'
           ) | Sort-Object
           $actual = @(Get-ChildItem -LiteralPath $releaseDirectory -File |
             ForEach-Object Name |
@@ -153,8 +153,8 @@ jobs:
       - name: Upload unsigned ${{ matrix.configuration }} package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: xucRun-Core-0.9.0.1-unsigned-${{ matrix.artifact-suffix }}
-          path: artifacts/CorePackage/${{ matrix.configuration }}
+          name: xucRun-0.9.0.1-unsigned-${{ matrix.artifact-suffix }}
+          path: artifacts/Package/${{ matrix.configuration }}
           if-no-files-found: error
           retention-days: 7
 
@@ -171,15 +171,15 @@ jobs:
       - name: Download unsigned Release package
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: xucRun-Core-0.9.0.1-unsigned-release
-          path: artifacts/CorePackage/Release
+          name: xucRun-0.9.0.1-unsigned-release
+          path: artifacts/Package/Release
 
       - name: Run installer smoke test
         shell: powershell
         run: |
           powershell.exe -NoProfile -ExecutionPolicy Bypass `
-            -File .\Test-CoreInstaller.ps1 `
-            -PackageDirectory .\artifacts\CorePackage\Release
+            -File .\Test-Installer.ps1 `
+            -PackageDirectory .\artifacts\Package\Release
           if ($LASTEXITCODE -ne 0) {
               throw "Installer smoke test failed with exit code $LASTEXITCODE."
           }
