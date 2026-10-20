@@ -1,11 +1,10 @@
-<!-- Purpose: Defines security support and confidential vulnerability reporting for xucRun Core. -->
 # Security Policy
+
+**Language:** [Deutsch](SECURITY.de.md) | English
 
 ## Supported versions
 
-After the first public xucRun Core release, security fixes are provided for the latest released
-Core version only. Older versions are not supported unless the maintainer explicitly announces
-otherwise.
+After the first public xucRun Core release, only the latest released Core version is supported.
 
 No public Core version is supported before the first release.
 
@@ -24,16 +23,13 @@ Use GitHub Private Vulnerability Reporting for the `HT64/xucRun` repository:
 Include only the sensitive data required to understand the problem. Do not submit real passwords,
 private keys, access tokens or unrelated personal data.
 
-The maintainer will review the report and coordinate further communication through the private
-report. Response and remediation times depend on reproducibility, severity and implementation
-risk; this policy does not promise a fixed service level or a vulnerability bounty.
+Further communication takes place through the private report. Response and remediation times
+depend on reproducibility, severity and implementation risk; this policy does not promise a fixed
+service level or a vulnerability bounty.
 
-Please avoid public disclosure until a fix or coordinated advisory is available. If the report
-does not affect the public Core but a separate distribution component, the reporter will be
-directed to the appropriate private process.
+Please avoid public disclosure until a fix or coordinated advisory is available.
 
 ## Scope
 
-This policy applies to source and release artifacts published from `HT64/xucRun`. Third-party
-software, unsupported modified builds and proprietary distribution components are outside this
-repository's public support scope.
+This policy applies to source and published packages from `HT64/xucRun`. Third-party software and
+modified builds are outside the support scope.

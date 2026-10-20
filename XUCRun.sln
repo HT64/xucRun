@@ -18,6 +18,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xucRunLanguageDeDe", "xucRu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xucRunClientCommon", "xucRunClientCommon\xucRunClientCommon.vcxproj", "{6D8F613B-052A-4B5D-9C76-2E0B646F7A12}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xucRunInstaller", "xucRunInstaller\xucRunInstaller.vcxproj", "{2E6DC3CA-C13C-4F49-9EB4-2684DF370C58}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -56,6 +58,10 @@ Global
 		{6D8F613B-052A-4B5D-9C76-2E0B646F7A12}.Debug|x64.Build.0 = Debug|x64
 		{6D8F613B-052A-4B5D-9C76-2E0B646F7A12}.Release|x64.ActiveCfg = Release|x64
 		{6D8F613B-052A-4B5D-9C76-2E0B646F7A12}.Release|x64.Build.0 = Release|x64
+		{2E6DC3CA-C13C-4F49-9EB4-2684DF370C58}.Debug|x64.ActiveCfg = Debug|x64
+		{2E6DC3CA-C13C-4F49-9EB4-2684DF370C58}.Debug|x64.Build.0 = Debug|x64
+		{2E6DC3CA-C13C-4F49-9EB4-2684DF370C58}.Release|x64.ActiveCfg = Release|x64
+		{2E6DC3CA-C13C-4F49-9EB4-2684DF370C58}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

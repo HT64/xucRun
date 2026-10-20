@@ -49,14 +49,15 @@ function Test-CodeSigningEku {
 function Get-PackageFiles {
     param([Parameter(Mandatory)][string]$Root)
 
-    foreach ($relativePath in @(
+    $requiredRelativePaths = @(
         'xucRun.exe',
         'xucRunBroker.exe',
         'xucRunApproval.exe',
         'Install-xucRun-Core.ps1',
         'Languages\xucRun.de-DE.dll',
         'Languages\xucRun.en-US.dll'
-    )) {
+    )
+    foreach ($relativePath in $requiredRelativePaths) {
         $path = Join-Path $Root $relativePath
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
             throw "Core package file is missing: $path"
@@ -64,6 +65,27 @@ function Get-PackageFiles {
         [pscustomobject]@{
             RelativePath = $relativePath
             Path = (Resolve-Path -LiteralPath $path).ProviderPath
+        }
+    }
+    $installers = @(Get-ChildItem -LiteralPath $Root -File | Where-Object {
+        $_.Name -match
+            '^xucRun-Core-Installer-(\d+\.\d+\.\d+\.\d+)-x64\.exe$'
+    })
+    if ($installers.Count -gt 1) {
+        throw 'The Core package contains multiple versioned graphical installers.'
+    }
+    if ($installers.Count -eq 1) {
+        $expectedVersion = [regex]::Match(
+            $installers[0].Name,
+            '^xucRun-Core-Installer-(\d+\.\d+\.\d+\.\d+)-x64\.exe$'
+        ).Groups[1].Value
+        if ($installers[0].VersionInfo.ProductVersion -ne $expectedVersion) {
+            throw "The graphical installer file name does not match its product version: " +
+                $installers[0].Name
+        }
+        [pscustomobject]@{
+            RelativePath = $installers[0].Name
+            Path = $installers[0].FullName
         }
     }
 }
