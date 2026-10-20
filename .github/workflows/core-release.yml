@@ -1,0 +1,152 @@
+# Purpose: Builds, attests, and stages unsigned xucRun Core assets as a draft GitHub Release.
+name: Core Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: core-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  create-draft-release:
+    name: Build and create draft release
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag
+        shell: powershell
+        run: |
+          if ($env:GITHUB_REF_NAME -notmatch '^v(\d+\.\d+\.\d+\.\d+)$') {
+            throw "Release tag has an invalid format: $env:GITHUB_REF_NAME"
+          }
+          $version = $Matches[1]
+          git fetch origin main --no-tags
+          git merge-base --is-ancestor $env:GITHUB_SHA origin/main
+          if ($LASTEXITCODE -ne 0) {
+            throw 'The release tag does not point to a commit on origin/main.'
+          }
+          "XUCRUN_RELEASE_VERSION=$version" | Out-File `
+            -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Configure MSBuild
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2
+
+      - name: Build Release x64
+        shell: powershell
+        run: |
+          msbuild.exe .\XUCRun.sln `
+            /t:Build `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /m `
+            /nologo `
+            /verbosity:minimal
+          if ($LASTEXITCODE -ne 0) {
+            throw "MSBuild failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Run Core tests
+        shell: powershell
+        run: |
+          & .\xucRunCoreTests\x64\Release\xucRunCoreTests.exe
+          if ($LASTEXITCODE -ne 0) {
+            throw "Core tests failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Create unsigned release assets
+        shell: powershell
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass `
+            -File .\New-xucRun-CoreRelease.ps1 `
+            -ExpectedVersion $env:XUCRUN_RELEASE_VERSION
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release packaging failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Verify tracked files are unchanged
+        shell: powershell
+        run: |
+          $changes = @(git status --porcelain=v1 --untracked-files=no)
+          if ($changes.Count -ne 0) {
+            throw "The release build modified tracked files.`n$($changes -join "`n")"
+          }
+
+      - name: Attest release assets
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: |
+            artifacts/Release/${{ env.XUCRUN_RELEASE_VERSION }}/*.exe
+            artifacts/Release/${{ env.XUCRUN_RELEASE_VERSION }}/*.zip
+            artifacts/Release/${{ env.XUCRUN_RELEASE_VERSION }}/SHA256SUMS.txt
+
+      - name: Upload release preparation artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: xucRun-Core-${{ env.XUCRUN_RELEASE_VERSION }}-release-assets
+          path: artifacts/Release/${{ env.XUCRUN_RELEASE_VERSION }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create draft GitHub Release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:XUCRUN_RELEASE_VERSION
+          $tag = $env:GITHUB_REF_NAME
+          $releaseDirectory = Join-Path $PWD "artifacts\Release\$version"
+          $installerName = "xucRun-Core-Installer-$version-x64.exe"
+          $archiveName = "xucRun-Core-$version-x64.zip"
+          $checksums = Get-Content -LiteralPath (
+            Join-Path $releaseDirectory 'SHA256SUMS.txt') -Raw
+          $notesPath = Join-Path $releaseDirectory 'RELEASE-NOTES.md'
+          @"
+          ## Wichtiger Hinweis / Important notice
+
+          xucRun Core ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte
+          Installer-Datei besitzt keine Signatur eines öffentlich vertrauenswürdigen
+          Herausgebers. Windows kann deshalb beim ersten Start einen unbekannten Herausgeber
+          melden. Laden Sie die Dateien ausschließlich aus diesem GitHub Release herunter und
+          vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
+
+          xucRun Core is a non-commercial open-source project. The provided installer is not
+          signed by a publicly trusted publisher. Windows may therefore report an unknown
+          publisher when it is first started. Download the files only from this GitHub Release
+          and compare the SHA-256 checksum before starting the installer.
+
+          ## SHA-256
+
+          ~~~text
+          $checksums
+          ~~~
+          "@ | Set-Content -LiteralPath $notesPath -Encoding UTF8
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            throw "A GitHub Release already exists for tag '$tag'."
+          }
+          gh release create $tag `
+            (Join-Path $releaseDirectory $installerName) `
+            (Join-Path $releaseDirectory $archiveName) `
+            (Join-Path $releaseDirectory 'SHA256SUMS.txt') `
+            --draft `
+            --verify-tag `
+            --title "xucRun Core $version" `
+            --notes-file $notesPath
+          if ($LASTEXITCODE -ne 0) {
+            throw "Creating the draft GitHub Release failed with exit code $LASTEXITCODE."
+          }

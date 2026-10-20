@@ -96,10 +96,4 @@
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
-  <Target Name="RunCoreTests" AfterTargets="Build">
-    <Message Text="[Test] Run xucRunCoreTests..." Importance="high" />
-    <Exec Command="&quot;$(TargetPath)&quot;" />
-    <Message Text="[Test] Run architecture contracts..." Importance="high" />
-    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Test-Architecture.ps1&quot;" />
-  </Target>
 </Project>

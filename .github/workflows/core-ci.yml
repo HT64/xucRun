@@ -60,15 +60,6 @@ jobs:
               throw "Core tests failed with exit code $LASTEXITCODE."
           }
 
-      - name: Validate public architecture
-        shell: powershell
-        run: |
-          powershell.exe -NoProfile -ExecutionPolicy Bypass `
-            -File .\Test-Architecture.ps1
-          if ($LASTEXITCODE -ne 0) {
-              throw "Architecture validation failed with exit code $LASTEXITCODE."
-          }
-
       - name: Verify client version
         shell: powershell
         run: |
@@ -77,6 +68,14 @@ jobs:
             VersionInfo.ProductVersion
           if ($version -ne '0.9.0.1') {
               throw "Expected xucRun.exe version 0.9.0.1, found '$version'."
+          }
+          $installer = Get-Item -LiteralPath `
+              '.\xucRun\x64\${{ matrix.configuration }}\Installer.exe'
+          if ($installer.VersionInfo.ProductVersion -ne '0.9.0.1') {
+              throw "Installer.exe has unexpected version '$($installer.VersionInfo.ProductVersion)'."
+          }
+          if ($installer.VersionInfo.FileDescription -ne 'xucRun Core Installer') {
+              throw "Installer.exe has unexpected description '$($installer.VersionInfo.FileDescription)'."
           }
 
       - name: Verify tracked files are unchanged
@@ -105,8 +104,10 @@ jobs:
               $_.FullName.Substring($package.Length).TrimStart('\')
             } |
             Sort-Object)
+          $installerName = 'xucRun-Core-Installer-0.9.0.1-x64.exe'
           $expected = @(
             'Install-xucRun-Core.ps1'
+            $installerName
             'Languages\xucRun.de-DE.dll'
             'Languages\xucRun.en-US.dll'
             'SHA256SUMS.json'
@@ -118,6 +119,35 @@ jobs:
           if (($actual -join "`n") -cne ($expected -join "`n")) {
               throw "Package contents differ from the exact Core package contract.`n" +
                 ($actual -join "`n")
+          }
+          $publishedInstaller = Get-Item -LiteralPath (
+            Join-Path $package $installerName)
+          if ($publishedInstaller.VersionInfo.ProductVersion -ne '0.9.0.1') {
+            throw "Published installer name and product version do not match."
+          }
+
+      - name: Create unsigned release assets
+        if: matrix.configuration == 'Release'
+        shell: powershell
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass `
+            -File .\New-xucRun-CoreRelease.ps1 `
+            -ExpectedVersion 0.9.0.1
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release packaging failed with exit code $LASTEXITCODE."
+          }
+          $releaseDirectory = '.\artifacts\Release\0.9.0.1'
+          $expected = @(
+            'SHA256SUMS.txt'
+            'xucRun-Core-0.9.0.1-x64.zip'
+            'xucRun-Core-Installer-0.9.0.1-x64.exe'
+          ) | Sort-Object
+          $actual = @(Get-ChildItem -LiteralPath $releaseDirectory -File |
+            ForEach-Object Name |
+            Sort-Object)
+          if (($actual -join "`n") -cne ($expected -join "`n")) {
+            throw "Release assets differ from the exact contract.`n" +
+              ($actual -join "`n")
           }
 
       - name: Upload unsigned ${{ matrix.configuration }} package

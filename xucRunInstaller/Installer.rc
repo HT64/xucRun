@@ -1,0 +1,59 @@
+// Purpose: Embeds the Core package and version metadata into Installer.exe.
+#pragma code_page(65001)
+
+#include <windows.h>
+#include "..\\xucRunSharedResources\\BuildVersion.h"
+#include "resource.h"
+
+IDI_INSTALLER ICON "..\\xucRunSharedResources\\xucRun.ico"
+IDR_GUI_SCRIPT RCDATA "Installer-Gui.ps1"
+
+#ifdef NDEBUG
+IDR_CLIENT RCDATA "..\\xucRun\\x64\\Release\\xucRun.exe"
+IDR_BROKER RCDATA "..\\xucRunBroker\\x64\\Release\\xucRunBroker.exe"
+IDR_APPROVAL_HELPER RCDATA "..\\xucRun\\x64\\Release\\xucRunApproval.exe"
+IDR_LANGUAGE_DE RCDATA "..\\xucRun\\x64\\Release\\Languages\\xucRun.de-DE.dll"
+IDR_LANGUAGE_EN RCDATA "..\\xucRun\\x64\\Release\\Languages\\xucRun.en-US.dll"
+#else
+IDR_CLIENT RCDATA "..\\xucRun\\x64\\Debug\\xucRun.exe"
+IDR_BROKER RCDATA "..\\xucRunBroker\\x64\\Debug\\xucRunBroker.exe"
+IDR_APPROVAL_HELPER RCDATA "..\\xucRun\\x64\\Debug\\xucRunApproval.exe"
+IDR_LANGUAGE_DE RCDATA "..\\xucRun\\x64\\Debug\\Languages\\xucRun.de-DE.dll"
+IDR_LANGUAGE_EN RCDATA "..\\xucRun\\x64\\Debug\\Languages\\xucRun.en-US.dll"
+#endif
+
+IDR_MACHINE_INSTALLER RCDATA "..\\Install-xucRun-Core.ps1"
+IDR_SIGN_PACKAGE RCDATA "..\\UserCodeSigning\\Sign-xucRunCorePackage.ps1"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,BUILD_NUMBER
+ PRODUCTVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,BUILD_NUMBER
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040704b0"
+        BEGIN
+            VALUE "CompanyName", "HT64"
+            VALUE "FileDescription", "xucRun Core Installer"
+            VALUE "FileVersion", VERSION_STRING
+            VALUE "InternalName", "Installer"
+            VALUE "LegalCopyright", "Copyright (C) 2024-2026"
+            VALUE "OriginalFilename", "Installer.exe"
+            VALUE "ProductName", "xucRun Core"
+            VALUE "ProductVersion", VERSION_STRING
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x407, 1200
+    END
+END

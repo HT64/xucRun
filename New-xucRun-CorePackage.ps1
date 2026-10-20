@@ -13,7 +13,21 @@ if ([string]::IsNullOrWhiteSpace($DestinationDirectory)) {
     $DestinationDirectory = Join-Path $repositoryRoot "artifacts\CorePackage\$Configuration"
 }
 $destination = [IO.Path]::GetFullPath($DestinationDirectory)
-$sourceFiles = [ordered]@{
+$installerSource = "xucRun\x64\$Configuration\Installer.exe"
+$installerSourcePath = Join-Path $repositoryRoot $installerSource
+if (-not (Test-Path -LiteralPath $installerSourcePath -PathType Leaf)) {
+    throw "Build output is missing: $installerSourcePath"
+}
+$installerProductVersion =
+    (Get-Item -LiteralPath $installerSourcePath).VersionInfo.ProductVersion
+if ($installerProductVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+    throw "Installer.exe has an invalid product version: $installerProductVersion"
+}
+$publishedInstallerName =
+    "xucRun-Core-Installer-$installerProductVersion-x64.exe"
+$sourceFiles = [ordered]@{}
+$sourceFiles[$publishedInstallerName] = $installerSource
+$sourceFiles += [ordered]@{
     'xucRun.exe' = "xucRun\x64\$Configuration\xucRun.exe"
     'xucRunBroker.exe' = "xucRunBroker\x64\$Configuration\xucRunBroker.exe"
     'xucRunApproval.exe' = "xucRun\x64\$Configuration\xucRunApproval.exe"
@@ -46,9 +60,13 @@ if (Test-Path -LiteralPath $destination) {
     }
     $allowedExistingFiles = @($sourceFiles.Keys) + 'SHA256SUMS.json'
     $unexpectedFiles = @($existingItems | Where-Object {
+        $relativePath =
+            $_.FullName.Substring($destination.Length).TrimStart('\')
         -not $_.PSIsContainer -and
-        $_.FullName.Substring($destination.Length).TrimStart('\') -notin
-            $allowedExistingFiles
+        $relativePath -notin $allowedExistingFiles -and
+        $relativePath -ne 'Installer.exe' -and
+        $relativePath -notmatch
+            '^xucRun-Core-Installer-\d+\.\d+\.\d+\.\d+-x64\.exe$'
     })
     if ($unexpectedFiles.Count -ne 0) {
         throw "The package destination contains unexpected files: " +
@@ -59,6 +77,15 @@ if (Test-Path -LiteralPath $destination) {
         if (Test-Path -LiteralPath $existingPath -PathType Leaf) {
             Remove-Item -LiteralPath $existingPath -Force
         }
+    }
+    $obsoleteInstallers = @(Get-ChildItem -LiteralPath $destination -File |
+        Where-Object {
+            $_.Name -eq 'Installer.exe' -or
+            $_.Name -match
+                '^xucRun-Core-Installer-\d+\.\d+\.\d+\.\d+-x64\.exe$'
+        })
+    foreach ($obsoleteInstaller in $obsoleteInstallers) {
+        Remove-Item -LiteralPath $obsoleteInstaller.FullName -Force
     }
 }
 else {
@@ -86,4 +113,5 @@ $packageFiles = @(Get-ChildItem -LiteralPath $destination -Recurse -File |
 $manifestPath = Join-Path $destination 'SHA256SUMS.json'
 $packageFiles | ConvertTo-Json | Set-Content -LiteralPath $manifestPath -Encoding UTF8
 Write-Host "Unsigned xucRun Core package created: $destination"
+Write-Host "Graphical installer: $publishedInstallerName"
 Write-Host 'Sign it before installation with UserCodeSigning\Sign-xucRunCorePackage.ps1.'
