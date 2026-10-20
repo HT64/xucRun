@@ -55,37 +55,37 @@ if ($checksums -notmatch $installerChecksumPattern -or
     throw 'Release checksums do not contain the expected installer and ZIP archive.'
 }
 
-$germanChanges = Get-ChangelogVersionBody `
+$englishChanges = Get-ChangelogVersionBody `
     -Path (Join-Path $repositoryRoot 'CHANGELOG.md') `
     -ReleaseVersion $Version
-$englishChanges = Get-ChangelogVersionBody `
-    -Path (Join-Path $repositoryRoot 'CHANGELOG.en.md') `
+$germanChanges = Get-ChangelogVersionBody `
+    -Path (Join-Path $repositoryRoot 'CHANGELOG.de.md') `
     -ReleaseVersion $Version
 
 $notes = @"
-## Wichtiger Hinweis / Important notice
-
-xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei
-besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim
-ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem
-GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
+## Important notice / Wichtiger Hinweis
 
 xucRun is a non-commercial open-source project. The provided installer is not signed by a
 publicly trusted publisher. Windows may therefore report an unknown publisher when it is first
 started. Download the files only from this GitHub Release and compare the SHA-256 checksum before
 starting the installer.
 
-## Änderungen
-
-$germanChanges
-
-Vollständiges [Änderungsprotokoll](https://github.com/HT64/xucRun/blob/v$Version/CHANGELOG.md)
+xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei
+besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim
+ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem
+GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
 
 ## Changes
 
 $englishChanges
 
-Full [changelog](https://github.com/HT64/xucRun/blob/v$Version/CHANGELOG.en.md)
+Full [changelog](https://github.com/HT64/xucRun/blob/v$Version/CHANGELOG.md)
+
+## Änderungen
+
+$germanChanges
+
+Vollständiges [Änderungsprotokoll](https://github.com/HT64/xucRun/blob/v$Version/CHANGELOG.de.md)
 
 ## SHA-256
 
