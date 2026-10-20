@@ -136,8 +136,12 @@ jobs:
           ~~~
           "@ | Set-Content -LiteralPath $notesPath -Encoding UTF8
 
-          gh release view $tag *> $null
-          if ($LASTEXITCODE -eq 0) {
+          $existingReleases = @(
+            gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" |
+              ConvertFrom-Json |
+              Where-Object { $_.tag_name -eq $tag }
+          )
+          if ($existingReleases.Count -ne 0) {
             throw "A GitHub Release already exists for tag '$tag'."
           }
           gh release create $tag `
