@@ -4,9 +4,9 @@
 
 ## Supported versions
 
-After the first public xucRun Core release, only the latest released Core version is supported.
+After the first public xucRun release, only the latest released version is supported.
 
-No public Core version is supported before the first release.
+No public version is supported before the first release.
 
 ## Reporting a vulnerability
 

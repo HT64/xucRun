@@ -293,7 +293,7 @@ namespace xucrun::language_change
 			ui::ReportError(localization::Format(
 				localization::TextId::CommandLaunchFailed,
 				{ elevatedArgument }),
-				L"Resolving the Core client path for a language change failed.");
+				L"Resolving the xucRun client path for a language change failed.");
 			return false;
 		}
 		if (account_identity::IsUserInAdminGroup())

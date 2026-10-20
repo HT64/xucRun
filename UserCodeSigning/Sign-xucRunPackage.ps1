@@ -1,4 +1,4 @@
-# Purpose: Creates a machine-local certificate and signs an xucRun Core package.
+# Purpose: Creates a machine-local certificate and signs an xucRun package.
 [CmdletBinding()]
 param(
     [string]$PackageDirectory,
@@ -53,14 +53,14 @@ function Get-PackageFiles {
         'xucRun.exe',
         'xucRunBroker.exe',
         'xucRunApproval.exe',
-        'Install-xucRun-Core.ps1',
+        'Install-xucRun.ps1',
         'Languages\xucRun.de-DE.dll',
         'Languages\xucRun.en-US.dll'
     )
     foreach ($relativePath in $requiredRelativePaths) {
         $path = Join-Path $Root $relativePath
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            throw "Core package file is missing: $path"
+            throw "Package file is missing: $path"
         }
         [pscustomobject]@{
             RelativePath = $relativePath
@@ -69,15 +69,15 @@ function Get-PackageFiles {
     }
     $installers = @(Get-ChildItem -LiteralPath $Root -File | Where-Object {
         $_.Name -match
-            '^xucRun-Core-Installer-(\d+\.\d+\.\d+\.\d+)-x64\.exe$'
+            '^xucRun-Installer-(\d+\.\d+\.\d+\.\d+)-x64\.exe$'
     })
     if ($installers.Count -gt 1) {
-        throw 'The Core package contains multiple versioned graphical installers.'
+        throw 'The package contains multiple versioned graphical installers.'
     }
     if ($installers.Count -eq 1) {
         $expectedVersion = [regex]::Match(
             $installers[0].Name,
-            '^xucRun-Core-Installer-(\d+\.\d+\.\d+\.\d+)-x64\.exe$'
+            '^xucRun-Installer-(\d+\.\d+\.\d+\.\d+)-x64\.exe$'
         ).Groups[1].Value
         if ($installers[0].VersionInfo.ProductVersion -ne $expectedVersion) {
             throw "The graphical installer file name does not match its product version: " +
@@ -186,7 +186,7 @@ $certificate = Get-OrCreateLocalCertificate `
 Add-LocalCertificateTrust -Certificate $certificate
 
 $stagingDirectory = Join-Path ([IO.Path]::GetTempPath()) (
-    'xucRun-CoreSigning-' + [Guid]::NewGuid().ToString('N'))
+    'xucRun-Signing-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $stagingDirectory | Out-Null
 try {
     foreach ($file in $packageFiles) {
@@ -237,4 +237,4 @@ $hashEntries = @(Get-ChildItem -LiteralPath $packageRoot -Recurse -File |
     Sort-Object Path)
 $hashEntries | ConvertTo-Json |
     Set-Content -LiteralPath (Join-Path $packageRoot 'SHA256SUMS.json') -Encoding UTF8
-Write-Host 'The xucRun Core package was signed with the machine-local certificate.'
+Write-Host 'The xucRun package was signed with the machine-local certificate.'

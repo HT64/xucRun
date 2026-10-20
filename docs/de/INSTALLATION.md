@@ -1,19 +1,19 @@
-# xucRun Core installieren
+# xucRun installieren
 
 **Sprache:** Deutsch | [English](../en/INSTALLATION.md)
 
-Dieses Dokument beschreibt die grafische und die manuelle Installation von xucRun Core.
+Dieses Dokument beschreibt die grafische und die manuelle Installation von xucRun.
 
 ## Voraussetzungen
 
 - ein x64-Windows-System,
-- ein vollständiges Core-Paket,
+- ein vollständiges xucRun-Paket,
 - Administratorrechte,
 - dieselbe vertrauenswürdige Authenticode-Signatur auf allen sechs installierbaren Paketdateien.
 
 ## Grafische Installation
 
-xucRun Core ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei
+xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei
 besitzt derzeit keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann
 deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie den Installer
 ausschließlich aus dem offiziellen GitHub Release herunter und vergleichen Sie vor dem Start die
@@ -22,17 +22,17 @@ dort veröffentlichte SHA-256-Prüfsumme.
 Der empfohlene Installationsweg ist ein Doppelklick auf:
 
 ```text
-xucRun-Core-Installer-<Version>-x64.exe
+xucRun-Installer-<Version>-x64.exe
 ```
 
 Bei Version 0.9.0.1 heißt die Datei beispielsweise
-`xucRun-Core-Installer-0.9.0.1-x64.exe`. Der Dateiname wird bei der Paketerzeugung automatisch aus
+`xucRun-Installer-0.9.0.1-x64.exe`. Der Dateiname wird bei der Paketerzeugung automatisch aus
 der Produktversion der intern weiterhin als `Installer.exe` gebauten Datei erzeugt.
 
 Die lokale SHA-256-Prüfsumme kann beispielsweise so angezeigt werden:
 
 ```powershell
-Get-FileHash .\xucRun-Core-Installer-0.9.0.1-x64.exe -Algorithm SHA256
+Get-FileHash .\xucRun-Installer-0.9.0.1-x64.exe -Algorithm SHA256
 ```
 
 Der ausgegebene Hash muss vollständig mit dem Eintrag für diese Datei in der zum GitHub Release
@@ -44,7 +44,7 @@ können Programmsprache, Maschinen-PATH und Vertrauensmodell ausgewählt werden.
 Für ein selbst erstelltes Paket bleibt **Lokales Zertifikat erstellen und Paketdateien
 signieren** ausgewählt. Der Installer erzeugt oder verwendet ein nicht exportierbares,
 rechnerlokales Codesignaturzertifikat, richtet das Vertrauen ausschließlich auf diesem Rechner
-ein und signiert die sechs installierbaren Core-Dateien.
+ein und signiert die sechs installierbaren Dateien.
 
 **Vorhandene Paketsignaturen verwenden** ist für ein vollständig vom Herausgeber signiertes Paket
 bestimmt. Dabei müssen der versionierte grafische Installer und alle sechs eingebetteten
@@ -65,7 +65,7 @@ Die mitgelieferte lokale Signierung ist für selbst erzeugte Builds und Tests be
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\UserCodeSigning\Sign-xucRunCorePackage.ps1 `
+  -File .\UserCodeSigning\Sign-xucRunPackage.ps1 `
   -PackageDirectory .
 ```
 
@@ -75,7 +75,7 @@ und, sofern vorhanden, den versionierten grafischen Installer mit demselben Zert
 aktualisiert `SHA256SUMS.json`.
 
 Das lokale Zertifikat darf nicht auf andere Rechner verteilt werden. Die Deinstallation von
-xucRun Core entfernt dieses separat erzeugte Zertifikat nicht.
+xucRun entfernt dieses separat erzeugte Zertifikat nicht.
 
 ### Installieren
 
@@ -83,7 +83,7 @@ Deutsch mit Maschinen-PATH:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\Install-xucRun-Core.ps1 `
+  -File .\Install-xucRun.ps1 `
   -PackageDirectory . `
   -Language de `
   -AddToSystemPath
@@ -109,7 +109,7 @@ Version erzeugt keine doppelten PATH-Einträge.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File 'C:\Program Files\xucRun\Install-xucRun-Core.ps1' `
+  -File 'C:\Program Files\xucRun\Install-xucRun.ps1' `
   -Uninstall
 ```
 

@@ -1,4 +1,4 @@
-// Purpose: Coordinates a machine-wide language change through the Core client.
+// Purpose: Coordinates a machine-wide language change through the xucRun client.
 #pragma once
 
 namespace xucrun::language_change

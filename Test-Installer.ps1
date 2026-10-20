@@ -1,4 +1,4 @@
-# Purpose: Installs, updates, verifies, and uninstalls a signed Core package on a clean CI runner.
+# Purpose: Installs, updates, verifies, and uninstalls a signed package on a clean CI runner.
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
@@ -13,14 +13,14 @@ $installDirectory = Join-Path $programFilesDirectory 'xucRun'
 $installedClient = Join-Path $installDirectory 'xucRun.exe'
 $installedBroker = Join-Path $installDirectory 'xucRunBroker.exe'
 $installedApproval = Join-Path $installDirectory 'xucRunApproval.exe'
-$installedInstaller = Join-Path $installDirectory 'Install-xucRun-Core.ps1'
+$installedInstaller = Join-Path $installDirectory 'Install-xucRun.ps1'
 $installedLanguageDirectory = Join-Path $installDirectory 'Languages'
 $configurationPath = Join-Path $installDirectory 'xucRun.ini'
 $parametersPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$serviceName\Parameters"
 $eventSourcePath =
     "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$serviceName"
 $uninstallRegistryPath =
-    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRunCore'
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun'
 $brokerStoreDirectory = Join-Path $env:ProgramData 'xucRun'
 $machineEnvironmentPath =
     'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
@@ -36,7 +36,7 @@ function Assert-Condition {
     )
 
     if (-not $Condition) {
-        throw "Core installer smoke test failed: $Message"
+        throw "Installer smoke test failed: $Message"
     }
 }
 
@@ -168,6 +168,9 @@ function Assert-InstalledState {
         'The uninstall registry entry is missing.'
     $uninstallKey = Get-Item -LiteralPath $uninstallRegistryPath
     Assert-Condition (
+        [string]$uninstallKey.GetValue('DisplayName', '') -eq 'xucRun') `
+        'The uninstall DisplayName is not xucRun.'
+    Assert-Condition (
         [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.0.1') `
         'The uninstall DisplayVersion is not 0.9.0.1.'
     Assert-Condition (
@@ -259,12 +262,12 @@ Assert-Condition (
     'The test must run with Windows PowerShell 5.1.'
 Assert-Administrator
 $packageRoot = (Resolve-Path -LiteralPath $PackageDirectory).ProviderPath
-$signer = Join-Path $packageRoot 'UserCodeSigning\Sign-xucRunCorePackage.ps1'
-$installer = Join-Path $packageRoot 'Install-xucRun-Core.ps1'
+$signer = Join-Path $packageRoot 'UserCodeSigning\Sign-xucRunPackage.ps1'
+$installer = Join-Path $packageRoot 'Install-xucRun.ps1'
 Assert-Condition (Test-Path -LiteralPath $signer -PathType Leaf) `
     "Package signer is missing: $signer"
 Assert-Condition (Test-Path -LiteralPath $installer -PathType Leaf) `
-    "Core installer is missing: $installer"
+    "Installer is missing: $installer"
 
 Assert-Condition (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) `
     'The runner already has an xucRunBroker service.'
@@ -319,7 +322,7 @@ try {
     Assert-Condition (-not (Test-Path -LiteralPath $brokerStoreDirectory)) `
         'Broker product data remains after uninstall.'
 
-    Write-Host 'xucRun Core installer smoke test passed.'
+    Write-Host 'xucRun installer smoke test passed.'
 }
 catch {
     $testError = $_

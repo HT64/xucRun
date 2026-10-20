@@ -1,4 +1,4 @@
-// Purpose: Loads configured Core or Tray language resources and resolves localized strings.
+// Purpose: Loads configured application language resources and resolves localized strings.
 #include "Localization.h"
 
 #include <Windows.h>

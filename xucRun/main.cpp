@@ -1,4 +1,4 @@
-// Purpose: Implements the xucRun Core client entry point with broker integration and file logging.
+// Purpose: Implements the xucRun client entry point with broker integration and file logging.
 
 // ============================================================================
 // COMMAND-LINE SYNTAX & SWITCHES
@@ -195,7 +195,7 @@
 // INCLUDED HEADER DIRECTORY:
 // --------------------------
 // Windows and platform headers:
-//   Windows.h                         Core Win32 types, process, token, window, and service APIs.
+//   Windows.h                         Win32 types, process, token, window, and service APIs.
 //   shellapi.h                        ShellExecuteEx and Windows shell integration.
 //   shlobj.h                          Windows shell folders and related shell helpers.
 //   wincred.h                         Windows Credential UI and credential structures.

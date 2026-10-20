@@ -1,6 +1,6 @@
-// Purpose: Defines resource identifiers for the public Core bootstrap installer.
-#ifndef XUCRUN_CORE_INSTALLER_RESOURCE_H
-#define XUCRUN_CORE_INSTALLER_RESOURCE_H
+// Purpose: Defines resource identifiers for the xucRun bootstrap installer.
+#ifndef XUCRUN_INSTALLER_RESOURCE_H
+#define XUCRUN_INSTALLER_RESOURCE_H
 
 #define IDI_INSTALLER 101
 

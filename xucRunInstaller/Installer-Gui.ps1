@@ -1,4 +1,4 @@
-# Purpose: Provides the bilingual graphical workflow for installing xucRun Core.
+# Purpose: Provides the bilingual graphical workflow for installing xucRun.
 param(
     [Parameter(Mandatory)][string]$PackageDirectory,
     [Parameter(Mandatory)][string]$InstallerPath
@@ -22,8 +22,8 @@ $script:statusArguments = @()
 
 $texts = @{
     de = @{
-        WindowTitle = 'xucRun Core Installer'
-        Heading = 'xucRun Core installieren'
+        WindowTitle = 'xucRun Installer'
+        Heading = 'xucRun installieren'
         Description = 'Installiert xucRun und den Broker nach C:\Program Files\xucRun.'
         SettingsTab = 'Einstellungen'
         DetailsTab = 'Ablauf und Deinstallation'
@@ -33,7 +33,7 @@ $texts = @{
         PublisherCertificate = 'Vorhandene Paketsignaturen verwenden'
         LocalCertificate = 'Lokales Zertifikat erstellen und Paketdateien signieren'
         CertificateWarning = 'Für selbst erstellte Pakete wird das lokale Zertifikat empfohlen. Sein privater Schlüssel ist nicht exportierbar und bleibt auf diesem Computer.'
-        UpdateNotice = 'Eine vorhandene Core-Installation wird mit den gewählten Einstellungen aktualisiert.'
+        UpdateNotice = 'Eine vorhandene xucRun-Installation wird mit den gewählten Einstellungen aktualisiert.'
         InstallButton = 'Installieren'
         CancelButton = 'Abbrechen'
         StatusReady = 'Bereit.'
@@ -61,34 +61,34 @@ $texts = @{
         ProcessFailed = '{0} (Exitcode {1}).'
         LocalSigningFailed = 'Die lokale Signierung ist fehlgeschlagen'
         InstallationFailed = 'Die Installation ist fehlgeschlagen'
-        InstallationSuccess = 'xucRun Core wurde erfolgreich installiert.'
+        InstallationSuccess = 'xucRun wurde erfolgreich installiert.'
         Details = @'
 INSTALLATION
 
-1. Der Installer benötigt Administratorrechte und entpackt die eingebetteten Core-Dateien vorübergehend in ein geschütztes Verzeichnis unter %ProgramData%. Nur SYSTEM und Administratoren erhalten Zugriff. Nach Abschluss oder Abbruch wird das Verzeichnis entfernt.
+1. Der Installer benötigt Administratorrechte und entpackt die eingebetteten xucRun-Dateien vorübergehend in ein geschütztes Verzeichnis unter %ProgramData%. Nur SYSTEM und Administratoren erhalten Zugriff. Nach Abschluss oder Abbruch wird das Verzeichnis entfernt.
 
 2. xucRun benötigt Microsoft Visual C++ Redistributable x64. Fehlt es, kann der Installer die Datei vom offiziellen Microsoft-Link herunterladen oder eine vorhandene vc_redist.x64.exe verwenden. Vor dem Start werden Microsoft-Signatur und Originaldateiname geprüft.
 
-3. Für selbst erstellte Pakete kann der Installer ein lokales Codesignaturzertifikat mit nicht exportierbarem privaten Schlüssel erzeugen, ihm auf diesem Computer vertrauen und die sechs installierbaren Core-Dateien signieren.
+3. Für selbst erstellte Pakete kann der Installer ein lokales Codesignaturzertifikat mit nicht exportierbarem privaten Schlüssel erzeugen, ihm auf diesem Computer vertrauen und die sechs installierbaren Dateien signieren.
 
 4. Bei einem vom Herausgeber signierten Paket kann der Installer stattdessen prüfen, dass Installer.exe und alle eingebetteten Dateien vom selben Zertifikat signiert wurden. Dieses Zertifikat wird anschließend als vertrauenswürdig eingerichtet.
 
-5. Das vorhandene Core-Installationsskript prüft alle Signaturen erneut, installiert Client, Broker, Approval-Helper und Sprachdateien nach C:\Program Files\xucRun und richtet den Broker-Dienst sowie den Deinstallationseintrag ein.
+5. Das Installationsskript prüft alle Signaturen erneut, installiert Client, Broker, Approval-Helper und Sprachdateien nach C:\Program Files\xucRun und richtet den Broker-Dienst sowie den Deinstallationseintrag ein.
 
 6. Die gewählte Sprache wird in xucRun.ini eingetragen. Der systemweite PATH-Eintrag wird entsprechend der Auswahl gesetzt oder entfernt.
 
 AKTUALISIERUNG
 
-Eine vorhandene Core-Installation wird aktualisiert. Bereits gespeicherte xucRun-Anmeldedaten, Freigaben und nicht vom Installer verwaltete INI-Einstellungen bleiben erhalten.
+Eine vorhandene xucRun-Installation wird aktualisiert. Bereits gespeicherte xucRun-Anmeldedaten, Freigaben und nicht vom Installer verwaltete INI-Einstellungen bleiben erhalten.
 
 DEINSTALLATION
 
-Die Deinstallation erfolgt über „Installierte Apps“ beziehungsweise „Programme und Features“. Alternativ kann Install-xucRun-Core.ps1 im Installationsverzeichnis mit -Uninstall ausgeführt werden. Gespeicherte xucRun-Daten unter %ProgramData%\xucRun bleiben absichtlich erhalten.
+Die Deinstallation erfolgt über „Installierte Apps“ beziehungsweise „Programme und Features“. Alternativ kann Install-xucRun.ps1 im Installationsverzeichnis mit -Uninstall ausgeführt werden. Gespeicherte xucRun-Daten unter %ProgramData%\xucRun bleiben absichtlich erhalten.
 '@
     }
     en = @{
-        WindowTitle = 'xucRun Core Installer'
-        Heading = 'Install xucRun Core'
+        WindowTitle = 'xucRun Installer'
+        Heading = 'Install xucRun'
         Description = 'Installs xucRun and its broker in C:\Program Files\xucRun.'
         SettingsTab = 'Settings'
         DetailsTab = 'Process and uninstallation'
@@ -98,7 +98,7 @@ Die Deinstallation erfolgt über „Installierte Apps“ beziehungsweise „Prog
         PublisherCertificate = 'Use the existing package signatures'
         LocalCertificate = 'Create a local certificate and sign the package files'
         CertificateWarning = 'The local certificate is recommended for self-built packages. Its private key is non-exportable and remains on this computer.'
-        UpdateNotice = 'An existing Core installation will be updated with the selected settings.'
+        UpdateNotice = 'An existing xucRun installation will be updated with the selected settings.'
         InstallButton = 'Install'
         CancelButton = 'Cancel'
         StatusReady = 'Ready.'
@@ -126,29 +126,29 @@ Die Deinstallation erfolgt über „Installierte Apps“ beziehungsweise „Prog
         ProcessFailed = '{0} (exit code {1}).'
         LocalSigningFailed = 'Local signing failed'
         InstallationFailed = 'Installation failed'
-        InstallationSuccess = 'xucRun Core was installed successfully.'
+        InstallationSuccess = 'xucRun was installed successfully.'
         Details = @'
 INSTALLATION
 
-1. The installer requires administrator rights and temporarily extracts the embedded Core files to a protected directory below %ProgramData%. Only SYSTEM and administrators receive access. The directory is removed after completion or cancellation.
+1. The installer requires administrator rights and temporarily extracts the embedded xucRun files to a protected directory below %ProgramData%. Only SYSTEM and administrators receive access. The directory is removed after completion or cancellation.
 
 2. xucRun requires Microsoft Visual C++ Redistributable x64. If it is missing, the installer can download it from the official Microsoft link or use an existing vc_redist.x64.exe. The Microsoft signature and original file name are checked before execution.
 
-3. For self-built packages, the installer can create a local code-signing certificate with a non-exportable private key, trust it on this computer, and sign the six installable Core files.
+3. For self-built packages, the installer can create a local code-signing certificate with a non-exportable private key, trust it on this computer, and sign the six installable files.
 
 4. For a publisher-signed package, the installer can instead verify that Installer.exe and all embedded files were signed by the same certificate. It then configures that certificate as trusted.
 
-5. The existing Core installation script checks all signatures again, installs the client, broker, approval helper, and language files in C:\Program Files\xucRun, and configures the broker service and uninstall entry.
+5. The installation script checks all signatures again, installs the client, broker, approval helper, and language files in C:\Program Files\xucRun, and configures the broker service and uninstall entry.
 
 6. The selected language is written to xucRun.ini. The system-wide PATH entry is added or removed according to the selection.
 
 UPDATE
 
-An existing Core installation is updated. Stored xucRun credentials, approvals, and INI settings not managed by the installer are preserved.
+An existing xucRun installation is updated. Stored xucRun credentials, approvals, and INI settings not managed by the installer are preserved.
 
 UNINSTALLATION
 
-Uninstall through “Installed apps” or “Programs and Features”. Alternatively, run Install-xucRun-Core.ps1 in the installation directory with -Uninstall. Stored xucRun data below %ProgramData%\xucRun is intentionally preserved.
+Uninstall through “Installed apps” or “Programs and Features”. Alternatively, run Install-xucRun.ps1 in the installation directory with -Uninstall. Stored xucRun data below %ProgramData%\xucRun is intentionally preserved.
 '@
     }
 }
@@ -287,7 +287,7 @@ function Install-PublisherCertificate {
         'xucRun.exe',
         'xucRunBroker.exe',
         'xucRunApproval.exe',
-        'Install-xucRun-Core.ps1',
+        'Install-xucRun.ps1',
         'Languages\xucRun.de-DE.dll',
         'Languages\xucRun.en-US.dll'
     )) {
@@ -484,7 +484,7 @@ $installButton.Add_Click({
         else {
             Set-Status -Key StatusSigning
             $signScript =
-                Join-Path $PackageDirectory 'UserCodeSigning\Sign-xucRunCorePackage.ps1'
+                Join-Path $PackageDirectory 'UserCodeSigning\Sign-xucRunPackage.ps1'
             $signResult = Invoke-HiddenPowerShell -Arguments @(
                 '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
                 ('"' + $signScript + '"'), '-PackageDirectory',
@@ -495,7 +495,7 @@ $installButton.Add_Click({
             }
         }
 
-        $machineInstaller = Join-Path $PackageDirectory 'Install-xucRun-Core.ps1'
+        $machineInstaller = Join-Path $PackageDirectory 'Install-xucRun.ps1'
         $arguments = @(
             '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
             ('"' + $machineInstaller + '"'), '-PackageDirectory',
