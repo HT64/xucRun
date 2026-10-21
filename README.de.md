@@ -462,12 +462,37 @@ nicht die interaktive Windows-UAC-Bestätigung.
 
 ### In Total Commander integrieren
 
-xucRun kann eine neue Total-Commander-Instanz unter einem anderen eingerichteten Windows-Konto
-starten, ohne dass dieses bereits interaktiv angemeldet ist. Der Aufruf übernimmt den linken Pfad,
-den rechten Pfad und das aktive Dateipanel. So lassen sich Dateioperationen aus einer normalen
-Benutzersitzung heraus in einem anderen Kontokontext ausführen. Für erhöhte administrative
-Dateioperationen muss das Zielkonto über Administratorrechte verfügen und die Windows-UAC-Abfrage
-bestätigt werden.
+xucRun kann eine neue erhöhte Total-Commander-Instanz nach seiner automatischen Kontostrategie
+starten. Mitglieder der Administratorengruppe behalten ihr Konto und werden bei Bedarf über UAC
+erhöht. Bei einem Standardbenutzer verwendet xucRun ein gespeichertes Administratorkonto. Der
+Aufruf übernimmt den linken Pfad, den rechten Pfad und das aktive Dateipanel:
+
+```ini
+[em_TCStart_Elevated]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd=%comspec% /v:on /c
+param=SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" "%|COMMANDER_PATH|\TOTALCMD64.EXE" /L="!L!" /R="!R!" /P=!Active!
+menu=Start TC über xucRun mit erhöhten Rechten; Administratormitglieder behalten ihr Konto, Standardbenutzer wechseln zum Administrator
+iconic=1
+
+[em_TCReStart_Elevated]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd=cm_Exit,em_TCStart_Elevated
+param=
+menu=Neustart TC mit erhöhten Rechten
+iconic=1
+```
+
+Der zweite Befehl schließt die aktuelle Total-Commander-Instanz und ruft anschließend den ersten
+Befehl auf. Für den Kontowechsel eines Standardbenutzers muss mindestens ein Administratorkonto in
+xucRun gespeichert sein. Sind mehrere passende Administratorkonten gespeichert, erscheint die
+Kontoauswahl. Eine erforderliche Windows-UAC-Abfrage muss bestätigt werden.
+
+xucRun kann Total Commander außerdem unter einem ausdrücklich ausgewählten anderen Windows-Konto
+starten, ohne dass dieses bereits interaktiv angemeldet ist. So lassen sich Dateioperationen aus
+einer normalen Benutzersitzung heraus in einem anderen Kontokontext ausführen. Für erhöhte
+administrative Dateioperationen muss das Zielkonto über Administratorrechte verfügen und die
+Windows-UAC-Abfrage bestätigt werden.
 
 In `usercmd.ini` wird dafür ein benutzerdefinierter Befehl angelegt. `<Konto>` ist durch den
 eingerichteten Kontonamen zu ersetzen; die Total-Commander-Variablen und das Quoting müssen

@@ -427,11 +427,37 @@ not replace the interactive Windows UAC confirmation.
 
 ### Integrate with Total Commander
 
-xucRun can start a new Total Commander instance under another configured Windows account without
-that account already being signed in interactively. The invocation preserves the left path, right
-path, and active file panel. This allows file operations to be performed in another account
-context from a standard user session. For elevated administrative file operations, the target
-account must have administrator privileges and the Windows UAC prompt must be confirmed.
+xucRun can start a new elevated Total Commander instance according to its automatic account
+strategy. Members of the Administrators group retain their account and are elevated through UAC
+when necessary. For a standard user, xucRun uses a stored administrator account. The invocation
+preserves the left path, right path, and active file panel:
+
+```ini
+[em_TCStart_Elevated]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd=%comspec% /v:on /c
+param=SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" "%|COMMANDER_PATH|\TOTALCMD64.EXE" /L="!L!" /R="!R!" /P=!Active!
+menu=Start TC elevated through xucRun; administrator members retain their account, standard users switch to an administrator
+iconic=1
+
+[em_TCReStart_Elevated]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd=cm_Exit,em_TCStart_Elevated
+param=
+menu=Restart TC with elevated privileges
+iconic=1
+```
+
+The second command closes the current Total Commander instance and then invokes the first command.
+For a standard-user account switch, at least one administrator account must be stored in xucRun.
+If several matching administrator accounts are stored, the account selection dialog is shown. Any
+required Windows UAC prompt must be confirmed.
+
+xucRun can also start Total Commander under an explicitly selected different Windows account
+without that account already being signed in interactively. This allows file operations to be
+performed in another account context from a standard user session. For elevated administrative
+file operations, the target account must have administrator privileges and the Windows UAC prompt
+must be confirmed.
 
 Create a user-defined command in `usercmd.ini`. Replace `<Account>` with the configured account
 name and keep the Total Commander variables and quoting unchanged:
