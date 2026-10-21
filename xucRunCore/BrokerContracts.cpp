@@ -33,6 +33,13 @@ namespace
 				[](wchar_t character) { return character < L' '; });
 	}
 
+	bool IsSpecifiedProductVersion(
+		const xucrun::broker::ProductVersion& version) noexcept
+	{
+		return version.major != 0 || version.minor != 0 ||
+			version.patch != 0 || version.build != 0;
+	}
+
 	int HexValue(wchar_t character) noexcept
 	{
 		if (character >= L'0' && character <= L'9') return character - L'0';
@@ -638,7 +645,7 @@ namespace xucrun::broker
 			return ContractValidationError::UnsupportedProtocolVersion;
 		if (request.requestId == 0)
 			return ContractValidationError::MissingRequestId;
-		if (request.clientVersion.major == 0)
+		if (!IsSpecifiedProductVersion(request.clientVersion))
 			return ContractValidationError::InvalidProductVersion;
 		return ContractValidationError::None;
 	}
@@ -656,7 +663,8 @@ namespace xucrun::broker
 		{
 			for (const StatusIconListEntry& entry : result.entries)
 			{
-				if (entry.processId == 0 || entry.clientVersion.major == 0 ||
+				if (entry.processId == 0 ||
+					!IsSpecifiedProductVersion(entry.clientVersion) ||
 					entry.accountSid.empty() ||
 					entry.accountSid.size() > MaximumAccountSidLength ||
 					entry.canonicalAccountName.empty() ||

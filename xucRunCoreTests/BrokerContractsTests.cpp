@@ -2550,7 +2550,7 @@ namespace
 	{
 		xucrun::broker::StatusIconListRequest request;
 		request.requestId = 0x1020304050607080ULL;
-		request.clientVersion = { 3, 0, 2, 212 };
+		request.clientVersion = { 0, 9, 0, 2 };
 		request.includeAllSessions = true;
 		const auto requestFrame =
 			xucrun::broker::SerializeStatusIconListRequest(request);
@@ -2586,7 +2586,7 @@ namespace
 		xucrun::broker::StatusIconListResult result;
 		result.requestId = request.requestId;
 		result.status = xucrun::broker::CredentialListStatus::Succeeded;
-		result.entries.push_back({ 1234, true, { 3, 0, 2, 212 },
+		result.entries.push_back({ 1234, true, { 0, 9, 0, 2 },
 			L"S-1-5-21-1", L"DOMAIN\\User" });
 		const auto resultFrame =
 			xucrun::broker::SerializeStatusIconListResult(result);

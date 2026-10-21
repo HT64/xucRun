@@ -243,7 +243,7 @@ namespace xucrun::language_change
 				response.result.status != broker::CredentialListStatus::Succeeded)
 			{
 				client_logging::Write(L"Warning",
-					L"Querying same-session status icons after the language change "
+					L"Querying registered status icons after the language change "
 					L"failed. Windows error: " +
 					std::to_wstring(response.windowsError != NO_ERROR
 						? response.windowsError : response.result.windowsError) + L".");
@@ -283,6 +283,15 @@ namespace xucrun::language_change
 				std::to_wstring(signaledCount) + L" of " +
 				std::to_wstring(response.result.entries.size()) + L".");
 		}
+
+		bool LaunchElevatedAndNotifyStatusIcons(
+			const std::wstring& executablePath, const wchar_t* argument)
+		{
+			const bool changed = LaunchElevatedAndWait(executablePath, argument);
+			if (changed)
+				NotifyStatusIcons();
+			return changed;
+		}
 	}
 
 	bool Request(const wchar_t* elevatedArgument)
@@ -297,13 +306,8 @@ namespace xucrun::language_change
 			return false;
 		}
 		if (account_identity::IsUserInAdminGroup())
-		{
-			const bool changed =
-				LaunchElevatedAndWait(executablePath, elevatedArgument);
-			if (changed)
-				NotifyStatusIcons();
-			return changed;
-		}
+			return LaunchElevatedAndNotifyStatusIcons(
+				executablePath, elevatedArgument);
 
 		CredentialInfo credential;
 		DWORD error = ERROR_SUCCESS;
@@ -327,9 +331,8 @@ namespace xucrun::language_change
 		}
 		if (selection != broker_credential_selection::
 			BrokerCredentialSelectionOutcome::Selected)
-		{
-			return LaunchElevatedAndWait(executablePath, elevatedArgument);
-		}
+			return LaunchElevatedAndNotifyStatusIcons(
+				executablePath, elevatedArgument);
 
 		const std::wstring pipeToken = CreatePipeToken();
 		if (pipeToken.empty())
