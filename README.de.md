@@ -507,11 +507,22 @@ menu=Total Commander als <Konto> starten
 iconic=1
 ```
 
-Der Befehl verwendet xucRun bewusst zweimal. Der äußere Aufruf startet die mit
-`/hidden-monitor` verborgene `cmd.exe` nach der xucRun-Standardstrategie. Der innere Aufruf
-verarbeitet `/user:<Konto>` und startet die sichtbare Total-Commander-Instanz unter dem Zielkonto.
-Die Erhöhung der äußeren Zwischenstufe wird nicht auf das Zielkonto übertragen; dessen Rechte
-bleiben unverändert.
+Der Befehl verwendet xucRun bewusst zweimal, damit ein Administratorkonto als zentraler
+Bevollmächtigter für die Anmeldedaten weiterer Zielkonten dienen kann. Für die eigentliche
+Startfunktion ist diese Kaskade nicht erforderlich; das hier ist eine spezielle Designentscheidung
+für die Art und Weise, wie die Anmeldedaten gespeichert werden. Das Beispiel zeigt zugleich, wie
+xucRun auch in einer verschachtelten Prozesskette mit komplexen Pfad- und Befehlszeilenargumenten
+eingesetzt werden kann. Der äußere Aufruf startet die mit
+`/hidden-monitor` verborgene `cmd.exe` nach der xucRun-Standardstrategie zunächst unter diesem
+Administratorkonto. Der darin ausgeführte innere xucRun-Aufruf läuft deshalb mit der SID des
+Administrators und kann dessen für `<Konto>` gespeicherte Anmeldedaten verwenden. Dadurch müssen
+die Anmeldedaten der weiteren Zielkonten nicht für jeden Standardbenutzer erneut gespeichert
+werden; jeder Standardbenutzer benötigt nur die für ihn gespeicherten Anmeldedaten des zentralen
+Administratorkontos. Ein einzelner xucRun-Aufruf des Standardbenutzers könnte dagegen nur dessen
+eigene, an seine SID gebundenen Anmeldedaten verwenden. Der innere Aufruf verarbeitet
+`/user:<Konto>` und startet die sichtbare Total-Commander-Instanz unter dem Zielkonto. Die
+Erhöhung der äußeren Zwischenstufe wird nicht auf das Zielkonto übertragen; dessen Rechte bleiben
+unverändert.
 
 Die vorgeschaltete `cmd.exe /v:on /c` speichert die von Total Commander gelieferten Pfade zuerst
 in Umgebungsvariablen und übergibt sie danach per verzögerter Variablenerweiterung an den inneren

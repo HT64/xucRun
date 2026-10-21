@@ -471,11 +471,20 @@ menu=Launch Total Commander as <Account>
 iconic=1
 ```
 
-The command deliberately invokes xucRun twice. The outer invocation starts the `cmd.exe` hidden
-by `/hidden-monitor` according to xucRun's default strategy. The inner invocation processes
+The command deliberately invokes xucRun twice so that an administrator account can act as the
+central authorized principal for the credentials of additional target accounts. This cascade is
+not required for the launch itself; this is a specific design decision about how the credentials
+are stored. The example also shows how xucRun can be used in a nested process chain with complex
+path and command-line arguments. The outer invocation first starts the `cmd.exe` hidden by
+`/hidden-monitor` under that administrator account according to xucRun's default strategy. The
+inner xucRun invocation therefore runs with the administrator's SID and can use the credentials
+that administrator stored for `<Account>`. This avoids storing the credentials of every additional
+target account separately for every standard user; each standard user needs only the credentials
+stored for the central administrator account. A single xucRun invocation by the standard user
+could instead use only that user's own SID-bound credentials. The inner invocation processes
 `/user:<Account>` and starts the visible Total Commander instance under the target account.
-Elevation of the outer intermediate stage is not transferred to the target account; its privileges
-remain unchanged.
+Elevation of the outer intermediate stage is not transferred to the target account; its
+privileges remain unchanged.
 
 The intermediate `cmd.exe /v:on /c` first stores the paths supplied by Total Commander in
 environment variables and then passes them to the inner xucRun invocation through delayed
