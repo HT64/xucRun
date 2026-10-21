@@ -634,7 +634,9 @@ Uninstalling xucRun also removes locally stored xucRun backups.
 
 `xucRun.exe /info` shows information including the client version, broker status, current account,
 and effective configuration. `xucRun.exe /audit` checks security-relevant properties of the
-running installation. If the broker service was disabled,
+running installation. If xucRun Tray is installed separately, the audit also checks its installed
+files and signatures, uninstall registration, and per-user autostart tasks. If the broker service
+was disabled,
 `xucRun.exe /enable-broker` enables it again. `xucRun.exe /help` displays the complete local
 command overview.
 

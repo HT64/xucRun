@@ -671,7 +671,9 @@ Die Deinstallation entfernt auch die lokal gespeicherten xucRun-Datensicherungen
 
 `xucRun.exe /info` zeigt unter anderem Clientversion, Brokerstatus, aktuelles Konto und wirksame
 Konfiguration. `xucRun.exe /audit` prüft sicherheitsrelevante Eigenschaften der
-laufenden Installation. Wurde der Brokerdienst deaktiviert, kann er mit
+laufenden Installation. Ist xucRun Tray separat installiert, prüft das Audit zusätzlich dessen
+installierte Dateien und Signaturen, Deinstallationsregistrierung und benutzerbezogene
+Autostartaufgaben. Wurde der Brokerdienst deaktiviert, kann er mit
 `xucRun.exe /enable-broker` wieder aktiviert werden. `xucRun.exe /help` zeigt die vollständige
 lokale Befehlsübersicht.
 

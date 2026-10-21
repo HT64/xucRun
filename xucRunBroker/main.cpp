@@ -308,7 +308,8 @@ namespace
 		if (aclFindings.empty())
 		{
 			LogEvent(EVENTLOG_INFORMATION_TYPE,
-				L"Startup ACL audit for broker, client, configuration, and broker store succeeded.");
+				L"Startup security audit for broker, client, installed Tray resources, "
+				L"configuration, and broker store succeeded.");
 		}
 		else
 		{

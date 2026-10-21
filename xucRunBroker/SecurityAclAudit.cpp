@@ -13,6 +13,7 @@
 #include <aclapi.h>
 #include <sddl.h>
 #include <shlobj.h>
+#include <taskschd.h>
 
 #include <algorithm>
 #include <array>
@@ -24,6 +25,89 @@ namespace
 {
 	constexpr wchar_t TrustedInstallerSid[] =
 		L"S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464";
+	constexpr wchar_t TrayUninstallRegistryPath[] =
+		L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\xucRun Tray";
+	constexpr wchar_t TrayTaskFolder[] = L"\\xucRun";
+	constexpr wchar_t TrayTaskPrefix[] = L"BrokerStatus-";
+
+	template<typename T>
+	class ComPtr
+	{
+	public:
+		~ComPtr()
+		{
+			if (value_)
+				value_->Release();
+		}
+
+		ComPtr(const ComPtr&) = delete;
+		ComPtr& operator=(const ComPtr&) = delete;
+		ComPtr() = default;
+
+		T* operator->() const
+		{
+			return value_;
+		}
+
+		T** Put()
+		{
+			return &value_;
+		}
+
+		void Reset()
+		{
+			if (value_)
+			{
+				value_->Release();
+				value_ = nullptr;
+			}
+		}
+
+		explicit operator bool() const
+		{
+			return value_ != nullptr;
+		}
+
+	private:
+		T* value_ = nullptr;
+	};
+
+	class LocalBstr
+	{
+	public:
+		LocalBstr() = default;
+
+		explicit LocalBstr(const wchar_t* value)
+			: value_(SysAllocString(value))
+		{
+		}
+
+		~LocalBstr()
+		{
+			SysFreeString(value_);
+		}
+
+		LocalBstr(const LocalBstr&) = delete;
+		LocalBstr& operator=(const LocalBstr&) = delete;
+
+		BSTR Get() const
+		{
+			return value_;
+		}
+
+		BSTR* Put()
+		{
+			return &value_;
+		}
+
+		std::wstring ToString() const
+		{
+			return value_ ? std::wstring(value_, SysStringLen(value_)) : std::wstring();
+		}
+
+	private:
+		BSTR value_ = nullptr;
+	};
 
 	const wchar_t* SelectAuditText(bool german, const wchar_t* english,
 		const wchar_t* germanText)
@@ -155,9 +239,10 @@ namespace
 	void InspectSecurityDescriptor(const std::wstring& objectName,
 		PSECURITY_DESCRIPTOR descriptor, PSID owner, PACL dacl, DWORD writeMask,
 		const std::wstring& remediation, std::vector<SecurityAclFinding>& findings,
-		bool german)
+		bool german, bool requireExpectedOwner = true)
 	{
-		if (!descriptor || !owner || !IsExpectedWriter(owner))
+		if (requireExpectedOwner &&
+			(!descriptor || !owner || !IsExpectedWriter(owner)))
 		{
 			findings.push_back({ objectName,
 				SelectAuditText(german, L"Unexpected owner: ", L"Unerwarteter Besitzer: ") +
@@ -301,12 +386,14 @@ namespace
 	void AuditInstallationSignature(const std::wstring& label, const std::wstring& path,
 		const std::vector<std::uint8_t>& expectedSigner,
 		SecurityAclAuditCoverage* coverage, std::vector<SecurityAclFinding>& findings,
-		bool german)
+		bool german, const std::wstring& customRemediation = {})
 	{
-		const std::wstring remediation = SelectAuditText(german,
-			L"Verify the machine certificate trust and reinstall xucRun from the signed package.",
-			L"Prüfen Sie das Zertifikatvertrauen des Computers und installieren Sie xucRun "
-			L"aus dem signierten Paket neu.");
+		const std::wstring remediation = customRemediation.empty()
+			? SelectAuditText(german,
+				L"Verify the machine certificate trust and reinstall xucRun from the signed package.",
+				L"Prüfen Sie das Zertifikatvertrauen des Computers und installieren Sie xucRun "
+				L"aus dem signierten Paket neu.")
+			: customRemediation;
 		ClientImageIdentity identity;
 		DWORD error = NO_ERROR;
 		SecurityAclSignatureInspection inspection;
@@ -355,6 +442,336 @@ namespace
 				L"The signing certificate does not match the installed client policy.",
 				L"Das Signierzertifikat entspricht nicht der installierten Clientrichtlinie."),
 				remediation });
+		}
+	}
+
+	void AppendTrayTaskFinding(const std::wstring& taskName,
+		const std::wstring& problem, std::vector<SecurityAclFinding>& findings,
+		bool german)
+	{
+		findings.push_back({
+			SelectAuditText(german, L"Tray autostart task: ", L"Tray-Autostartaufgabe: ") +
+				taskName,
+			problem,
+			SelectAuditText(german,
+				L"Remove xucRun Tray and reinstall the matching Tray release for the intended user.",
+				L"Entfernen Sie xucRun Tray und installieren Sie die passende "
+				L"Tray-Veröffentlichung für den vorgesehenen Benutzer neu.")
+			});
+	}
+
+	bool ResolveAccountSid(const std::wstring& account, std::vector<BYTE>& sid)
+	{
+		sid.clear();
+		PSID stringSid = nullptr;
+		if (ConvertStringSidToSidW(account.c_str(), &stringSid))
+		{
+			const DWORD size = GetLengthSid(stringSid);
+			sid.resize(size);
+			const bool copied = CopySid(size, sid.data(), stringSid) == TRUE;
+			LocalFree(stringSid);
+			if (!copied)
+				sid.clear();
+			return copied;
+		}
+
+		DWORD sidSize = 0;
+		DWORD domainSize = 0;
+		SID_NAME_USE use = SidTypeUnknown;
+		LookupAccountNameW(nullptr, account.c_str(), nullptr, &sidSize,
+			nullptr, &domainSize, &use);
+		if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || sidSize == 0)
+			return false;
+		sid.resize(sidSize);
+		std::vector<wchar_t> domain(domainSize);
+		if (!LookupAccountNameW(nullptr, account.c_str(), sid.data(), &sidSize,
+			domain.empty() ? nullptr : domain.data(), &domainSize, &use))
+		{
+			sid.clear();
+			return false;
+		}
+		return IsValidSid(sid.data()) == TRUE;
+	}
+
+	bool AreSameAccountIdentity(
+		const std::wstring& left, const std::wstring& right)
+	{
+		std::vector<BYTE> leftSid;
+		std::vector<BYTE> rightSid;
+		return ResolveAccountSid(left, leftSid) &&
+			ResolveAccountSid(right, rightSid) &&
+			EqualSid(leftSid.data(), rightSid.data()) == TRUE;
+	}
+
+	bool IsExpectedTrayTaskPrincipal(const std::wstring& taskName,
+		const std::wstring& principalUser, TASK_LOGON_TYPE logonType,
+		TASK_RUNLEVEL_TYPE runLevel)
+	{
+		const std::size_t prefixLength = std::size(TrayTaskPrefix) - 1;
+		return taskName.size() > prefixLength &&
+			_wcsnicmp(taskName.c_str(), TrayTaskPrefix, prefixLength) == 0 &&
+			AreSameAccountIdentity(
+				taskName.substr(prefixLength), principalUser) &&
+			logonType == TASK_LOGON_INTERACTIVE_TOKEN &&
+			runLevel == TASK_RUNLEVEL_LUA;
+	}
+
+	bool IsExpectedTrayTaskAction(const std::wstring& actionPath,
+		const std::wstring& arguments, const std::wstring& workingDirectory,
+		const std::wstring& trayPath)
+	{
+		return _wcsicmp(actionPath.c_str(), trayPath.c_str()) == 0 &&
+			arguments.empty() && workingDirectory.empty();
+	}
+
+	void AuditTrayTaskSecurity(IRegisteredTask* task, const std::wstring& taskName,
+		std::vector<SecurityAclFinding>& findings, bool german)
+	{
+		LocalBstr securityDescriptor;
+		const HRESULT status = task->GetSecurityDescriptor(
+			OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION,
+			securityDescriptor.Put());
+		if (FAILED(status))
+		{
+			AppendTrayTaskFinding(taskName, SelectAuditText(german,
+				L"The task security descriptor could not be read.",
+				L"Der Sicherheitsdeskriptor der Aufgabe konnte nicht gelesen werden."),
+				findings, german);
+			return;
+		}
+
+		PSECURITY_DESCRIPTOR descriptor = nullptr;
+		if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(
+			securityDescriptor.Get(), SDDL_REVISION_1, &descriptor, nullptr))
+		{
+			AppendTrayTaskFinding(taskName, SelectAuditText(german,
+				L"The task security descriptor is invalid.",
+				L"Der Sicherheitsdeskriptor der Aufgabe ist ungültig."),
+				findings, german);
+			return;
+		}
+		PSID owner = nullptr;
+		BOOL ownerDefaulted = FALSE;
+		PACL dacl = nullptr;
+		BOOL daclPresent = FALSE;
+		BOOL daclDefaulted = FALSE;
+		if (!GetSecurityDescriptorOwner(
+			descriptor, &owner, &ownerDefaulted) ||
+			!GetSecurityDescriptorDacl(
+				descriptor, &daclPresent, &dacl, &daclDefaulted) ||
+			!daclPresent)
+		{
+			LocalFree(descriptor);
+			AppendTrayTaskFinding(taskName, SelectAuditText(german,
+				L"The task security descriptor is incomplete.",
+				L"Der Sicherheitsdeskriptor der Aufgabe ist unvollständig."),
+				findings, german);
+			return;
+		}
+		constexpr DWORD TaskWriteMask = FILE_WRITE_DATA | FILE_APPEND_DATA |
+			FILE_WRITE_EA | FILE_WRITE_ATTRIBUTES | DELETE | WRITE_DAC |
+			WRITE_OWNER | GENERIC_WRITE | GENERIC_ALL;
+		InspectSecurityDescriptor(
+			SelectAuditText(german, L"Tray autostart task: ", L"Tray-Autostartaufgabe: ") +
+				taskName,
+			descriptor, owner, dacl, TaskWriteMask,
+			SelectAuditText(german,
+				L"Remove xucRun Tray and reinstall the matching Tray release.",
+				L"Entfernen Sie xucRun Tray und installieren Sie die passende "
+				L"Tray-Veröffentlichung neu."),
+			findings, german, false);
+		LocalFree(descriptor);
+	}
+
+	void AuditTrayTaskDefinition(IRegisteredTask* task, const std::wstring& taskName,
+		const std::wstring& trayPath, std::vector<SecurityAclFinding>& findings,
+		bool german)
+	{
+		VARIANT_BOOL enabled = VARIANT_FALSE;
+		if (FAILED(task->get_Enabled(&enabled)) || enabled != VARIANT_TRUE)
+		{
+			AppendTrayTaskFinding(taskName, SelectAuditText(german,
+				L"The task is disabled or its state could not be read.",
+				L"Die Aufgabe ist deaktiviert oder ihr Status konnte nicht gelesen werden."),
+				findings, german);
+		}
+
+		ComPtr<ITaskDefinition> definition;
+		if (FAILED(task->get_Definition(definition.Put())))
+		{
+			AppendTrayTaskFinding(taskName, SelectAuditText(german,
+				L"The task definition could not be read.",
+				L"Die Aufgabendefinition konnte nicht gelesen werden."),
+				findings, german);
+			return;
+		}
+
+		std::wstring principalUser;
+		ComPtr<IPrincipal> principal;
+		TASK_LOGON_TYPE logonType = TASK_LOGON_NONE;
+		TASK_RUNLEVEL_TYPE runLevel = TASK_RUNLEVEL_HIGHEST;
+		LocalBstr principalUserId;
+		if (FAILED(definition->get_Principal(principal.Put())) ||
+			FAILED(principal->get_UserId(principalUserId.Put())) ||
+			FAILED(principal->get_LogonType(&logonType)) ||
+			FAILED(principal->get_RunLevel(&runLevel)))
+		{
+			AppendTrayTaskFinding(taskName, SelectAuditText(german,
+				L"The task principal could not be read.",
+				L"Der Aufgabenprinzipal konnte nicht gelesen werden."),
+				findings, german);
+		}
+		else
+		{
+			principalUser = principalUserId.ToString();
+			if (!IsExpectedTrayTaskPrincipal(
+				taskName, principalUser, logonType, runLevel))
+			{
+				AppendTrayTaskFinding(taskName, SelectAuditText(german,
+					L"The task is not bound to its named interactive user with limited privileges.",
+					L"Die Aufgabe ist nicht an den in ihrem Namen angegebenen interaktiven "
+					L"Benutzer mit eingeschränkten Rechten gebunden."),
+					findings, german);
+			}
+		}
+
+		ComPtr<IActionCollection> actions;
+		LONG actionCount = 0;
+		ComPtr<IAction> action;
+		TASK_ACTION_TYPE actionType = TASK_ACTION_COM_HANDLER;
+		ComPtr<IExecAction> execAction;
+		LocalBstr actionPath;
+		LocalBstr arguments;
+		LocalBstr workingDirectory;
+		if (FAILED(definition->get_Actions(actions.Put())) ||
+			FAILED(actions->get_Count(&actionCount)) || actionCount != 1 ||
+			FAILED(actions->get_Item(1, action.Put())) ||
+			FAILED(action->get_Type(&actionType)) || actionType != TASK_ACTION_EXEC ||
+			FAILED(action->QueryInterface(
+				__uuidof(IExecAction), reinterpret_cast<void**>(execAction.Put()))) ||
+			FAILED(execAction->get_Path(actionPath.Put())) ||
+			FAILED(execAction->get_Arguments(arguments.Put())) ||
+			FAILED(execAction->get_WorkingDirectory(workingDirectory.Put())) ||
+			!IsExpectedTrayTaskAction(actionPath.ToString(), arguments.ToString(),
+				workingDirectory.ToString(), trayPath))
+		{
+			AppendTrayTaskFinding(taskName, SelectAuditText(german,
+				L"The task action does not exclusively start the installed xucRunTray.exe.",
+				L"Die Aufgabenaktion startet nicht ausschließlich die installierte "
+				L"xucRunTray.exe."),
+				findings, german);
+		}
+
+		ComPtr<ITriggerCollection> triggers;
+		LONG triggerCount = 0;
+		ComPtr<ITrigger> trigger;
+		TASK_TRIGGER_TYPE2 triggerType = TASK_TRIGGER_EVENT;
+		ComPtr<ILogonTrigger> logonTrigger;
+		LocalBstr triggerUserId;
+		if (FAILED(definition->get_Triggers(triggers.Put())) ||
+			FAILED(triggers->get_Count(&triggerCount)) || triggerCount != 1 ||
+			FAILED(triggers->get_Item(1, trigger.Put())) ||
+			FAILED(trigger->get_Type(&triggerType)) || triggerType != TASK_TRIGGER_LOGON ||
+			FAILED(trigger->QueryInterface(
+				__uuidof(ILogonTrigger), reinterpret_cast<void**>(logonTrigger.Put()))) ||
+			FAILED(logonTrigger->get_UserId(triggerUserId.Put())) ||
+			principalUser.empty() ||
+			!AreSameAccountIdentity(triggerUserId.ToString(), principalUser))
+		{
+			AppendTrayTaskFinding(taskName, SelectAuditText(german,
+				L"The task does not contain exactly one matching user logon trigger.",
+				L"Die Aufgabe enthält nicht genau einen passenden Benutzeranmeldetrigger."),
+				findings, german);
+		}
+	}
+
+	void AuditTrayScheduledTasks(const std::wstring& trayPath,
+		std::vector<SecurityAclFinding>& findings, bool german)
+	{
+		const HRESULT initialization = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+		const bool uninitialize = SUCCEEDED(initialization);
+		if (FAILED(initialization) && initialization != RPC_E_CHANGED_MODE)
+		{
+			AppendTrayTaskFinding(L"\\xucRun", SelectAuditText(german,
+				L"The Task Scheduler audit could not initialize COM.",
+				L"Das Aufgabenplanungs-Audit konnte COM nicht initialisieren."),
+				findings, german);
+			return;
+		}
+
+		ComPtr<ITaskService> service;
+		HRESULT status = CoCreateInstance(__uuidof(TaskScheduler), nullptr,
+			CLSCTX_INPROC_SERVER, __uuidof(ITaskService),
+			reinterpret_cast<void**>(service.Put()));
+		VARIANT empty;
+		VariantInit(&empty);
+		if (SUCCEEDED(status))
+			status = service->Connect(empty, empty, empty, empty);
+		ComPtr<ITaskFolder> folder;
+		LocalBstr folderPath(TrayTaskFolder);
+		if (SUCCEEDED(status))
+			status = service->GetFolder(folderPath.Get(), folder.Put());
+		ComPtr<IRegisteredTaskCollection> tasks;
+		if (SUCCEEDED(status))
+			status = folder->GetTasks(TASK_ENUM_HIDDEN, tasks.Put());
+		LONG taskCount = 0;
+		if (SUCCEEDED(status))
+			status = tasks->get_Count(&taskCount);
+		if (FAILED(status))
+		{
+			AppendTrayTaskFinding(L"\\xucRun", SelectAuditText(german,
+				L"The Tray task folder could not be read.",
+				L"Der Tray-Aufgabenordner konnte nicht gelesen werden."),
+				findings, german);
+			if (uninitialize)
+			{
+				tasks.Reset();
+				folder.Reset();
+				service.Reset();
+				CoUninitialize();
+			}
+			return;
+		}
+
+		LONG trayTaskCount = 0;
+		for (LONG index = 1; index <= taskCount; ++index)
+		{
+			VARIANT itemIndex;
+			VariantInit(&itemIndex);
+			itemIndex.vt = VT_I4;
+			itemIndex.lVal = index;
+			ComPtr<IRegisteredTask> task;
+			if (FAILED(tasks->get_Item(itemIndex, task.Put())))
+				continue;
+			LocalBstr name;
+			if (FAILED(task->get_Name(name.Put())))
+				continue;
+			const std::wstring taskName = name.ToString();
+			if (taskName.size() < std::size(TrayTaskPrefix) - 1 ||
+				_wcsnicmp(taskName.c_str(), TrayTaskPrefix,
+					std::size(TrayTaskPrefix) - 1) != 0)
+			{
+				continue;
+			}
+			++trayTaskCount;
+			AuditTrayTaskSecurity(task.operator->(), taskName, findings, german);
+			AuditTrayTaskDefinition(
+				task.operator->(), taskName, trayPath, findings, german);
+		}
+		if (trayTaskCount == 0)
+		{
+			AppendTrayTaskFinding(L"\\xucRun\\BrokerStatus-*",
+				SelectAuditText(german,
+					L"No Tray autostart task is registered.",
+					L"Es ist keine Tray-Autostartaufgabe registriert."),
+				findings, german);
+		}
+		if (uninitialize)
+		{
+			tasks.Reset();
+			folder.Reset();
+			service.Reset();
+			CoUninitialize();
 		}
 	}
 
@@ -466,14 +883,16 @@ namespace
 
 	// Audits the owner and write permissions of a security-relevant registry key.
 	void AuditRegistryKey(const std::wstring& label, const wchar_t* subKey,
-		std::vector<SecurityAclFinding>& findings, bool german)
+		std::vector<SecurityAclFinding>& findings, bool german,
+		const std::wstring& customRemediation = {})
 	{
-		const std::wstring remediation =
-			SelectAuditText(german,
+		const std::wstring remediation = customRemediation.empty()
+			? SelectAuditText(german,
 				L"Remove foreign write permissions with Get-Acl/Set-Acl in an elevated "
 				L"PowerShell, then run Install-xucRun.ps1 again.",
 				L"Entfernen Sie fremde Schreibrechte mit Get-Acl/Set-Acl in einer erhöhten "
-				L"PowerShell und führen Sie anschließend Install-xucRun.ps1 erneut aus.");
+				L"PowerShell und führen Sie anschließend Install-xucRun.ps1 erneut aus.")
+			: customRemediation;
 		HKEY key = nullptr;
 		const LONG openStatus = RegOpenKeyExW(HKEY_LOCAL_MACHINE, subKey, 0,
 			READ_CONTROL, &key);
@@ -668,6 +1087,55 @@ std::vector<SecurityAclFinding> AuditBrokerSecurityAcls(bool german,
 			L"Client file certificate", L"Zertifikat der Clientdatei"),
 			clientPolicy.imagePath, clientPolicy.signerCertificateSha256,
 			coverage, findings, german);
+
+		const std::wstring trayPath = directory + L"\\xucRunTray.exe";
+		HKEY trayUninstallKey = nullptr;
+		const bool trayRegistryPresent = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+			TrayUninstallRegistryPath, 0, KEY_READ, &trayUninstallKey) == ERROR_SUCCESS;
+		if (trayUninstallKey)
+			RegCloseKey(trayUninstallKey);
+		if (trayRegistryPresent ||
+			GetFileAttributesW(trayPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+		{
+			const std::wstring languageDirectory = directory + L"\\Languages";
+			const std::array<std::pair<std::wstring, bool>, 4> trayFiles = {
+				std::pair{ trayPath, true },
+				std::pair{ languageDirectory + L"\\xucRunTray.de-DE.dll", true },
+				std::pair{ languageDirectory + L"\\xucRunTray.en-US.dll", true },
+				std::pair{ directory + L"\\Install-xucRunTray.ps1", false }
+			};
+			const std::wstring trayRemediation = SelectAuditText(german,
+				L"Remove xucRun Tray and reinstall the matching Tray release.",
+				L"Entfernen Sie xucRun Tray und installieren Sie die passende "
+				L"Tray-Veröffentlichung neu.");
+			if (coverage)
+				AppendUniquePath(coverage->installationObjects, languageDirectory);
+			AuditFileSystemObject(SelectAuditText(german,
+				L"Tray language directory", L"Tray-Sprachverzeichnis"),
+				languageDirectory, trayRemediation, findings, german);
+			for (const auto& [path, signedImage] : trayFiles)
+			{
+				if (coverage)
+					AppendUniquePath(coverage->installationObjects, path);
+				AuditFileSystemObject(SelectAuditText(german,
+					L"Tray file", L"Tray-Datei"), path,
+					trayRemediation, findings, german);
+				if (signedImage)
+				{
+					AuditInstallationSignature(SelectAuditText(german,
+						L"Tray file certificate", L"Zertifikat der Tray-Datei"),
+						path, clientPolicy.signerCertificateSha256,
+						coverage, findings, german, trayRemediation);
+				}
+			}
+			if (trayRegistryPresent)
+			{
+				AuditRegistryKey(SelectAuditText(german,
+					L"Tray uninstall registration", L"Tray-Deinstallationsregistrierung"),
+					TrayUninstallRegistryPath, findings, german, trayRemediation);
+			}
+			AuditTrayScheduledTasks(trayPath, findings, german);
+		}
 	}
 
 	AuditRegistryKey(SelectAuditText(german, L"Service configuration", L"Dienstkonfiguration"),
@@ -742,6 +1210,25 @@ std::vector<SecurityAclFinding> AuditBrokerSecurityAcls(bool german,
 // Tests ACL evaluation against secure and intentionally insecure test descriptors.
 bool RunSecurityAclAuditSelfTest()
 {
+	const std::wstring testSid = L"S-1-5-21-1-2-3-1001";
+	const std::wstring testTaskName = std::wstring(TrayTaskPrefix) + testSid;
+	const std::wstring testTrayPath = L"C:\\Program Files\\xucRun\\xucRunTray.exe";
+	if (!IsExpectedTrayTaskPrincipal(testTaskName, testSid,
+			TASK_LOGON_INTERACTIVE_TOKEN, TASK_RUNLEVEL_LUA) ||
+		IsExpectedTrayTaskPrincipal(testTaskName, testSid,
+			TASK_LOGON_INTERACTIVE_TOKEN, TASK_RUNLEVEL_HIGHEST) ||
+		IsExpectedTrayTaskPrincipal(testTaskName, L"S-1-5-21-1-2-3-1002",
+			TASK_LOGON_INTERACTIVE_TOKEN, TASK_RUNLEVEL_LUA) ||
+		!IsExpectedTrayTaskAction(
+			testTrayPath, L"", L"", testTrayPath) ||
+		IsExpectedTrayTaskAction(
+			L"C:\\Temp\\xucRunTray.exe", L"", L"", testTrayPath) ||
+		IsExpectedTrayTaskAction(
+			testTrayPath, L"--unexpected", L"", testTrayPath))
+	{
+		return false;
+	}
+
 	struct DescriptorTestCase
 	{
 		const wchar_t* sddl;
