@@ -203,7 +203,7 @@ separate Windows UAC window does not display it.
 
 Repeated starts without entering the password again require xucRun to store the target account
 credentials. xucRun protects them with Windows security mechanisms. Starting a program under
-another account nevertheless requires the credentials to be processed temporarily.
+another account nevertheless requires xucRun to process the credentials temporarily.
 
 A matching identifier indicates that the dialog originates from the xucRun helper, but it does
 not prove that the displayed operation is safe or was initiated by the user. An attacker can still
@@ -237,8 +237,8 @@ personal development and test systems. It is not a solution for unattended eleva
 fleet management, or systems requiring a particularly high level of protection.
 
 > **Important security notice:** xucRun protects stored credentials using Windows
-> security mechanisms. For Windows to start a program under another user account, however, the
-> required credentials must be processed temporarily. Complete protection against reading or
+> security mechanisms. For xucRun to start a program under another user account, however, xucRun
+> must process the required credentials temporarily. Complete protection against reading or
 > misuse by sufficiently privileged malware or an already compromised system therefore cannot be
 > guaranteed. The source code of xucRun is
 > disclosed so that the implemented protections, their technical limits, and the remaining
@@ -521,6 +521,16 @@ xucRun also supports batch files and carries common shell special characters acr
 process boundaries. Characters that `cmd.exe`, PowerShell, or another calling shell evaluates
 before xucRun starts remain subject to that shell's rules.
 
+For a broker-mediated launch of a `.bat` or `.cmd` file whose file name contains one of the CMD
+metacharacters `& | ( ) ! % ^`, the broker creates a temporary wrapper named
+`xucRun_wrapper_<128-bit-random-value>.bat`. It stores the wrapper preferably on a suitable volume
+named `RamDisk`, or otherwise in the target account's `%TEMP%` directory. The broker protects the
+wrapper until the launched process exits and then attempts to delete it, or does so during error
+cleanup if the launch fails. If a deletion error or unexpected broker termination leaves it
+behind, a local administrator can remove it after it has been released. There is no later
+automatic cleanup; the wrapper contains no credentials, stored arguments, or reusable
+authorization.
+
 ## Useful commands
 
 | Command | Purpose |
@@ -571,23 +581,23 @@ xucRun.exe /backup-delete-all
 ```
 
 A backup contains stored credentials, approvals, security identifiers, and associated metadata.
-Passwords remain protected with DPAPI-NG. A backup can therefore be restored only on the same
-computer and is not a portable password export.
+Backups are stored separately from the active credentials and approvals under
+`%ProgramData%\xucRun\BrokerBackups`. They are also protected by Windows security mechanisms and
+additionally bound to the computer. They can therefore be restored only on the same computer and
+are not a portable password export.
 
 Uninstalling xucRun also removes locally stored xucRun backups.
 
 ## Troubleshooting
 
-If a problem occurs, `xucRun.exe /info` shows information including the client version, broker
-status, current account, and effective configuration. `xucRun.exe /audit` checks security-relevant
-properties of the running installation. If the broker service was disabled,
+`xucRun.exe /info` shows information including the client version, broker status, current account,
+and effective configuration. `xucRun.exe /audit` checks security-relevant properties of the
+running installation. If the broker service was disabled,
 `xucRun.exe /enable-broker` enables it again. `xucRun.exe /help` displays the complete local
 command overview.
 
-When `ClientLogDirectory` is configured, the client writes daily files there with names such as
-`xucRun_YYYYMMDD.log`. Broker warnings, errors, and basic service events are written to the
-Windows Application event log. With `BrokerInformationEvents=true`, additional information events
-appear there after the broker service is restarted.
+Client file logging and broker event logging are described under
+[Configuration file and language](#configuration-file-and-language).
 
 ## Configuration file and language
 
@@ -614,9 +624,11 @@ BrokerInformationEvents=false
   it. Environment variables are expanded in the context of each starting client. The path must
   be accessible to every client and wrapper account in use, with the permissions required to
   create, append to, and delete log files.
-- `BrokerInformationEvents=true` enables additional broker service information events in the
-  Windows Application event log. The change applies after the broker service is restarted.
-  Warnings, errors, and basic service events remain enabled independently of this setting.
+- The broker always writes warnings, errors, and service and ACL startup messages to the Windows
+  Application event log under the `xucRunBroker` source. `BrokerInformationEvents=true`
+  additionally logs routine information about pipe request processing there. If the setting is
+  missing, empty, `false`, or has any other value, only these additional information events remain
+  disabled. Changes take effect after the broker service is restarted.
 
 A missing configuration file, invalid language value, or missing or incorrectly signed language
 file causes startup to fail for security reasons instead of silently falling back to another

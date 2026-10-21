@@ -225,7 +225,7 @@ getrennte Windows-UAC-Fenster zeigt es nicht an.
 
 Wiederholte Starts ohne erneute Kennworteingabe setzen voraus, dass xucRun die Anmeldedaten des
 Zielkontos speichert. xucRun schützt sie mit Windows-Sicherheitsmechanismen. Für einen Start unter
-einem anderen Konto müssen die benötigten Anmeldedaten jedoch vorübergehend verarbeitet werden.
+einem anderen Konto muss xucRun die benötigten Anmeldedaten jedoch vorübergehend verarbeiten.
 
 Die Übereinstimmung ist ein Originalitätshinweis für den xucRun-Helperdialog, aber kein Beweis,
 dass die angezeigte Operation ungefährlich ist oder vom Benutzer selbst ausgelöst wurde. Ein
@@ -259,9 +259,9 @@ persönlichen Entwicklungs- und Testsystemen vorgesehen. Es ist keine Lösung f�
 Rechteerhöhung, zentrale Flottenverwaltung oder besonders schutzbedürftige Systeme.
 
 > **Wichtiger Sicherheitshinweis:** xucRun schützt gespeicherte Anmeldedaten
-> mithilfe von Windows-Sicherheitsmechanismen. Damit Windows ein Programm unter einem anderen
-> Benutzerkonto starten kann, müssen die benötigten Anmeldedaten jedoch vorübergehend verarbeitet
-> werden. Ein vollständiger Schutz vor dem Auslesen oder Missbrauch durch ausreichend
+> mithilfe von Windows-Sicherheitsmechanismen. Damit xucRun ein Programm unter einem anderen
+> Benutzerkonto starten kann, muss xucRun die benötigten Anmeldedaten jedoch vorübergehend
+> verarbeiten. Ein vollständiger Schutz vor dem Auslesen oder Missbrauch durch ausreichend
 > privilegierte Malware oder ein bereits kompromittiertes System kann deshalb nicht gewährleistet
 > werden. Der Quellcode von xucRun wird
 > offengelegt, damit die eingesetzten Schutzmaßnahmen, ihre technischen Grenzen und die
@@ -557,6 +557,16 @@ zusätzlichen Prozessgrenzen. Welche Zeichen von `cmd.exe`, PowerShell oder eine
 aufrufenden Shell schon vor dem Start von xucRun ausgewertet werden, richtet sich weiterhin nach
 dieser Shell.
 
+Bei einem brokervermittelten Start einer `.bat`- oder `.cmd`-Datei, deren Dateiname eines der
+CMD-Metazeichen `& | ( ) ! % ^` enthält, erzeugt der Broker einen temporären Wrapper mit dem Namen
+`xucRun_wrapper_<128-Bit-Zufall>.bat`. Er legt ihn bevorzugt auf einem geeigneten Volume namens
+`RamDisk` ab, andernfalls im `%TEMP%`-Verzeichnis des Zielkontos. Der Broker schützt den Wrapper bis
+zum Ende des gestarteten Prozesses und versucht ihn anschließend oder bei einem fehlgeschlagenen
+Start während der Fehlerbereinigung zu löschen. Bleibt er wegen eines Löschfehlers oder
+unerwarteten Brokerendes zurück, kann ein lokaler Administrator ihn nach Freigabe manuell
+entfernen. Eine automatische Nachbereinigung gibt es nicht; der Wrapper enthält keine
+Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
+
 ## Nützliche Befehle
 
 | Befehl | Zweck |
@@ -607,23 +617,23 @@ xucRun.exe /backup-delete-all
 ```
 
 Eine Sicherung umfasst gespeicherte Anmeldedaten, Freigaben, Sicherheitsmerkmale und zugehörige
-Metadaten. Die Kennwörter bleiben mit DPAPI-NG geschützt. Eine Sicherung kann deshalb nur auf
-demselben Rechner wiederhergestellt werden und ist kein portabler Kennwortexport.
+Metadaten. Datensicherungen werden getrennt von den aktiven Anmeldedaten und Freigaben unter
+`%ProgramData%\xucRun\BrokerBackups` gespeichert. Sie sind ebenfalls durch
+Windows-Sicherheitsmechanismen geschützt und zusätzlich an den Rechner gebunden. Sie können deshalb
+nur auf demselben Rechner wiederhergestellt werden und sind kein portabler Kennwortexport.
 
 Die Deinstallation entfernt auch die lokal gespeicherten xucRun-Datensicherungen.
 
 ## Fehlerdiagnose
 
-Bei Problemen zeigt `xucRun.exe /info` unter anderem Clientversion, Brokerstatus, aktuelles Konto
-und wirksame Konfiguration. `xucRun.exe /audit` prüft sicherheitsrelevante Eigenschaften der
+`xucRun.exe /info` zeigt unter anderem Clientversion, Brokerstatus, aktuelles Konto und wirksame
+Konfiguration. `xucRun.exe /audit` prüft sicherheitsrelevante Eigenschaften der
 laufenden Installation. Wurde der Brokerdienst deaktiviert, kann er mit
 `xucRun.exe /enable-broker` wieder aktiviert werden. `xucRun.exe /help` zeigt die vollständige
 lokale Befehlsübersicht.
 
-Ist `ClientLogDirectory` konfiguriert, schreibt der Client dort Tagesdateien mit Namen wie
-`xucRun_YYYYMMDD.log`. Brokerwarnungen, Fehler und grundlegende Dienstereignisse stehen im
-Windows-Anwendungsereignislog; mit `BrokerInformationEvents=true` erscheinen dort nach einem
-Neustart des Brokerdienstes zusätzlich Informationsereignisse.
+Die Client-Dateiprotokollierung und die Ereignisprotokollierung des Brokers werden unter
+[Konfigurationsdatei und Sprache](#konfigurationsdatei-und-sprache) beschrieben.
 
 ## Konfigurationsdatei und Sprache
 
@@ -650,9 +660,12 @@ BrokerInformationEvents=false
   Pfad aktiviert es. Umgebungsvariablen werden im Kontext des jeweils startenden Clients
   aufgelöst. Der Pfad muss für jedes verwendete Client- und Wrapperkonto erreichbar und mit den
   zum Erstellen, Anhängen und Löschen der Protokolldateien erforderlichen Rechten versehen sein.
-- `BrokerInformationEvents=true` aktiviert zusätzliche Informationsereignisse des Brokerdienstes
-  im Windows-Anwendungsereignislog. Die Änderung gilt nach einem Neustart des Brokerdienstes.
-  Warnungen, Fehler und grundlegende Dienstereignisse bleiben unabhängig davon aktiv.
+- Warnungen, Fehler sowie Dienst- und ACL-Startmeldungen schreibt der Broker immer in das
+  Windows-Anwendungsereignislog unter der Quelle `xucRunBroker`.
+  `BrokerInformationEvents=true` ergänzt dort routinemäßige Informationsmeldungen zur Verarbeitung
+  von Pipe-Anfragen. Bei fehlendem, leerem, `false` oder anderem Wert bleiben nur diese
+  zusätzlichen Informationsmeldungen deaktiviert. Änderungen gelten nach einem Neustart des
+  Brokerdienstes.
 
 Eine fehlende Konfigurationsdatei, ein ungültiger Sprachwert oder eine fehlende beziehungsweise
 nicht passend signierte Sprachdatei führt aus Sicherheitsgründen zum Startabbruch statt zu einem
