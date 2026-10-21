@@ -103,6 +103,10 @@ Ein vollständig signiertes neueres Paket wird erneut mit seinem versionierten g
 oder demselben manuellen Installationsbefehl installiert. Auch eine erneute Installation derselben
 Version erzeugt keine doppelten PATH-Einträge.
 
+Ist das optionale xucRun-Tray-Add-on installiert, muss es vor dem xucRun-Update über seinen eigenen
+Windows-Deinstallationseintrag entfernt werden. Nach dem xucRun-Update kann aus dem öffentlichen
+Tray-Repository eine Tray-Version mit exakt derselben vierteiligen Version installiert werden.
+
 ## Deinstallieren
 
 Über **Installierte Apps** oder:
@@ -116,3 +120,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 Die Deinstallation entfernt Dienst, installierte Dateien, Uninstall-Eintrag, einen vom Installer
 hinzugefügten PATH-Eintrag und aktive Brokerdaten. Separat erzeugte Testzertifikate werden nicht
 entfernt.
+
+Das optionale Tray-Add-on muss zuerst entfernt werden. xucRun-Update und -Deinstallation brechen
+mit einem erklärenden Hinweis ab, solange das separate Tray-Add-on noch installiert ist.

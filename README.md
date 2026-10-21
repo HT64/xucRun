@@ -290,6 +290,10 @@ machine PATH.
 
 ### Update and uninstall
 
+xucRun and the optional Tray add-on use an exact four-part version match. Before updating or
+removing xucRun, remove the Tray add-on through its separate Windows uninstall entry. After an
+xucRun update, install the publicly available Tray release with the same version.
+
 To update xucRun, start the versioned graphical installer from a fully signed newer package.
 Alternatively, run the PowerShell installation script from that package again. Stored xucRun
 credentials, approvals, and INI settings not managed by the installer are preserved.
@@ -633,6 +637,20 @@ BrokerInformationEvents=false
 A missing configuration file, invalid language value, or missing or incorrectly signed language
 file causes startup to fail for security reasons instead of silently falling back to another
 language.
+
+## Optional Tray
+
+xucRun and the optional [xucRun Tray add-on](https://github.com/HT64/xucRun-Tray) are open source
+and publicly available without payment or membership. The Tray provides a notification-area status
+and convenience interface; it does not add exclusive security, broker, credential, or launch
+functionality.
+
+## Support the project
+
+Development can be supported voluntarily on
+[Patreon](https://www.patreon.com/xucRun). Supporting the project is not required to download or
+use xucRun or Tray and does not provide exclusive software, features, releases, downloads,
+personal support, or specific response times.
 
 ## Reporting vulnerabilities
 

@@ -316,6 +316,11 @@ Maschinen-PATH hinzugefügt werden.
 
 ### Aktualisieren und deinstallieren
 
+xucRun und das optionale Tray-Add-on verwenden eine exakte vierteilige Versionsbindung. Vor einem
+Update oder der Deinstallation von xucRun muss das Tray-Add-on über seinen eigenen Windows-
+Deinstallationseintrag entfernt werden. Nach einem xucRun-Update kann die öffentlich verfügbare
+Tray-Version mit derselben Versionsnummer installiert werden.
+
 Für eine Aktualisierung wird der versionierte grafische Installer aus einem vollständig
 signierten neueren Paket gestartet. Alternativ kann erneut das PowerShell-Installationsskript des
 neuen Pakets verwendet werden. Gespeicherte xucRun-Anmeldedaten, Freigaben und nicht vom Installer
@@ -670,6 +675,20 @@ BrokerInformationEvents=false
 Eine fehlende Konfigurationsdatei, ein ungültiger Sprachwert oder eine fehlende beziehungsweise
 nicht passend signierte Sprachdatei führt aus Sicherheitsgründen zum Startabbruch statt zu einem
 stillen Sprachwechsel.
+
+## Optionales Tray
+
+xucRun und das optionale [xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) sind Open Source
+und ohne Zahlung oder Mitgliedschaft öffentlich verfügbar. Das Tray ergänzt eine Status- und
+Komfortoberfläche im Infobereich; es besitzt keine exklusiven Sicherheits-, Broker-, Credential-
+oder Startfunktionen.
+
+## Projekt unterstützen
+
+Die Entwicklung kann freiwillig über
+[Patreon](https://www.patreon.com/xucRun) unterstützt werden. Eine Unterstützung ist keine
+Voraussetzung für Download oder Nutzung von xucRun oder Tray und gewährt keine exklusive Software,
+Funktionen, Veröffentlichungen, Downloads, persönlichen Support oder bestimmte Reaktionszeiten.
 
 ## Schwachstellen melden
 

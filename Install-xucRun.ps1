@@ -255,6 +255,12 @@ function Remove-PathCompletely {
 function Assert-NoDistributionInstallation {
     $trayPath = Join-Path $installDirectory 'xucRunTray.exe'
     if (Test-Path -LiteralPath $trayPath -PathType Leaf) {
+        $trayUninstallPath =
+            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun Tray'
+        if (Test-Path -LiteralPath $trayUninstallPath) {
+            throw 'The optional xucRun Tray add-on is installed. Remove xucRun Tray first, ' +
+                'then update or remove xucRun and install the exactly matching Tray version.'
+        }
         throw 'A full xucRun Distribution installation is present. Use its installer instead.'
     }
 }
