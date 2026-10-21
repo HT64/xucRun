@@ -276,10 +276,46 @@ function Add-CertificateTrust {
     }
 }
 
+function Test-InstallablePackageSignature {
+    param([Parameter(Mandatory)]$Signature)
+
+    if (-not $Signature.SignerCertificate) {
+        return $false
+    }
+    if ($Signature.Status -eq [Management.Automation.SignatureStatus]::Valid) {
+        return $true
+    }
+    if ($Signature.Status -ne [Management.Automation.SignatureStatus]::UnknownError -or
+        $Signature.SignerCertificate.Subject -ne
+        $Signature.SignerCertificate.Issuer) {
+        return $false
+    }
+
+    $chain = [Security.Cryptography.X509Certificates.X509Chain]::new()
+    try {
+        $chain.ChainPolicy.ApplicationPolicy.Add(
+            [Security.Cryptography.Oid]::new('1.3.6.1.5.5.7.3.3'))
+        $chain.ChainPolicy.RevocationMode =
+            [Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
+        $chain.ChainPolicy.VerificationFlags =
+            [Security.Cryptography.X509Certificates.X509VerificationFlags]::
+                AllowUnknownCertificateAuthority
+        return $chain.Build($Signature.SignerCertificate) -and
+            $chain.ChainElements.Count -eq 1 -and
+            @($chain.ChainStatus | Where-Object {
+                $_.Status -ne
+                [Security.Cryptography.X509Certificates.X509ChainStatusFlags]::
+                    UntrustedRoot
+            }).Count -eq 0
+    }
+    finally {
+        $chain.Dispose()
+    }
+}
+
 function Install-PublisherCertificate {
     $installerSignature = Get-AuthenticodeSignature -LiteralPath $InstallerPath
-    if ($installerSignature.Status -ne [Management.Automation.SignatureStatus]::Valid -or
-        -not $installerSignature.SignerCertificate) {
+    if (-not (Test-InstallablePackageSignature -Signature $installerSignature)) {
         throw (Get-Text -Key InstallerSignatureInvalid)
     }
     $expectedThumbprint = $installerSignature.SignerCertificate.Thumbprint
@@ -293,8 +329,7 @@ function Install-PublisherCertificate {
     )) {
         $signature = Get-AuthenticodeSignature -LiteralPath (
             Join-Path $PackageDirectory $relativePath)
-        if ($signature.Status -ne [Management.Automation.SignatureStatus]::Valid -or
-            -not $signature.SignerCertificate -or
+        if (-not (Test-InstallablePackageSignature -Signature $signature) -or
             $signature.SignerCertificate.Thumbprint -ne $expectedThumbprint) {
             throw (Get-Text -Key PackageSignatureMismatch -Arguments $relativePath)
         }

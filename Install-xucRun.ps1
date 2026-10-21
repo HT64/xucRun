@@ -193,32 +193,106 @@ function Set-InstallDirectoryAcl {
 function Set-ConfigurationLanguage {
     param([Parameter(Mandatory)][string]$SelectedLanguage)
 
-    $lines = if (Test-Path -LiteralPath $configurationPath -PathType Leaf) {
-        @([IO.File]::ReadAllLines($configurationPath))
+    $createConfiguration = -not (
+        Test-Path -LiteralPath $configurationPath -PathType Leaf)
+    if (-not $createConfiguration) {
+        $existingLines = @([IO.File]::ReadAllLines($configurationPath))
+        $meaningfulLines = @($existingLines | Where-Object {
+            -not [string]::IsNullOrWhiteSpace($_) -and
+            -not $_.TrimStart().StartsWith(';')
+        })
+        $createConfiguration = $meaningfulLines.Count -eq 1 -and
+            $meaningfulLines[0] -match '^\s*Language\s*='
     }
-    else {
-        @()
-    }
-    $updated = @()
-    $languageWritten = $false
-    foreach ($line in $lines) {
-        if ($line -match '^\s*Language\s*=') {
-            if (-not $languageWritten) {
-                $updated += "Language=$SelectedLanguage"
-                $languageWritten = $true
-            }
+
+    if ($createConfiguration) {
+        $configurationLines = if ($SelectedLanguage -eq 'de') {
+            @(
+                '; Diese Datei konfiguriert xucRun fuer alle Benutzer dieses Computers.'
+                '; Fehlt diese Datei, startet xucRun nicht.'
+                '; Laufende Prozesse lesen Aenderungen nicht automatisch neu ein.'
+                '; Language und ClientLogDirectory gelten fuer jeden neu gestarteten Client.'
+                '; BrokerInformationEvents wird beim Start des Broker-Dienstes gelesen.'
+                ''
+                '[xucRun]'
+                '; Legt die Sprache der Clientoberflaeche fest.'
+                '; Zulaessige Werte: Language=de oder Language=en'
+                '; Fehlt der Wert oder ist er leer, wird Englisch verwendet.'
+                '; Bei einem anderen Wert startet der Client nicht.'
+                'Language=de'
+                ''
+                '[Logging]'
+                '; Bestimmt das Verzeichnis des Client-Dateilogs.'
+                '; Ein fehlender oder leerer Wert deaktiviert das Client-Dateilog.'
+                '; Umgebungsvariablen werden im Kontext jedes startenden Clients expandiert.'
+                '; Der Pfad muss fuer jedes Client- und Wrapperkonto erreichbar sein.'
+                '; Dort sind Aenderungsrechte zum Erstellen, Anhaengen und Loeschen erforderlich.'
+                '; Bei Netzwerkpfaden muessen Freigabe- und Dateisystemrechte dies erlauben.'
+                '; Gemappte Laufwerke muessen in jedem Kontokontext verfuegbar sein.'
+                '; Fuer gemeinsam genutzte Netzwerkpfade sind UNC-Pfade eindeutiger.'
+                '; Zum Aktivieren einen Wert ohne Kommentarzeichen eintragen, zum Beispiel:'
+                '; ClientLogDirectory=%LOCALAPPDATA%\xucRun\Logs'
+                '; ClientLogDirectory='
+                '; Steuert zusaetzliche Informationsereignisse des Broker-Dienstes.'
+                '; Nur true aktiviert sie; Gross- und Kleinschreibung werden ignoriert.'
+                '; Ein fehlender, leerer oder anderer Wert deaktiviert sie.'
+                '; Warnungen, Fehler und grundlegende Dienstereignisse bleiben aktiv.'
+                '; BrokerInformationEvents=true'
+                '; BrokerInformationEvents=false'
+            )
         }
         else {
-            $updated += $line
+            @(
+                '; This file configures xucRun for all users of this computer.'
+                '; xucRun does not start if this file is missing.'
+                '; Running processes do not reload changes automatically.'
+                '; Language and ClientLogDirectory apply to each newly started client.'
+                '; BrokerInformationEvents is read when the broker service starts.'
+                ''
+                '[xucRun]'
+                '; Sets the language of the client user interface.'
+                '; Valid values: Language=de or Language=en'
+                '; English is used if the value is missing or empty.'
+                '; The client does not start for any other value.'
+                'Language=en'
+                ''
+                '[Logging]'
+                '; Sets the directory for client log files.'
+                '; A missing or empty value disables client file logging.'
+                '; Environment variables are expanded in each starting client context.'
+                '; The path must be accessible to every client and wrapper account.'
+                '; Modify access is required to create, append to, and delete log files.'
+                '; Network paths require matching share and file system permissions.'
+                '; Mapped drives must be available in every account context.'
+                '; UNC paths are less ambiguous for shared network locations.'
+                '; To enable it, enter an uncommented value, for example:'
+                '; ClientLogDirectory=%LOCALAPPDATA%\xucRun\Logs'
+                '; ClientLogDirectory='
+                '; Controls additional broker service information events.'
+                '; Only true enables them; matching is case-insensitive.'
+                '; A missing, empty, or other value disables them.'
+                '; Warnings, errors, and basic service events remain enabled.'
+                '; BrokerInformationEvents=true'
+                '; BrokerInformationEvents=false'
+            )
         }
+        Set-Content -LiteralPath $configurationPath -Encoding Ascii `
+            -Value $configurationLines
+        return
     }
-    if (-not $languageWritten) {
-        $updated += "Language=$SelectedLanguage"
+
+    if (-not ('Native.IniFile' -as [type])) {
+        Add-Type -Namespace Native -Name IniFile -MemberDefinition @'
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+[return: MarshalAs(UnmanagedType.Bool)]
+public static extern bool WritePrivateProfileString(
+    string section, string key, string value, string fileName);
+'@
     }
-    [IO.File]::WriteAllLines(
-        $configurationPath,
-        $updated,
-        [Text.UTF8Encoding]::new($true))
+    if (-not [Native.IniFile]::WritePrivateProfileString(
+        'xucRun', 'Language', $SelectedLanguage, $configurationPath)) {
+        throw "The language could not be written to $configurationPath."
+    }
 }
 
 function Set-SystemPathRegistration {

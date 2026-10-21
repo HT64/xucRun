@@ -678,7 +678,7 @@ namespace
 		result.nonce = request.nonce;
 		result.brokerProcessId = 1234;
 		result.elevatedProcessCount = 2;
-		result.brokerVersion = { 2, 3, 4, 567 };
+		result.brokerVersion = { 0, 9, 0, 2 };
 		const std::vector<std::uint8_t> resultFrame =
 			xucrun::broker::SerializeHealthResult(result);
 		xucrun::broker::HealthResult parsedResult;
@@ -693,6 +693,13 @@ namespace
 			parsedResult.brokerVersion.build != result.brokerVersion.build)
 		{
 			std::cerr << "health result serialization failed\n";
+			failures++;
+		}
+
+		result.brokerVersion = {};
+		if (!xucrun::broker::SerializeHealthResult(result).empty())
+		{
+			std::cerr << "zero broker version accepted\n";
 			failures++;
 		}
 

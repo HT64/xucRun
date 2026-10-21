@@ -187,7 +187,8 @@
 	{
 		if (result.protocolVersion != ProtocolVersion || result.requestId == 0 ||
 			!HasNonce(result.nonce) || result.brokerProcessId == 0 ||
-			result.brokerVersion.major == 0)
+			(result.brokerVersion.major == 0 && result.brokerVersion.minor == 0 &&
+				result.brokerVersion.patch == 0 && result.brokerVersion.build == 0))
 		{
 			return {};
 		}
@@ -233,7 +234,8 @@
 		parsed.brokerVersion.build = ReadUint32(frame, 56);
 		if (parsed.protocolVersion != ProtocolVersion || parsed.requestId == 0 ||
 			!HasNonce(parsed.nonce) || parsed.brokerProcessId == 0 ||
-			parsed.brokerVersion.major == 0)
+			(parsed.brokerVersion.major == 0 && parsed.brokerVersion.minor == 0 &&
+				parsed.brokerVersion.patch == 0 && parsed.brokerVersion.build == 0))
 		{
 			return false;
 		}
