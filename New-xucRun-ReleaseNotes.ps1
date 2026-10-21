@@ -75,13 +75,13 @@ besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windo
 ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem
 GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
 
-## Changes
+## Release information
 
 $englishChanges
 
 Full [changelog](https://github.com/HT64/xucRun/blob/v$Version/CHANGELOG.md)
 
-## Änderungen
+## Veröffentlichungsinformationen
 
 $germanChanges
 
