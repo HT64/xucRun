@@ -126,7 +126,10 @@ transferring the approval to the changed program version.
 
 In addition to built-in Windows features, other vendors provide solutions for account switching,
 elevation, and administrative access management. They emphasize different aspects depending on
-the use case.
+the use case. A list of individual products would inevitably be incomplete and could
+unintentionally emphasize particular solutions through the selection itself. It would also
+quickly become outdated and allow only limited comparison because their usage and security models
+differ.
 
 ## Approvals and UAC in xucRun
 

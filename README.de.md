@@ -139,7 +139,9 @@ Entscheidung.
 
 Neben den Windows-eigenen Möglichkeiten gibt es Lösungen anderer Anbieter für Benutzerwechsel,
 Rechteerhöhungen und die Verwaltung administrativer Zugriffe. Sie setzen je nach Anwendungsfall
-andere Schwerpunkte.
+andere Schwerpunkte. Eine Aufzählung einzelner Produkte wäre zwangsläufig unvollständig und könnte
+durch die Auswahl unbeabsichtigt Schwerpunkte setzen. Zudem wäre sie rasch veraltet und wegen
+unterschiedlicher Einsatz- und Sicherheitsmodelle nur eingeschränkt vergleichbar.
 
 ## Freigaben und UAC in xucRun
 
