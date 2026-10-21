@@ -99,6 +99,10 @@ Install a completely signed newer package by running its versioned graphical ins
 using the same manual installation command. Reinstalling the same version does not create
 duplicate PATH entries.
 
+If the optional xucRun Tray add-on is installed, remove it through its separate Windows uninstall
+entry before updating xucRun. After the xucRun update, install a Tray release with the exact same
+four-part version from the public Tray repository.
+
 ## Uninstall
 
 Use **Installed apps** or:
@@ -111,3 +115,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 
 Uninstall removes the service, installed files, uninstall registration, a PATH entry added by the
 installer, and active broker data. Separately created test certificates are not removed.
+
+Remove the optional Tray add-on first. xucRun update and uninstall stop with an explanatory
+message while the separate Tray add-on is still installed.
