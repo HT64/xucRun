@@ -138,11 +138,9 @@
 //
 
 // 8. /audit
-//    Performs debugger, hook, DLL signature, and diagnostic self-signature checks
-//    on the running xucRun executable, as well as the ACL check of the installed
-//    LocalSystem broker. Debuggers and suspicious entry-point jumps are blocking
-//    findings; signature and broker ACL issues are reported as warnings. The result,
-//    executable path, and checked Windows modules use the same text output path as /help,
+//    Audits the running client, installed Core files, signatures, certificate,
+//    broker policy and ACLs, configuration, and an optional Tray installation.
+//    The result and detailed findings use the same text output path as /help,
 //    /showcred, and /showapprovals. No credentials are read or decrypted.
 //
 //    Usage:

@@ -56,13 +56,3 @@ SHA256SUMS.txt
 The release script deliberately rejects signed build outputs. Public releases are provided
 without a commercial publisher certificate; local signing takes place on the target computer
 through the graphical installer or before manual installation.
-
-A tag in the format `v0.9.0.2` starts the GitHub release workflow. It verifies the build, tests,
-version, and package and initially creates a draft release for manual review. Once the repository
-is public, the workflow also creates a GitHub artifact attestation. GitHub does not provide this
-feature for user-owned private repositories.
-
-Before creating the tag, `CHANGELOG.md` and `CHANGELOG.de.md` must contain a nonempty section for
-the same version. The workflow includes both sections in the release description and fails for a
-missing or mismatched version. An existing draft release is updated; an already published release
-for the same version is never overwritten.

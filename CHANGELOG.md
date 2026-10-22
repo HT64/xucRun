@@ -7,6 +7,12 @@ and publication processes are not listed.
 
 ## [Unreleased]
 
+## [0.9.0.2] - 2026-10-21
+
+### Note
+
+- This is the initial public release of xucRun.
+
 ### Changed
 
 - The graphical installer now always creates or reuses the machine-local xucRun certificate and
@@ -23,8 +29,7 @@ and publication processes are not listed.
   certificate, including its private key and trust entries.
 - If uninstall is blocked by an installed Tray add-on or another error, it now displays a visible
   localized error dialog instead of ending without user-visible feedback.
-- Repair installation now restores a previously running broker service after replacing its files,
-  so an installed Tray returns to its active state automatically.
+- Repair installation now restores a previously running broker service after replacing its files.
 - The installer uses a more compact settings layout and explains where its application language
   can be changed later.
 - Interactive uninstall now requires confirmation before deleting stored product data and lists
@@ -34,12 +39,6 @@ and publication processes are not listed.
 - New English and German manual-removal documentation inventories xucRun-owned files, service and
   registry entries, broker data, credentials, optional logs, certificate stores, and interrupted
   operation remnants, with a safe removal and verification procedure.
-
-## [0.9.0.2] - 2026-10-21
-
-### Note
-
-- This is the initial public release of xucRun.
 
 [Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.0.2...HEAD
 [0.9.0.2]: https://github.com/HT64/xucRun/releases/tag/v0.9.0.2

@@ -27,7 +27,7 @@ $texts = @{
         SettingsTab = 'Einstellungen'
         DetailsTab = 'Ablauf und Deinstallation'
         LanguageLabel = 'Programmsprache'
-        LanguageHint = 'Später über xucRun.ini, mit Tray auch direkt im Tray-Menü änderbar.'
+        LanguageHint = 'Später über xucRun.ini, mit dem optionalen Tray-Add-on auch direkt in dessen Menü änderbar.'
         PathCheck = 'C:\Program Files\xucRun zum systemweiten PATH hinzufügen'
         CertificateGroup = 'Vertrauen und Codesignierung'
         CertificateExisting = "Vorhandenes lokales xucRun-Zertifikat wird wiederverwendet.`r`nGültig seit: {0}   Gültig bis: {1}`r`nFingerabdruck: {2}"
@@ -79,7 +79,7 @@ INSTALLATION
 
 AKTUALISIERUNG
 
-Eine vorhandene xucRun-Installation wird aktualisiert. Bereits gespeicherte xucRun-Anmeldedaten, Freigaben und nicht vom Installer verwaltete INI-Einstellungen bleiben erhalten. Ein installiertes Tray kann bei einer erneuten Installation derselben Version bestehen bleiben, wenn Version und Signierer weiterhin exakt passen. Vor einem Versionswechsel muss das Tray entfernt werden.
+Eine vorhandene xucRun-Installation wird aktualisiert. Bereits gespeicherte xucRun-Anmeldedaten, Freigaben und nicht vom Installer verwaltete INI-Einstellungen bleiben erhalten. Das separat installierte optionale xucRun-Tray-Add-on kann bei einer erneuten Installation derselben Version bestehen bleiben, wenn Version und Signierer weiterhin exakt passen. Vor einem Versionswechsel muss das Tray entfernt werden.
 
 War der Brokerdienst vor der Aktualisierung aktiv, wird er nach dem Dateiaustausch automatisch wieder gestartet. Ein zuvor bewusst gestoppter oder deaktivierter Brokerdienst bleibt gestoppt beziehungsweise deaktiviert.
 
@@ -103,7 +103,7 @@ Die Erfolgsbestätigung führt entfernte Komponenten, Daten und Zertifikatsdetai
         SettingsTab = 'Settings'
         DetailsTab = 'Process and uninstallation'
         LanguageLabel = 'Application language'
-        LanguageHint = 'Can be changed later in xucRun.ini or directly in the Tray menu.'
+        LanguageHint = 'Can be changed later in xucRun.ini or, with the optional Tray add-on, directly in its menu.'
         PathCheck = 'Add C:\Program Files\xucRun to the system-wide PATH'
         CertificateGroup = 'Trust and code signing'
         CertificateExisting = "The existing local xucRun certificate will be reused.`r`nValid from: {0}   Valid until: {1}`r`nThumbprint: {2}"
@@ -155,7 +155,7 @@ INSTALLATION
 
 UPDATE
 
-An existing xucRun installation is updated. Stored xucRun credentials, approvals, and INI settings not managed by the installer are preserved. An installed Tray can remain during reinstallation of the same version when its version and signer still match exactly. Remove Tray before changing versions.
+An existing xucRun installation is updated. Stored xucRun credentials, approvals, and INI settings not managed by the installer are preserved. The separately installed optional xucRun Tray add-on can remain during reinstallation of the same version when its version and signer still match exactly. Remove Tray before changing versions.
 
 If the broker service was running before the update, it is restarted automatically after the files have been replaced. A broker service that was deliberately stopped or disabled remains stopped or disabled.
 

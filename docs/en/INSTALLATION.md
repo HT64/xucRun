@@ -48,6 +48,15 @@ certificate. It configures trust only on that computer and signs the six install
 interface shows in advance whether the certificate will be reused or created. For an existing
 certificate, it also displays “Valid from”, “Valid until”, and the thumbprint.
 
+The certificate lets Windows and xucRun verify that the installed program components belong to the
+same installation and have not been changed or replaced with differently signed files. The broker
+accepts security-sensitive requests only from matching signed xucRun components. A unique
+self-signed certificate is generated locally because the public package has no publicly trusted
+publisher certificate and must not distribute a reusable private signing key. The standard
+certificate is stored in `LocalMachine\My` with its non-exportable private key and added to
+`LocalMachine\Root` and `LocalMachine\TrustedPublisher` for local trust. It establishes technical
+trust only on this computer and does not prove the origin of the downloaded package.
+
 If Microsoft Visual C++ Redistributable v14 for x64 is missing, the installer offers either the
 official Microsoft download or selection of an existing `vc_redist.x64.exe`. It verifies the
 Microsoft signature and original file name before execution.
@@ -104,13 +113,14 @@ xucRun certificate is reused. For manual installation, run local package signing
 use the same installation command. Reinstalling the same version does not create duplicate PATH
 entries.
 
-When reinstalling the same xucRun version, the optional Tray add-on can remain installed if its
-registered version, file version, and signers still match the Core package exactly. Remove it
-through its separate Windows uninstall entry before changing versions. After the xucRun update,
-install a Tray release with the exact same four-part version from the public Tray repository.
+When reinstalling the same xucRun version, the separately installed optional
+[xucRun Tray add-on](https://github.com/HT64/xucRun-Tray) can remain installed if its registered
+version, file version, and signers still match the Core package exactly. Remove it through its
+separate Windows uninstall entry before changing versions. After the xucRun update, install a
+Tray release with the exact same four-part version from the public Tray repository.
 If the broker service was running before reinstallation, the installer starts it again after
-replacing the files. Tray therefore returns to its active state without manual intervention. A
-broker service that was previously stopped or disabled remains stopped or disabled.
+replacing the files, restoring its previous running state. A broker service that was previously
+stopped or disabled remains stopped or disabled.
 
 ## Uninstall
 

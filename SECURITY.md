@@ -4,9 +4,7 @@
 
 ## Supported versions
 
-After the first public xucRun release, only the latest released version is supported.
-
-No public version is supported before the first release.
+Only the latest released xucRun version is supported.
 
 ## Reporting a vulnerability
 

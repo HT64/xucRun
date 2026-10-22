@@ -50,6 +50,17 @@ ausschließlich auf diesem Rechner ein und signiert die sechs installierbaren Da
 Oberfläche zeigt vorab, ob das Zertifikat wiederverwendet oder neu erstellt wird. Bei einem
 vorhandenen Zertifikat zeigt sie außerdem „Gültig seit“, „Gültig bis“ und den Fingerabdruck an.
 
+Das Zertifikat ermöglicht Windows und xucRun die Prüfung, dass die installierten Programmteile zu
+derselben Installation gehören und nicht verändert oder durch abweichend signierte Dateien
+ersetzt wurden. Der Broker akzeptiert sicherheitsrelevante Anfragen nur von passend signierten
+xucRun-Komponenten. Das eindeutige selbstsignierte Zertifikat wird lokal erzeugt, weil das
+öffentliche Paket kein öffentlich vertrauenswürdiges Herausgeberzertifikat besitzt und keinen
+wiederverwendbaren privaten Signaturschlüssel verteilen darf. Das Standardzertifikat wird mit
+seinem nicht exportierbaren privaten Schlüssel in `LocalMachine\My` gespeichert und für das lokale
+Vertrauen zusätzlich in `LocalMachine\Root` und `LocalMachine\TrustedPublisher` eingetragen. Es
+begründet ausschließlich technisches Vertrauen auf diesem Rechner und belegt nicht die Herkunft
+des heruntergeladenen Pakets.
+
 Fehlt Microsoft Visual C++ Redistributable v14 für x64, bietet der Installer den Download über den
 offiziellen Microsoft-Link oder die Auswahl einer vorhandenen `vc_redist.x64.exe` an. Vor der
 Ausführung prüft er Microsoft-Signatur und Originaldateiname.
@@ -108,15 +119,15 @@ wird das vorhandene gültige lokale xucRun-Zertifikat wiederverwendet. Beim manu
 zuerst die lokale Paketsignierung und danach derselbe Installationsbefehl ausgeführt werden. Auch
 eine erneute Installation derselben Version erzeugt keine doppelten PATH-Einträge.
 
-Bei einer erneuten Installation derselben xucRun-Version kann das optionale Tray-Add-on installiert
-bleiben, wenn seine registrierte Version, Dateiversion und Signierer weiterhin exakt zum Core-Paket
-passen. Vor einem Versionswechsel muss es über seinen eigenen Windows-Deinstallationseintrag
-entfernt werden. Nach dem xucRun-Update kann aus dem öffentlichen Tray-Repository eine Tray-Version
-mit exakt derselben vierteiligen Version installiert werden.
+Bei einer erneuten Installation derselben xucRun-Version kann das separat installierte optionale
+[xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) installiert bleiben, wenn seine
+registrierte Version, Dateiversion und Signierer weiterhin exakt zum Core-Paket passen. Vor einem
+Versionswechsel muss es über seinen eigenen Windows-Deinstallationseintrag entfernt werden. Nach
+dem xucRun-Update kann aus dem öffentlichen Tray-Repository eine Tray-Version mit exakt derselben
+vierteiligen Version installiert werden.
 War der Brokerdienst vor der erneuten Installation aktiv, startet ihn der Installer nach dem
-Dateiaustausch automatisch wieder. Das Tray kehrt dadurch ohne manuellen Eingriff zum aktiven
-Zustand zurück. Ein zuvor gestoppter oder deaktivierter Brokerdienst bleibt gestoppt
-beziehungsweise deaktiviert.
+Dateiaustausch automatisch wieder und stellt damit seinen vorherigen Laufzustand wieder her. Ein
+zuvor gestoppter oder deaktivierter Brokerdienst bleibt gestoppt beziehungsweise deaktiviert.
 
 ## Deinstallieren
 
@@ -154,7 +165,7 @@ und Systeminformationen, aber keine gespeicherten Kennwörter. Maßgeblich ist d
 angezeigte Pfad. Eine später erfolgreiche Core-Deinstallation entfernt auch diese Protokolle.
 
 Vor der xucRun-Deinstallation muss das optionale Tray-Add-on entfernt werden. Eine
-Reparaturinstallation derselben Core-Version ist mit einem vollständig passenden Tray zulässig;
+Reparaturinstallation derselben Core-Version ist mit einem vollständig passenden xucRun Tray zulässig;
 Versionswechsel oder abweichende Tray-Signierer werden mit einem erklärenden Hinweis abgebrochen.
 Wird die Deinstallation bei noch installiertem Tray gestartet, werden keine Core-Bestandteile oder
 gespeicherten Daten entfernt. Ein sichtbarer Fehlerdialog fordert dazu auf, zuerst **xucRun Tray**
