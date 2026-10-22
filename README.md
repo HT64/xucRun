@@ -223,8 +223,9 @@ therefore be used only as described in the security notice below.
 xucRun contains:
 
 - the `xucRun.exe` client,
-- the demand-start `xucRunBroker` service, which manages credentials protected by xucRun and
-  starts programs under the selected user account,
+- the demand-start `xucRunBroker` service, which starts automatically when needed, then runs in the
+  background, manages credentials protected by xucRun, and starts programs under the selected user
+  account,
 - the Approval Helper,
 - shared protocol, serialization, and security components,
 - German and English language resources.
@@ -261,6 +262,26 @@ fleet management, or systems requiring a particularly high level of protection.
 Installation requires a complete xucRun package. The graphical installer signs all installable
 package files consistently on the target computer with a local xucRun certificate.
 
+### Local signing certificate
+
+xucRun uses the certificate so that Windows and xucRun can verify that the installed program
+components belong to the same installation and have not been changed or replaced with differently
+signed files. The broker accepts security-sensitive requests only from matching signed xucRun
+components.
+
+The public package does not contain a shared private key and is not signed with a commercially
+issued, publicly trusted publisher certificate. Shipping one reusable private key with xucRun
+would allow every recipient to create files that appear to have the same identity. Instead, the
+installer creates a unique self-signed certificate on the target computer, or reuses the valid
+xucRun certificate previously created there. Its private key is non-exportable. This establishes a
+local technical trust relationship; it does not prove the public package's origin. Therefore,
+verify the release checksum before starting the installer.
+
+The standard certificate is named `CN=xucRun Local Signing (<COMPUTERNAME>)`. It is stored in
+`LocalMachine\My` with its private key and added to `LocalMachine\Root` and
+`LocalMachine\TrustedPublisher` for trust on that computer. The verified standard certificate,
+including its private key and trust entries, is removed when xucRun is uninstalled.
+
 ### Graphical installation
 
 xucRun is a non-commercial open-source project. The provided installer is currently not
@@ -278,9 +299,9 @@ graphical interface then offers a choice of application language and machine PAT
 installer also shows the registered version and installation or last-update time for an existing
 installation. The
 installer automatically reuses an existing valid local xucRun code-signing certificate with its
-private key. If none exists, it creates a new non-exportable certificate. The interface shows in
-advance whether a certificate will be reused or created and displays its validity period and
-fingerprint. It then signs all installable files with that certificate.
+private key or creates the certificate described above. The interface shows in advance whether a
+certificate will be reused or created and displays its validity period and fingerprint. It then
+signs all installable files with that certificate.
 
 The installer also checks Microsoft Visual C++ Runtime and, if necessary, offers either a verified
 Microsoft download or an existing `vc_redist.x64.exe`. It installs the client, broker, approval
@@ -295,15 +316,15 @@ machine PATH.
 
 ### Update and uninstall
 
-xucRun and the optional Tray add-on use an exact four-part version match. When reinstalling the
-same xucRun version, Tray can remain installed if its registered version, file version, and signer
-still match the Core package exactly. Before changing versions or removing xucRun, remove the Tray
-add-on through its separate Windows uninstall entry. After an xucRun update, install the publicly
-available Tray release with the same version.
+xucRun and the separately installed optional
+[xucRun Tray add-on](https://github.com/HT64/xucRun-Tray) use an exact four-part version match.
+When reinstalling the same xucRun version, Tray can remain installed if its registered version,
+file version, and signer still match the Core package exactly. Before changing versions or
+removing xucRun, remove xucRun Tray add-on through its separate Windows uninstall entry. After an
+xucRun update, install the publicly available Tray release with the same version.
 If the broker service was running before a repair installation, it is restarted automatically
-after the files have been replaced so that Tray returns to its active state without manual
-intervention. A broker service that was deliberately stopped or disabled remains stopped or
-disabled.
+after the files have been replaced, restoring its previous running state. A broker service that
+was deliberately stopped or disabled remains stopped or disabled.
 If xucRun uninstall is started while Tray is still installed, the Core installation remains
 unchanged and a visible error dialog instructs the user to uninstall **xucRun Tray** through
 **Installed apps** first.
@@ -710,17 +731,18 @@ language.
 
 ## Optional Tray
 
-xucRun and the optional [xucRun Tray add-on](https://github.com/HT64/xucRun-Tray) are open source
-and publicly available without payment or membership. The Tray provides a notification-area status
-and convenience interface; it does not add exclusive security, broker, credential, or launch
-functionality.
+The separately installed optional
+[xucRun Tray add-on](https://github.com/HT64/xucRun-Tray) provides a status and convenience
+interface whose icon appears in the notification area of the Windows taskbar next to the clock. It
+is a separate project that displays information from xucRun and provides easier access to existing
+xucRun management functions. It does not replace xucRun.
 
 ## Support the project
 
 Development can be supported voluntarily on
 [Patreon](https://www.patreon.com/xucRun). Supporting the project is not required to download or
-use xucRun or Tray and does not provide exclusive software, features, releases, downloads,
-personal support, or specific response times.
+use xucRun and does not provide exclusive software, features, releases, downloads, personal
+support, or specific response times.
 
 ## Reporting vulnerabilities
 

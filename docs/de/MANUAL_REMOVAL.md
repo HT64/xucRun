@@ -25,7 +25,7 @@ xucRun-Ereignisse zu entfernen.
 
 | Typ | Pfad oder Name | Hinweise |
 |---|---|---|
-| Programmverzeichnis | `%ProgramFiles%\xucRun` | Wird mit xucRun Tray gemeinsam genutzt, solange das Tray installiert ist |
+| Programmverzeichnis | `%ProgramFiles%\xucRun` | Wird mit dem separat installierten optionalen [xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) gemeinsam genutzt, solange es installiert ist |
 | Core-Programme | `xucRun.exe`, `xucRunBroker.exe`, `xucRunApproval.exe` | Im Programmverzeichnis |
 | Installationsskript | `Install-xucRun.ps1` | Im Programmverzeichnis |
 | Konfiguration | `xucRun.ini` | Im Programmverzeichnis |
@@ -44,10 +44,10 @@ xucRun-Ereignisse zu entfernen.
 | Reste fehlgeschlagener Signierung | `%TEMP%\xucRun-Signing-<32 hexadezimale Zeichen>` | Nur beim Signieren eines Pakets angelegt und normalerweise automatisch gelöscht |
 | Reste der Installerausgabe | `%TEMP%\xucRun-Installer-<32 hexadezimale Zeichen>.stdout.log` und `.stderr.log` | Werden normalerweise automatisch gelöscht |
 
-Der genannte Zertifikatsname gilt für das vom Standardinstaller erzeugte Zertifikat. Wurde bewusst
-ein anderes Zertifikat bereitgestellt, darf es nicht anhand eines unvollständigen Namens
-identifiziert werden. Notieren und prüfen Sie vor jeder Zertifikatslöschung den vollständigen
-Fingerabdruck.
+Der genannte Zertifikatsname gilt für ein mit dem Standardnamen erzeugtes Zertifikat. Wurde bei der
+manuellen Signierung bewusst ein anderer `CertificateName` verwendet, darf dieses Zertifikat nicht
+anhand eines unvollständigen Namens identifiziert werden. Notieren und prüfen Sie vor seiner
+Löschung den vollständigen Fingerabdruck.
 
 ## Verfahren zur manuellen Entfernung
 
@@ -199,9 +199,9 @@ nur Namen im exakten Format `xucRun_YYYYMMDD.log`.
 
 Fahren Sie nur mit dem in Schritt 2 exakt erfassten Signierer fort. Beim standardmäßig erzeugten
 Zertifikat müssen Antragsteller und Aussteller
-`CN=xucRun Local Signing (<COMPUTERNAME>)` entsprechen. Ein bewusst bereitgestelltes Zertifikat
-kann auch andere Software signieren und darf nur entfernt werden, wenn diese Auswirkung verstanden
-ist.
+`CN=xucRun Local Signing (<COMPUTERNAME>)` entsprechen. Ein mit individuellem Namen erzeugtes
+Zertifikat kann auch andere Software signieren und darf nur entfernt werden, wenn diese Auswirkung
+verstanden ist.
 
 ```powershell
 if (-not $signer) {

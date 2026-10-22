@@ -8,6 +8,12 @@ aufgeführt.
 
 ## [Unveröffentlicht]
 
+## [0.9.0.2] - 2026-10-21
+
+### Hinweis
+
+- Dies ist die erste öffentliche Veröffentlichung von xucRun.
+
 ### Geändert
 
 - Der grafische Installer erstellt oder verwendet nun immer das rechnerlokale xucRun-Zertifikat
@@ -26,7 +32,7 @@ aufgeführt.
 - Wenn ein installiertes Tray-Add-on oder ein anderer Fehler die Deinstallation blockiert, zeigt
   sie nun einen sichtbaren lokalisierten Fehlerdialog, statt ohne sichtbare Rückmeldung zu enden.
 - Eine Reparaturinstallation stellt einen zuvor laufenden Brokerdienst nach dem Dateiaustausch
-  wieder her, sodass ein installiertes Tray automatisch in den aktiven Zustand zurückkehrt.
+  wieder her.
 - Der Installer verwendet eine kompaktere Einstellungsansicht und nennt die Möglichkeiten zur
   späteren Änderung der Programmsprache.
 - Die interaktive Deinstallation verlangt nun vor dem Löschen gespeicherter Produktdaten eine
@@ -37,12 +43,6 @@ aufgeführt.
   xucRun-eigene Dateien, Dienst- und Registry-Einträge, Brokerdaten, Anmeldeinformationen,
   optionale Protokolle, Zertifikatsspeicher und Reste abgebrochener Vorgänge einschließlich einer
   sicheren Entfernungs- und Kontrollreihenfolge.
-
-## [0.9.0.2] - 2026-10-21
-
-### Hinweis
-
-- Dies ist die erste öffentliche Veröffentlichung von xucRun.
 
 [Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.0.2...HEAD
 [0.9.0.2]: https://github.com/HT64/xucRun/releases/tag/v0.9.0.2

@@ -56,13 +56,3 @@ SHA256SUMS.txt
 Das Release-Skript lehnt signierte Buildausgaben bewusst ab. Öffentliche Releases werden ohne
 kommerzielles Herausgeberzertifikat bereitgestellt; die lokale Signierung erfolgt auf dem
 Zielrechner über den grafischen Installer oder vor der manuellen Installation.
-
-Ein Tag im Format `v0.9.0.2` startet den GitHub-Release-Workflow. Er prüft Build, Tests, Version und
-Paket und legt zunächst einen Draft Release zur manuellen Kontrolle an. Sobald das Repository
-öffentlich ist, erzeugt der Workflow zusätzlich eine GitHub-Artefaktattestierung. GitHub bietet
-diese Funktion für benutzereigene private Repositories nicht an.
-
-Vor dem Tag müssen `CHANGELOG.md` und `CHANGELOG.de.md` einen nicht leeren Abschnitt für dieselbe
-Version enthalten. Der Workflow übernimmt beide Abschnitte in die Release-Beschreibung und bricht
-bei einer fehlenden oder abweichenden Version ab. Ein bereits vorhandener Draft Release wird
-aktualisiert; ein bereits veröffentlichter Release derselben Version wird nicht überschrieben.

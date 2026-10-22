@@ -4,10 +4,7 @@
 
 ## Unterstützte Versionen
 
-Nach der ersten öffentlichen Veröffentlichung von xucRun wird nur die jeweils neueste
-veröffentlichte Version unterstützt.
-
-Vor der ersten Veröffentlichung wird keine öffentliche Version unterstützt.
+Nur die jeweils neueste veröffentlichte xucRun-Version wird unterstützt.
 
 ## Eine Schwachstelle melden
 

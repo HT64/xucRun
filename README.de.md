@@ -244,8 +244,9 @@ sollte deshalb nur entsprechend dem nachfolgenden Sicherheitshinweis eingesetzt 
 xucRun enthält:
 
 - den Client `xucRun.exe`,
-- den bedarfsgestarteten Brokerdienst `xucRunBroker`, der die von xucRun geschützten Anmeldedaten
-  verwaltet und Programmstarts unter dem gewählten Benutzerkonto ausführt,
+- den bedarfsgestarteten Brokerdienst `xucRunBroker`, der bei Bedarf automatisch gestartet wird,
+  anschließend im Hintergrund läuft, die von xucRun geschützten Anmeldedaten verwaltet und
+  Programmstarts unter dem gewählten Benutzerkonto ausführt,
 - den Approval-Helper,
 - gemeinsame Protokoll-, Serialisierungs- und Sicherheitskomponenten,
 - deutsche und englische Sprachressourcen.
@@ -286,6 +287,29 @@ Für die Installation wird ein vollständiges xucRun-Paket benötigt. Der grafis
 signiert die installierbaren Paketdateien auf dem Zielrechner einheitlich mit einem lokalen
 xucRun-Zertifikat.
 
+### Lokales Signaturzertifikat
+
+xucRun verwendet das Zertifikat, damit Windows und xucRun prüfen können, dass die installierten
+Programmteile zu derselben Installation gehören und nicht verändert oder durch abweichend
+signierte Dateien ersetzt wurden. Der Broker akzeptiert sicherheitsrelevante Anfragen nur von
+passend signierten xucRun-Komponenten.
+
+Das öffentliche Paket enthält keinen gemeinsam verwendeten privaten Schlüssel und ist nicht mit
+einem kommerziell ausgestellten, öffentlich vertrauenswürdigen Herausgeberzertifikat signiert. Ein
+mit xucRun verteilter, überall wiederverwendbarer privater Schlüssel würde jedem Empfänger
+ermöglichen, Dateien mit derselben scheinbaren Identität zu erzeugen. Deshalb erstellt der
+Installer auf dem Zielrechner ein eigenes selbstsigniertes Zertifikat oder verwendet das dort
+bereits zuvor erzeugte gültige xucRun-Zertifikat erneut. Dessen privater Schlüssel ist nicht
+exportierbar. Dieses Zertifikat begründet ausschließlich lokales technisches Vertrauen; es belegt
+nicht die Herkunft des öffentlichen Pakets. Deshalb muss vor dem Start die veröffentlichte
+Prüfsumme kontrolliert werden.
+
+Das Standardzertifikat heißt `CN=xucRun Local Signing (<COMPUTERNAME>)`. Es wird einschließlich
+seines privaten Schlüssels unter `LocalMachine\My` gespeichert und für das lokale Vertrauen
+zusätzlich in `LocalMachine\Root` und `LocalMachine\TrustedPublisher` eingetragen. Bei der
+Deinstallation entfernt xucRun das verifizierte Standardzertifikat einschließlich des privaten
+Schlüssels und der Vertrauenseinträge.
+
 ### Grafische Installation
 
 xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei
@@ -303,10 +327,10 @@ Danach bietet die grafische Oberfläche Programmsprache und Maschinen-PATH zur A
 Installer zeigt bei einer vorhandenen Installation außerdem deren registrierte Version und den
 Zeitpunkt der Installation beziehungsweise letzten Aktualisierung an. Der
 Installer verwendet automatisch ein bereits vorhandenes gültiges lokales xucRun-
-Codesignaturzertifikat mit privatem Schlüssel. Ist keines vorhanden, erzeugt er ein neues
-nicht exportierbares Zertifikat. Die Oberfläche zeigt vorab, ob ein Zertifikat wiederverwendet
-oder neu erstellt wird, und nennt Gültigkeitszeitraum sowie Fingerabdruck. Anschließend signiert
-der Installer damit alle installierbaren Dateien.
+Codesignaturzertifikat mit privatem Schlüssel oder erzeugt das zuvor beschriebene Zertifikat. Die
+Oberfläche zeigt vorab, ob ein Zertifikat wiederverwendet oder neu erstellt wird, und nennt
+Gültigkeitszeitraum sowie Fingerabdruck. Anschließend signiert der Installer damit alle
+installierbaren Dateien.
 
 Der Installer prüft außerdem die Microsoft Visual C++ Runtime und bietet bei Bedarf den geprüften
 Microsoft-Download oder die Auswahl einer vorhandenen `vc_redist.x64.exe` an. Installiert werden
@@ -322,16 +346,16 @@ Maschinen-PATH hinzugefügt werden.
 
 ### Aktualisieren und deinstallieren
 
-xucRun und das optionale Tray-Add-on verwenden eine exakte vierteilige Versionsbindung. Bei einer
-erneuten Installation derselben xucRun-Version kann das Tray installiert bleiben, wenn seine
-registrierte Version, Dateiversion und Signierer weiterhin exakt zum Core-Paket passen. Vor einem
-Versionswechsel oder der Deinstallation von xucRun muss das Tray-Add-on über seinen eigenen
-Windows-Deinstallationseintrag entfernt werden. Nach einem xucRun-Update kann die öffentlich
-verfügbare Tray-Version mit derselben Versionsnummer installiert werden.
+xucRun und das separat installierte optionale
+[xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) verwenden eine exakte vierteilige
+Versionsbindung. Bei einer erneuten Installation derselben xucRun-Version kann xucRun Tray installiert
+bleiben, wenn seine registrierte Version, Dateiversion und Signierer weiterhin exakt zum
+Core-Paket passen. Vor einem Versionswechsel oder der Deinstallation von xucRun muss das xucRun-Tray-Add-on
+über seinen eigenen Windows-Deinstallationseintrag entfernt werden. Nach einem xucRun-Update kann
+die öffentlich verfügbare Tray-Version mit derselben Versionsnummer installiert werden.
 War der Brokerdienst vor einer Reparaturinstallation aktiv, wird er nach dem Dateiaustausch
-automatisch wieder gestartet, sodass das Tray ohne manuellen Eingriff erneut den aktiven Zustand
-anzeigt. Ein zuvor bewusst gestoppter oder deaktivierter Brokerdienst bleibt gestoppt
-beziehungsweise deaktiviert.
+automatisch wieder gestartet und damit sein vorheriger Laufzustand wiederhergestellt. Ein zuvor
+bewusst gestoppter oder deaktivierter Brokerdienst bleibt gestoppt beziehungsweise deaktiviert.
 Wird die xucRun-Deinstallation bei noch installiertem Tray gestartet, bleibt die Core-Installation
 unverändert und ein sichtbarer Fehlerdialog fordert dazu auf, zuerst **xucRun Tray** über
 **Installierte Apps** zu deinstallieren.
@@ -751,16 +775,17 @@ stillen Sprachwechsel.
 
 ## Optionales Tray
 
-xucRun und das optionale [xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) sind Open Source
-und ohne Zahlung oder Mitgliedschaft öffentlich verfügbar. Das Tray ergänzt eine Status- und
-Komfortoberfläche im Infobereich; es besitzt keine exklusiven Sicherheits-, Broker-, Credential-
-oder Startfunktionen.
+Das separat installierte optionale
+[xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) ergänzt eine Status- und
+Komfortoberfläche, deren Symbol im Benachrichtigungsbereich der Windows-Taskleiste neben der Uhr
+erscheint. Es ist ein eigenständiges Projekt, zeigt Informationen aus xucRun an und erleichtert den
+Zugriff auf dessen vorhandene Verwaltungsfunktionen. Es ersetzt xucRun nicht.
 
 ## Projekt unterstützen
 
 Die Entwicklung kann freiwillig über
 [Patreon](https://www.patreon.com/xucRun) unterstützt werden. Eine Unterstützung ist keine
-Voraussetzung für Download oder Nutzung von xucRun oder Tray und gewährt keine exklusive Software,
+Voraussetzung für Download oder Nutzung von xucRun und gewährt keine exklusive Software,
 Funktionen, Veröffentlichungen, Downloads, persönlichen Support oder bestimmte Reaktionszeiten.
 
 ## Schwachstellen melden
