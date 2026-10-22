@@ -21,10 +21,12 @@ $eventSourcePath =
     "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$serviceName"
 $uninstallRegistryPath =
     'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun'
+$trayUninstallRegistryPath =
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun Tray'
 $brokerStoreDirectory = Join-Path $env:ProgramData 'xucRun'
 $machineEnvironmentPath =
     'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
-$certificateName = "xucRun CI Signing ($env:COMPUTERNAME)"
+$certificateName = "xucRun Local Signing ($env:COMPUTERNAME)"
 $certificateSubject = "CN=$certificateName"
 $createdCertificateThumbprint = $null
 $ownsCleanEnvironment = $false
@@ -129,6 +131,29 @@ function Assert-InstalledState {
             "Installed file is missing: $requiredPath"
     }
 
+    $metadata = @(
+        @{ Path = $installedBroker; OriginalFilename = 'xucRunBroker.exe' },
+        @{ Path = $installedApproval; OriginalFilename = 'xucRunApproval.exe' },
+        @{
+            Path = Join-Path $installedLanguageDirectory 'xucRun.de-DE.dll'
+            OriginalFilename = 'xucRun.de-DE.dll'
+        },
+        @{
+            Path = Join-Path $installedLanguageDirectory 'xucRun.en-US.dll'
+            OriginalFilename = 'xucRun.en-US.dll'
+        }
+    )
+    foreach ($entry in $metadata) {
+        $versionInfo = (Get-Item -LiteralPath $entry.Path).VersionInfo
+        Assert-Condition (
+            $versionInfo.CompanyName -eq 'HT64' -and
+            $versionInfo.FileVersion -eq '0.9.0.2' -and
+            $versionInfo.ProductVersion -eq '0.9.0.2' -and
+            -not [string]::IsNullOrWhiteSpace($versionInfo.FileDescription) -and
+            $versionInfo.OriginalFilename -eq $entry.OriginalFilename) `
+            "Installed file metadata is incomplete: $($entry.Path)"
+    }
+
     $service = Get-CimInstance -ClassName Win32_Service `
         -Filter "Name='$serviceName'"
     Assert-Condition ($null -ne $service) 'The broker service is not registered.'
@@ -174,8 +199,23 @@ function Assert-InstalledState {
         [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.0.2') `
         'The uninstall DisplayVersion is not 0.9.0.2.'
     Assert-Condition (
+        [string]$uninstallKey.GetValue('InstallDate', '') -match '^\d{8}$') `
+        'The uninstall InstallDate is missing or invalid.'
+    $installTimestamp = [DateTimeOffset]::MinValue
+    Assert-Condition (
+        [DateTimeOffset]::TryParse(
+            [string]$uninstallKey.GetValue('InstallTimestampUtc', ''),
+            [Globalization.CultureInfo]::InvariantCulture,
+            [Globalization.DateTimeStyles]::RoundtripKind,
+            [ref]$installTimestamp)) `
+        'The uninstall InstallTimestampUtc is missing or invalid.'
+    Assert-Condition (
         [int]$uninstallKey.GetValue('AddedToSystemPath', 0) -eq 1) `
         'The uninstall entry does not record the PATH registration.'
+    Assert-Condition (
+        [string]$uninstallKey.GetValue('UninstallString', '') -match
+        '(?i)powershell\.exe .*?-WindowStyle Hidden .*?-Uninstall') `
+        'The uninstall entry does not hide its PowerShell host.'
     Assert-Condition (Test-SystemPathEntry) `
         'The installation directory is not registered exactly once in the system PATH.'
 
@@ -209,7 +249,7 @@ function Invoke-BestEffortCleanup {
     }
     if (Test-Path -LiteralPath $installedInstaller -PathType Leaf) {
         try {
-            & $installedInstaller -Uninstall
+            & $installedInstaller -Uninstall -NoSuccessDialog
         }
         catch {
             Write-Warning "Installed uninstaller cleanup failed: $_"
@@ -268,6 +308,22 @@ Assert-Condition (Test-Path -LiteralPath $signer -PathType Leaf) `
     "Package signer is missing: $signer"
 Assert-Condition (Test-Path -LiteralPath $installer -PathType Leaf) `
     "Installer is missing: $installer"
+$installerSource = [IO.File]::ReadAllText($installer)
+foreach ($requiredContract in @(
+    'function Confirm-Uninstall',
+    "'YesNo', 'Warning', 'Button2'",
+    'Write-UninstallDiagnostic',
+    'Show-UninstallFailure',
+    'InstallerLogs',
+    'Open log folder',
+    'alle gegebenenfalls vorhandenen gespeicherten Anmeldedaten und Freigaben',
+    'all stored credentials and approvals, if present',
+    'Entfernt wurden:',
+    'Removed:'
+)) {
+    Assert-Condition $installerSource.Contains($requiredContract) `
+        "Installer uninstall confirmation contract is missing '$requiredContract'."
+}
 
 Assert-Condition (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) `
     'The runner already has an xucRunBroker service.'
@@ -298,6 +354,17 @@ try {
         'The local signing workflow did not create exactly one test certificate.'
     $createdCertificateThumbprint = $createdCertificates[0].Thumbprint
 
+    & $signer `
+        -PackageDirectory $packageRoot `
+        -CertificateName $certificateName `
+        -CertificateValidityYears 1
+    $reusedCertificates = @(Get-ChildItem Cert:\LocalMachine\My |
+        Where-Object { $_.Subject -eq $certificateSubject })
+    Assert-Condition (
+        $reusedCertificates.Count -eq 1 -and
+        $reusedCertificates[0].Thumbprint -eq $createdCertificateThumbprint) `
+        'The local signing workflow did not reuse its existing valid certificate.'
+
     & $installer `
         -PackageDirectory $packageRoot `
         -Language en `
@@ -305,10 +372,41 @@ try {
     Assert-InstalledState
     Invoke-InfoCheck
 
+    Start-Service -Name $serviceName
+    (Get-Service -Name $serviceName).WaitForStatus(
+        [System.ServiceProcess.ServiceControllerStatus]::Running,
+        [TimeSpan]::FromSeconds(30))
     & $installer `
         -PackageDirectory $packageRoot `
         -Language en `
         -AddToSystemPath
+    Assert-InstalledState
+    Assert-Condition (
+        (Get-Service -Name $serviceName).Status -eq
+        [System.ServiceProcess.ServiceControllerStatus]::Running) `
+        'Repair installation did not restore the previously running broker service.'
+
+    $installedTray = Join-Path $installDirectory 'xucRunTray.exe'
+    Set-Content -LiteralPath $installedTray -Encoding Ascii -Value 'test'
+    New-Item -Path $trayUninstallRegistryPath -Force | Out-Null
+    $trayBlockedUninstall = $null
+    try {
+        & $installedInstaller -Uninstall -NoSuccessDialog
+    }
+    catch {
+        $trayBlockedUninstall = $_
+    }
+    finally {
+        Remove-Item -LiteralPath $installedTray -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $trayUninstallRegistryPath -Recurse -Force `
+            -ErrorAction SilentlyContinue
+    }
+    Assert-Condition ($null -ne $trayBlockedUninstall) `
+        'Uninstall was not blocked while the optional Tray add-on was installed.'
+    Assert-Condition (
+        $trayBlockedUninstall.Exception.Message -match
+        'xucRun Tray (ist noch|is still) installed') `
+        'Blocked uninstall did not explain that xucRun Tray must be removed first.'
     Assert-InstalledState
 
     & $installedInstaller -Uninstall
@@ -321,6 +419,12 @@ try {
         'The system PATH entry remains after uninstall.'
     Assert-Condition (-not (Test-Path -LiteralPath $brokerStoreDirectory)) `
         'Broker product data remains after uninstall.'
+    foreach ($storeName in @('My', 'Root', 'TrustedPublisher')) {
+        Assert-Condition (
+            -not (Test-Path -LiteralPath (
+                "Cert:\LocalMachine\$storeName\$createdCertificateThumbprint"))) `
+            "The signing certificate remains in LocalMachine\$storeName."
+    }
 
     Write-Host 'xucRun installer smoke test passed.'
 }

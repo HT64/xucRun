@@ -14,6 +14,7 @@
 #include "ClientBrokerCredentialSelection.h"
 #include "ClientBrokerStatus.h"
 #include "ClientCredentialInfo.h"
+#include "ClientImageTrust.h"
 #include "ClientTextDialog.h"
 #include "ClientUiCommon.h"
 #include "ClientWindowsError.h"
@@ -128,6 +129,14 @@ namespace xucrun::info_command
 			: localization::GetText(localization::TextId::StatusDisabled);
 		const bool brokerInformationEnabled =
 			_wcsicmp(brokerInformationEvents, L"true") == 0;
+		const std::wstring executablePath = GetExecutablePath();
+		LONG signerTrustStatus = TRUST_E_NOSIGNATURE;
+		std::vector<BYTE> signerCertificate;
+		image_trust::SignerCertificateInfo signerInfo;
+		const bool signerInfoAvailable = executablePath != unavailable &&
+			image_trust::VerifyWithSignerCertificate(
+				executablePath, signerTrustStatus, signerCertificate) &&
+			image_trust::GetSignerCertificateInfo(signerCertificate, signerInfo);
 
 		const broker_status::BrokerServiceState serviceState =
 			broker_status::QueryBrokerServiceState();
@@ -173,11 +182,15 @@ namespace xucrun::info_command
 					std::to_wstring(VERSION_MINOR) + L"." +
 					std::to_wstring(VERSION_PATCH) + L"." +
 					std::to_wstring(BUILD_NUMBER),
-				GetExecutablePath(),
+				executablePath,
 				L"x64",
 				localization::GetText(localization::UsesGermanResources()
 					? localization::TextId::InfoLanguageGerman
 					: localization::TextId::InfoLanguageEnglish),
+				signerInfoAvailable ? signerInfo.subject : unavailable,
+				signerInfoAvailable ? signerInfo.sha256Fingerprint : unavailable,
+				signerInfoAvailable ? signerInfo.validFrom : unavailable,
+				signerInfoAvailable ? signerInfo.validUntil : unavailable,
 				GetServiceStatusText(serviceState),
 				brokerCommunication,
 				brokerAvailable ? FormatVersion(health.brokerVersion) : unavailable,

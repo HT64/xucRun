@@ -54,10 +54,10 @@ BEGIN
 	IDS_HELP_USAGE, "Start applications:\n• {0} <application> [arguments...]\n  Automatic account and privilege selection.\n• {0} [user switch] <application> [arguments...]\n  /user[:<username>] keeps the current privilege mode.\n  /user-elevated[:<username>] requires elevation or aborts.\n• {0} /hidden [user switch] <application> [arguments...]\n  Hides only the immediate application.\n• {0} /hidden-monitor [user switch] <application> [arguments...]\n  Also reports a nonzero exit code.\n\nManage credentials:\n• {0} /addcred [<username>] - store credentials securely\n• {0} /deletecred [<username>] - delete credentials\n• {0} /showcred - show stored accounts\n\nManage approvals:\n• {0} /showapprovals - show stored approvals\n• {0} /resetapprovals[:<username>] - select approvals to reset\n\nManage backups:\n• {0} /backup - open the backup management window\n• {0} /backup-create [<description>] - create a backup\n• {0} /backup-list - list available backups\n• {0} /backup-restore - select a backup to restore\n• {0} /backup-restore:<backup-ID> - restore a backup directly\n• {0} /backup-delete-all - delete all backups\n\nStatus and diagnostics:\n• {0} /admin-status - show stored data for all users\n• {0} /clear-all - delete all xucRun data\n• {0} /audit - run security diagnostics\n• {0} /help, {0} --help, {0} /? - show this help\n• Aliases: --hidden, --hidden-monitor\n\n"
 	IDS_HELP_EXAMPLES, "Examples:\n• Standard launch:\n  {0} notepad.exe\n• Another account with unchanged privileges:\n  {0} /user:Administrator notepad.exe\n• Guaranteed elevation:\n  {0} /user-elevated:Administrator notepad.exe\n• Hidden launch with exit-code monitoring:\n  {0} /hidden-monitor cmd.exe /c task.cmd\n• Store credentials:\n  {0} /addcred DOMAIN\\AdminUser\n  The password is requested on a protected private desktop.\n\n"
 	IDS_HELP_NOTES, "Important notes:\n• Credentials are bound to the SID of the signed-in Windows user and stored by the LocalSystem broker.\n• Without a user switch, administrator accounts are preferred and launched elevated. One matching account is selected automatically; multiple accounts are offered for selection. Standard accounts are used only when no administrator account is available.\n• For the current administrator account, an existing elevated state is retained or Windows UAC is requested automatically.\n• /user keeps the privilege mode unchanged; without a user name, one stored account is selected automatically or multiple accounts are offered.\n• /user-elevated guarantees elevation; without a user name, only stored administrator accounts are offered.\n• /hidden and /hidden-monitor affect only the immediate application. Its dialogs and child processes remain visible. /hidden-monitor evaluates only the exit code and does not capture output.\n• /resetapprovals without a user name can also reset profile-wide approvals; a targeted user call leaves them unchanged.\n• Backups contain all broker data, are bound to this computer, and cannot be transferred to another computer.\n• /clear-all permanently deletes all xucRun data for all Windows profiles on this computer and stops the broker service.\n• /audit checks the credential access environment, loaded DLLs, the xucRun executable signature, and broker ACLs without reading credentials.\n• A user switch without an application replaces the current console in the selected mode."
-	IDS_HELP_INFO, "Runtime information:\n• {0} /info - show versions, broker status, account, configuration, and stored-data counts\n\n"
+	IDS_HELP_INFO, "Runtime information:\n• {0} /info - show versions, signing certificate, broker status, account, configuration, and stored-data counts\n\n"
 	IDS_INFO_TITLE, "Information"
 	IDS_INFO_HEADING, "xucRun runtime information"
-	IDS_INFO_CONTENT, "Program\nVersion: {0}\nPath: {1}\nArchitecture: {2}\nLanguage: {3}\n\nBroker\nService status: {4}\nCommunication: {5}\nVersion: {6}\n\nCurrent account\nAccount: {7}\nElevation: {8}\n\nConfiguration\nFile: {9}\nClient logging: {10}\nBroker information events: {11}\n\nStored data\nCredentials: {12}\nApprovals: {13}"
+	IDS_INFO_CONTENT, "Program\nVersion: {0}\nPath: {1}\nArchitecture: {2}\nLanguage: {3}\n\nSigning certificate\nSubject: {4}\nSHA-256 fingerprint: {5}\nValid from: {6}\nValid until: {7}\n\nBroker\nService status: {8}\nCommunication: {9}\nVersion: {10}\n\nCurrent account\nAccount: {11}\nElevation: {12}\n\nConfiguration\nFile: {13}\nClient logging: {14}\nBroker information events: {15}\n\nStored data\nCredentials: {16}\nApprovals: {17}"
 	IDS_INFO_LANGUAGE_GERMAN, "German"
 	IDS_INFO_LANGUAGE_ENGLISH, "English"
 	IDS_INFO_ELEVATED, "elevated"
@@ -249,7 +249,7 @@ BEGIN
 	IDS_PROCESS_DEBUGGER_DETECTED, "Process debugger detected"
 	IDS_AUDIT_BROKER_SECTION, "\n\nBroker ACL check under LocalSystem:\n{0}"
 	IDS_AUDIT_BROKER_UNAVAILABLE, "Not available (error {0})."
-	IDS_AUDIT_SELF_SIGNATURE_VALID, "\n\nxucRun self-signature:\n- File: {0}\n- Status: valid, trusted signature"
+	IDS_AUDIT_SELF_SIGNATURE_VALID, "\n\nxucRun self-signature:\n- File: {0}\n- Status: valid, trusted signature\n- Certificate: {1}\n- SHA-256 fingerprint: {2}\n- Valid from: {3}\n- Valid until: {4}"
 	IDS_AUDIT_SELF_SIGNATURE_FAILED, "\n\nxucRun self-signature:\n- File: {0}\n- Status: signature check failed (0x{1})"
 	IDS_AUDIT_SELF_SIGNATURE_UNCHECKED, "\n\nxucRun self-signature:\n- File: {0}\n- Status: not checked"
 	IDS_AUDIT_PATH_UNAVAILABLE, "Path could not be determined"
@@ -366,10 +366,10 @@ BEGIN
 	IDS_HELP_USAGE, "Anwendungen starten:\n• {0} <Anwendung> [Argumente...]\n  Automatische Konto- und Rechteauswahl.\n• {0} [Benutzerschalter] <Anwendung> [Argumente...]\n  /user[:<Benutzername>] behält den aktuellen Rechtemodus bei.\n  /user-elevated[:<Benutzername>] verlangt erhöhte Rechte oder bricht ab.\n• {0} /hidden [Benutzerschalter] <Anwendung> [Argumente...]\n  Blendet nur die unmittelbar gestartete Anwendung aus.\n• {0} /hidden-monitor [Benutzerschalter] <Anwendung> [Argumente...]\n  Meldet zusätzlich einen Rückgabecode ungleich 0.\n\nAnmeldedaten verwalten:\n• {0} /addcred [<Benutzername>] - Anmeldedaten sicher speichern\n• {0} /deletecred [<Benutzername>] - Anmeldedaten löschen\n• {0} /showcred - gespeicherte Konten anzeigen\n\nFreigaben verwalten:\n• {0} /showapprovals - gespeicherte Freigaben anzeigen\n• {0} /resetapprovals[:<Benutzername>] - zurückzusetzende Freigaben auswählen\n\nBackups verwalten:\n• {0} /backup - Backupverwaltung öffnen\n• {0} /backup-create [<Beschreibung>] - Backup erstellen\n• {0} /backup-list - verfügbare Backups auflisten\n• {0} /backup-restore - Backup zur Wiederherstellung auswählen\n• {0} /backup-restore:<Backup-ID> - Backup direkt wiederherstellen\n• {0} /backup-delete-all - alle Backups löschen\n\nStatus und Diagnose:\n• {0} /admin-status - gespeicherte Daten aller Benutzer anzeigen\n• {0} /clear-all - alle xucRun-Daten löschen\n• {0} /audit - Sicherheitsdiagnose ausführen\n• {0} /help, {0} --help, {0} /? - diese Hilfe anzeigen\n• Aliase: --hidden, --hidden-monitor\n\n"
 	IDS_HELP_EXAMPLES, "Beispiele:\n• Standardstart:\n  {0} notepad.exe\n• Anderes Konto mit unverändertem Rechtemodus:\n  {0} /user:Administrator notepad.exe\n• Garantiert erhöhter Start:\n  {0} /user-elevated:Administrator notepad.exe\n• Verborgener Start mit Überwachung des Rückgabecodes:\n  {0} /hidden-monitor cmd.exe /c task.cmd\n• Anmeldedaten speichern:\n  {0} /addcred DOMAIN\\AdminUser\n  Das Kennwort wird auf einem geschützten privaten Desktop abgefragt.\n\n"
 	IDS_HELP_NOTES, "Wichtige Hinweise:\n• Anmeldedaten sind an die SID des angemeldeten Windows-Benutzers gebunden und werden im LocalSystem-Broker gespeichert.\n• Ohne Benutzerschalter werden Administratorkonten bevorzugt und erhöht gestartet. Ein passendes Konto wird automatisch gewählt; mehrere Konten werden zur Auswahl angeboten. Standardkonten werden nur verwendet, wenn kein Administratorkonto verfügbar ist.\n• Beim aktuellen Administratorkonto bleibt ein bereits erhöhter Zustand erhalten; andernfalls fordert xucRun automatisch Windows-UAC an.\n• /user lässt den Rechtemodus unverändert; ohne Benutzernamen wird ein gespeichertes Konto automatisch gewählt oder eine Auswahl angeboten.\n• /user-elevated garantiert erhöhte Rechte; ohne Benutzernamen werden nur gespeicherte Administratorkonten angeboten.\n• /hidden und /hidden-monitor betreffen nur die unmittelbar gestartete Anwendung. Ihre Dialoge und Kindprozesse bleiben sichtbar. /hidden-monitor wertet nur den Rückgabecode aus und erfasst keine Ausgabe.\n• /resetapprovals ohne Benutzernamen kann auch profilweite Freigaben zurücksetzen; ein gezielter Benutzeraufruf lässt sie unverändert.\n• Backups enthalten alle Brokerdaten, sind an diesen Computer gebunden und können nicht auf andere Computer übertragen werden.\n• /clear-all löscht unwiderruflich alle xucRun-Daten aller Windows-Profile dieses Computers und beendet den Brokerdienst.\n• /audit prüft die Anmeldedaten-Zugriffsumgebung, geladene DLLs, die Signatur der xucRun-EXE und die Broker-ACLs, ohne Anmeldedaten zu lesen.\n• Ein Benutzerschalter ohne Anwendung ersetzt die aktuelle Konsole im gewählten Modus."
-	IDS_HELP_INFO, "Laufzeitinformationen:\n• {0} /info - Versionen, Brokerstatus, Konto, Konfiguration und Anzahlen gespeicherter Daten anzeigen\n\n"
+	IDS_HELP_INFO, "Laufzeitinformationen:\n• {0} /info - Versionen, Signierzertifikat, Brokerstatus, Konto, Konfiguration und Anzahlen gespeicherter Daten anzeigen\n\n"
 	IDS_INFO_TITLE, "Informationen"
 	IDS_INFO_HEADING, "xucRun-Laufzeitinformationen"
-	IDS_INFO_CONTENT, "Programm\nVersion: {0}\nPfad: {1}\nArchitektur: {2}\nSprache: {3}\n\nBroker\nDienststatus: {4}\nKommunikation: {5}\nVersion: {6}\n\nAktuelles Konto\nKonto: {7}\nRechteerhöhung: {8}\n\nKonfiguration\nDatei: {9}\nClient-Protokollierung: {10}\nBroker-Informationsereignisse: {11}\n\nGespeicherte Daten\nAnmeldedaten: {12}\nFreigaben: {13}"
+	IDS_INFO_CONTENT, "Programm\nVersion: {0}\nPfad: {1}\nArchitektur: {2}\nSprache: {3}\n\nSignierzertifikat\nName: {4}\nSHA-256-Fingerabdruck: {5}\nGültig seit: {6}\nGültig bis: {7}\n\nBroker\nDienststatus: {8}\nKommunikation: {9}\nVersion: {10}\n\nAktuelles Konto\nKonto: {11}\nRechteerhöhung: {12}\n\nKonfiguration\nDatei: {13}\nClient-Protokollierung: {14}\nBroker-Informationsereignisse: {15}\n\nGespeicherte Daten\nAnmeldedaten: {16}\nFreigaben: {17}"
 	IDS_INFO_LANGUAGE_GERMAN, "Deutsch"
 	IDS_INFO_LANGUAGE_ENGLISH, "Englisch"
 	IDS_INFO_ELEVATED, "erhöht"
@@ -561,7 +561,7 @@ BEGIN
 	IDS_PROCESS_DEBUGGER_DETECTED, "Prozess-Debugger erkannt"
 	IDS_AUDIT_BROKER_SECTION, "\n\nBroker-ACL-Prüfung unter LocalSystem:\n{0}"
 	IDS_AUDIT_BROKER_UNAVAILABLE, "Nicht verfügbar (Fehler {0})."
-	IDS_AUDIT_SELF_SIGNATURE_VALID, "\n\nxucRun-Selbstsignatur:\n- Datei: {0}\n- Status: gültige, vertrauenswürdige Signatur"
+	IDS_AUDIT_SELF_SIGNATURE_VALID, "\n\nxucRun-Selbstsignatur:\n- Datei: {0}\n- Status: gültige, vertrauenswürdige Signatur\n- Zertifikat: {1}\n- SHA-256-Fingerabdruck: {2}\n- Gültig seit: {3}\n- Gültig bis: {4}"
 	IDS_AUDIT_SELF_SIGNATURE_FAILED, "\n\nxucRun-Selbstsignatur:\n- Datei: {0}\n- Status: Signaturprüfung fehlgeschlagen (0x{1})"
 	IDS_AUDIT_SELF_SIGNATURE_UNCHECKED, "\n\nxucRun-Selbstsignatur:\n- Datei: {0}\n- Status: nicht geprüft"
 	IDS_AUDIT_PATH_UNAVAILABLE, "Pfad konnte nicht ermittelt werden"
@@ -679,6 +679,66 @@ BEGIN
 	BLOCK "VarFileInfo"
 	BEGIN
 		VALUE "Translation", 0x407, 1200  // German (Germany), Unicode
+	END
+END
+#else
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,BUILD_NUMBER
+ PRODUCTVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,BUILD_NUMBER
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_DLL
+ FILESUBTYPE 0x0L
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+#ifdef XUCRUN_LANGUAGE_DE
+		BLOCK "040704b0"
+#else
+		BLOCK "040904b0"
+#endif
+		BEGIN
+			VALUE "CompanyName", "HT64"
+#ifdef XUCRUN_TRAY_LANGUAGE_RESOURCE
+#ifdef XUCRUN_LANGUAGE_DE
+			VALUE "FileDescription", "xucRun Tray - Deutsche Sprachressourcen"
+			VALUE "InternalName", "xucRunTray.de-DE"
+			VALUE "OriginalFilename", "xucRunTray.de-DE.dll"
+#else
+			VALUE "FileDescription", "xucRun Tray - English language resources"
+			VALUE "InternalName", "xucRunTray.en-US"
+			VALUE "OriginalFilename", "xucRunTray.en-US.dll"
+#endif
+			VALUE "ProductName", "xucRun Tray"
+#else
+#ifdef XUCRUN_LANGUAGE_DE
+			VALUE "FileDescription", "xucRun - Deutsche Sprachressourcen"
+			VALUE "InternalName", "xucRun.de-DE"
+			VALUE "OriginalFilename", "xucRun.de-DE.dll"
+#else
+			VALUE "FileDescription", "xucRun - English language resources"
+			VALUE "InternalName", "xucRun.en-US"
+			VALUE "OriginalFilename", "xucRun.en-US.dll"
+#endif
+			VALUE "ProductName", "xucRun"
+#endif
+			VALUE "FileVersion", VERSION_STRING
+			VALUE "LegalCopyright", "Copyright (C) 2024-2026"
+			VALUE "ProductVersion", VERSION_STRING
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+#ifdef XUCRUN_LANGUAGE_DE
+		VALUE "Translation", 0x407, 1200
+#else
+		VALUE "Translation", 0x409, 1200
+#endif
 	END
 END
 #endif

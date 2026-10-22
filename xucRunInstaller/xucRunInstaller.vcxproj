@@ -120,5 +120,8 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="ForceEmbeddedResourceCompilation" BeforeTargets="ResourceCompile">
+    <Delete Files="$(IntDir)Installer.res" />
+  </Target>
   <ImportGroup Label="ExtensionTargets" />
 </Project>
