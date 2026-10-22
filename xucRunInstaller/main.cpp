@@ -116,9 +116,7 @@ namespace
         return L"\"" + value + L"\"";
     }
 
-    DWORD RunInstallerGui(
-        const std::filesystem::path& packageDirectory,
-        const std::filesystem::path& installerPath)
+    DWORD RunInstallerGui(const std::filesystem::path& packageDirectory)
     {
         wchar_t windowsDirectory[MAX_PATH] = {};
         const UINT length = GetWindowsDirectoryW(windowsDirectory, ARRAYSIZE(windowsDirectory));
@@ -130,8 +128,7 @@ namespace
         const std::filesystem::path guiScript = packageDirectory / L"Installer-Gui.ps1";
         std::wstring commandLine = Quote(powershell.wstring()) +
             L" -NoProfile -ExecutionPolicy Bypass -File " + Quote(guiScript.wstring()) +
-            L" -PackageDirectory " + Quote(packageDirectory.wstring()) +
-            L" -InstallerPath " + Quote(installerPath.wstring());
+            L" -PackageDirectory " + Quote(packageDirectory.wstring());
 
         STARTUPINFOW startup = {};
         startup.cb = sizeof(startup);
@@ -164,12 +161,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     std::filesystem::path temporaryDirectory;
     try
     {
-        wchar_t installerPathBuffer[32768] = {};
-        const DWORD installerPathLength = GetModuleFileNameW(
-            nullptr, installerPathBuffer, ARRAYSIZE(installerPathBuffer));
-        if (installerPathLength == 0 || installerPathLength >= ARRAYSIZE(installerPathBuffer))
-            throw std::system_error(GetLastError(), std::system_category());
-
         temporaryDirectory = CreateTemporaryDirectory();
         const PayloadFile payloadFiles[] = {
             { IDR_GUI_SCRIPT, L"Installer-Gui.ps1", true },
@@ -184,7 +175,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         for (const PayloadFile& payload : payloadFiles)
             ExtractResource(temporaryDirectory, payload);
 
-        const DWORD exitCode = RunInstallerGui(temporaryDirectory, installerPathBuffer);
+        const DWORD exitCode = RunInstallerGui(temporaryDirectory);
         const std::wstring cleanupWarning = RemoveTemporaryDirectory(temporaryDirectory);
         if (!cleanupWarning.empty())
         {

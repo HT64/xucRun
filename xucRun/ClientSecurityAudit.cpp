@@ -357,17 +357,30 @@ namespace xucrun::security_audit
 		const bool executablePathAvailable = executablePathLength > 0 &&
 			executablePathLength < std::size(executablePathBuffer);
 		LONG selfTrustStatus = TRUST_E_NOSIGNATURE;
-		bool selfMicrosoftPublisher = false;
-		const bool selfSignatureValid = executablePathAvailable && image_trust::Verify(
-			executablePathBuffer, selfTrustStatus, selfMicrosoftPublisher);
+		std::vector<BYTE> selfSignerCertificate;
+		const bool selfSignatureValid = executablePathAvailable &&
+			image_trust::VerifyWithSignerCertificate(
+				executablePathBuffer, selfTrustStatus, selfSignerCertificate);
+		image_trust::SignerCertificateInfo selfSignerInfo;
+		const bool selfSignerInfoAvailable = selfSignatureValid &&
+			image_trust::GetSignerCertificateInfo(
+				selfSignerCertificate, selfSignerInfo);
 		const std::wstring selfPath = executablePathAvailable
 			? executablePathBuffer
 			: localization::GetText(localization::TextId::AuditPathUnavailable);
 		std::wstring selfSignatureInfo;
 		if (selfSignatureValid)
 		{
+			const std::wstring unavailable =
+				localization::GetText(localization::TextId::ValueNotAvailable);
 			selfSignatureInfo = localization::Format(
-				localization::TextId::AuditSelfSignatureValid, { selfPath });
+				localization::TextId::AuditSelfSignatureValid,
+				{ selfPath,
+					selfSignerInfoAvailable ? selfSignerInfo.subject : unavailable,
+					selfSignerInfoAvailable
+						? selfSignerInfo.sha256Fingerprint : unavailable,
+					selfSignerInfoAvailable ? selfSignerInfo.validFrom : unavailable,
+					selfSignerInfoAvailable ? selfSignerInfo.validUntil : unavailable });
 			client_logging::Write(L"Ok", L"xucRun self-signature is valid: " +
 				std::wstring(executablePathBuffer));
 		}

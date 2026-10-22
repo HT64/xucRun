@@ -1,7 +1,6 @@
 # Purpose: Provides the bilingual graphical workflow for installing xucRun.
 param(
-    [Parameter(Mandatory)][string]$PackageDirectory,
-    [Parameter(Mandatory)][string]$InstallerPath
+    [Parameter(Mandatory)][string]$PackageDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,18 +27,22 @@ $texts = @{
         SettingsTab = 'Einstellungen'
         DetailsTab = 'Ablauf und Deinstallation'
         LanguageLabel = 'Programmsprache'
+        LanguageHint = 'Später über xucRun.ini, mit Tray auch direkt im Tray-Menü änderbar.'
         PathCheck = 'C:\Program Files\xucRun zum systemweiten PATH hinzufügen'
         CertificateGroup = 'Vertrauen und Codesignierung'
-        PublisherCertificate = 'Vorhandene Paketsignaturen verwenden'
-        LocalCertificate = 'Lokales Zertifikat erstellen und Paketdateien signieren'
-        CertificateWarning = 'Für selbst erstellte Pakete wird das lokale Zertifikat empfohlen. Sein privater Schlüssel ist nicht exportierbar und bleibt auf diesem Computer.'
-        UpdateNotice = 'Eine vorhandene xucRun-Installation wird mit den gewählten Einstellungen aktualisiert.'
+        CertificateExisting = "Vorhandenes lokales xucRun-Zertifikat wird wiederverwendet.`r`nGültig seit: {0}   Gültig bis: {1}`r`nFingerabdruck: {2}"
+        CertificateNew = 'Bei der Installation wird ein neues lokales xucRun-Zertifikat erstellt.'
+        CertificateExpired = 'Das vorhandene lokale xucRun-Zertifikat ist abgelaufen. Bei der Installation wird ein neues Zertifikat erstellt.'
+        CertificateAmbiguous = 'Es wurden mehrere verwendbare lokale xucRun-Zertifikate gefunden. Die Installation kann nicht eindeutig fortgesetzt werden.'
+        CertificateWarning = 'Der private Schlüssel ist nicht exportierbar und bleibt auf diesem Computer.'
+        UpdateNotice = "Installierte Version: {0}`r`nInstalliert/zuletzt aktualisiert: {1}`r`nDie Installation wird mit den gewählten Einstellungen aktualisiert."
+        NewInstallNotice = 'Es wurde keine vorhandene xucRun-Installation erkannt. xucRun wird mit den gewählten Einstellungen installiert.'
+        UnknownInstallTime = 'nicht verfügbar'
         InstallButton = 'Installieren'
         CancelButton = 'Abbrechen'
         StatusReady = 'Bereit.'
         StatusCheckingRuntime = 'Microsoft Visual C++ Runtime wird geprüft ...'
         StatusInstallingRuntime = 'Microsoft Visual C++ Runtime wird installiert ...'
-        StatusCheckingSignatures = 'Paketsignaturen werden geprüft ...'
         StatusSigning = 'Lokales Zertifikat und Paketsignaturen werden eingerichtet ...'
         StatusInstalling = 'xucRun und Broker werden installiert ...'
         StatusSuccess = 'Installation erfolgreich abgeschlossen.'
@@ -56,12 +59,11 @@ $texts = @{
         RuntimeDialogTitle = 'Microsoft Visual C++ x64 Redistributable auswählen'
         RuntimeDialogFilter = 'VC_redist.x64.exe|vc_redist.x64.exe|Programme (*.exe)|*.exe'
         RuntimeNotSelected = 'Es wurde kein Microsoft Visual C++ Redistributable ausgewählt.'
-        InstallerSignatureInvalid = 'Installer.exe besitzt keine gültige prüfbare Signatur.'
-        PackageSignatureMismatch = 'Die Paketsignatur stimmt nicht mit Installer.exe überein: {0}'
         ProcessFailed = '{0} (Exitcode {1}).'
         LocalSigningFailed = 'Die lokale Signierung ist fehlgeschlagen'
         InstallationFailed = 'Die Installation ist fehlgeschlagen'
-        InstallationSuccess = 'xucRun wurde erfolgreich installiert.'
+        InstallationSuccessNew = "xucRun und das lokale Zertifikat wurden erfolgreich installiert.`r`n`r`nZertifikat:`r`nName: {0}`r`nGültig seit: {1}`r`nGültig bis: {2}`r`nFingerabdruck: {3}"
+        InstallationSuccessExisting = "xucRun wurde erfolgreich installiert. Das vorhandene lokale Zertifikat wurde wiederverwendet.`r`n`r`nZertifikat:`r`nName: {0}`r`nGültig seit: {1}`r`nGültig bis: {2}`r`nFingerabdruck: {3}"
         Details = @'
 INSTALLATION
 
@@ -69,21 +71,29 @@ INSTALLATION
 
 2. xucRun benötigt Microsoft Visual C++ Redistributable x64. Fehlt es, kann der Installer die Datei vom offiziellen Microsoft-Link herunterladen oder eine vorhandene vc_redist.x64.exe verwenden. Vor dem Start werden Microsoft-Signatur und Originaldateiname geprüft.
 
-3. Für selbst erstellte Pakete kann der Installer ein lokales Codesignaturzertifikat mit nicht exportierbarem privaten Schlüssel erzeugen, ihm auf diesem Computer vertrauen und die sechs installierbaren Dateien signieren.
+3. Der Installer verwendet ein bereits vorhandenes gültiges lokales xucRun-Codesignaturzertifikat mit privatem Schlüssel. Ist keines vorhanden, erzeugt er ein neues Zertifikat mit nicht exportierbarem privaten Schlüssel. Er richtet das Vertrauen auf diesem Computer ein und signiert die sechs installierbaren Dateien.
 
-4. Bei einem vom Herausgeber signierten Paket kann der Installer stattdessen prüfen, dass Installer.exe und alle eingebetteten Dateien vom selben Zertifikat signiert wurden. Dieses Zertifikat wird anschließend als vertrauenswürdig eingerichtet.
+4. Das Installationsskript prüft alle Signaturen erneut, installiert Client, Broker, Approval-Helper und Sprachdateien nach C:\Program Files\xucRun und richtet den Broker-Dienst sowie den Deinstallationseintrag ein.
 
-5. Das Installationsskript prüft alle Signaturen erneut, installiert Client, Broker, Approval-Helper und Sprachdateien nach C:\Program Files\xucRun und richtet den Broker-Dienst sowie den Deinstallationseintrag ein.
-
-6. Die gewählte Sprache wird in xucRun.ini eingetragen. Der systemweite PATH-Eintrag wird entsprechend der Auswahl gesetzt oder entfernt.
+5. Die gewählte Sprache wird in xucRun.ini eingetragen. Der systemweite PATH-Eintrag wird entsprechend der Auswahl gesetzt oder entfernt.
 
 AKTUALISIERUNG
 
-Eine vorhandene xucRun-Installation wird aktualisiert. Bereits gespeicherte xucRun-Anmeldedaten, Freigaben und nicht vom Installer verwaltete INI-Einstellungen bleiben erhalten.
+Eine vorhandene xucRun-Installation wird aktualisiert. Bereits gespeicherte xucRun-Anmeldedaten, Freigaben und nicht vom Installer verwaltete INI-Einstellungen bleiben erhalten. Ein installiertes Tray kann bei einer erneuten Installation derselben Version bestehen bleiben, wenn Version und Signierer weiterhin exakt passen. Vor einem Versionswechsel muss das Tray entfernt werden.
+
+War der Brokerdienst vor der Aktualisierung aktiv, wird er nach dem Dateiaustausch automatisch wieder gestartet. Ein zuvor bewusst gestoppter oder deaktivierter Brokerdienst bleibt gestoppt beziehungsweise deaktiviert.
 
 DEINSTALLATION
 
-Die Deinstallation erfolgt über „Installierte Apps“ beziehungsweise „Programme und Features“. Alternativ kann Install-xucRun.ps1 im Installationsverzeichnis mit -Uninstall ausgeführt werden. Gespeicherte xucRun-Daten unter %ProgramData%\xucRun bleiben absichtlich erhalten.
+Die Deinstallation erfolgt über „Installierte Apps“ beziehungsweise „Programme und Features“. Alternativ kann Install-xucRun.ps1 im Installationsverzeichnis mit -Uninstall ausgeführt werden.
+
+Ein installiertes xucRun Tray muss zuvor separat deinstalliert werden. Beim Start über Installierte Apps bleibt das PowerShell-Fenster verborgen; ein manueller Skriptaufruf behält seine Konsolenausgabe.
+
+Vor der ersten Änderung verlangt die Deinstallation eine ausdrückliche Bestätigung. Bei Abbruch bleiben Installation und Daten unverändert.
+
+ACHTUNG: Die Deinstallation löscht unwiderruflich alle gegebenenfalls vorhandenen xucRun-Anmeldedaten und Freigaben aller Windows-Benutzer sowie sämtliche lokalen xucRun-Sicherungen, Sicherheitsmerkmale und zugehörigen Metadaten. Außerdem entfernt sie Core, Brokerdienst, Programmdateien und das lokale xucRun-Standardzertifikat samt privatem Schlüssel und Vertrauenseinträgen.
+
+Die Erfolgsbestätigung führt entfernte Komponenten, Daten und Zertifikatsdetails auf. Ein Fehler bleibt in einem sichtbaren Dialog erhalten. Das technische Diagnoseprotokoll liegt unter %ProgramData%\xucRun\InstallerLogs; der Dialog zeigt den vollständigen Dateipfad in einem kopierbaren Feld und kann den Protokollordner öffnen. Das Protokoll enthält keine gespeicherten Kennwörter.
 '@
     }
     en = @{
@@ -93,18 +103,22 @@ Die Deinstallation erfolgt über „Installierte Apps“ beziehungsweise „Prog
         SettingsTab = 'Settings'
         DetailsTab = 'Process and uninstallation'
         LanguageLabel = 'Application language'
+        LanguageHint = 'Can be changed later in xucRun.ini or directly in the Tray menu.'
         PathCheck = 'Add C:\Program Files\xucRun to the system-wide PATH'
         CertificateGroup = 'Trust and code signing'
-        PublisherCertificate = 'Use the existing package signatures'
-        LocalCertificate = 'Create a local certificate and sign the package files'
-        CertificateWarning = 'The local certificate is recommended for self-built packages. Its private key is non-exportable and remains on this computer.'
-        UpdateNotice = 'An existing xucRun installation will be updated with the selected settings.'
+        CertificateExisting = "The existing local xucRun certificate will be reused.`r`nValid from: {0}   Valid until: {1}`r`nThumbprint: {2}"
+        CertificateNew = 'A new local xucRun certificate will be created during installation.'
+        CertificateExpired = 'The existing local xucRun certificate has expired. A new certificate will be created during installation.'
+        CertificateAmbiguous = 'Multiple usable local xucRun certificates were found. Installation cannot continue unambiguously.'
+        CertificateWarning = 'The private key is non-exportable and remains on this computer.'
+        UpdateNotice = "Installed version: {0}`r`nInstalled/last updated: {1}`r`nThe installation will be updated with the selected settings."
+        NewInstallNotice = 'No existing xucRun installation was detected. xucRun will be installed with the selected settings.'
+        UnknownInstallTime = 'not available'
         InstallButton = 'Install'
         CancelButton = 'Cancel'
         StatusReady = 'Ready.'
         StatusCheckingRuntime = 'Checking Microsoft Visual C++ Runtime ...'
         StatusInstallingRuntime = 'Installing Microsoft Visual C++ Runtime ...'
-        StatusCheckingSignatures = 'Checking package signatures ...'
         StatusSigning = 'Configuring the local certificate and package signatures ...'
         StatusInstalling = 'Installing xucRun and the broker ...'
         StatusSuccess = 'Installation completed successfully.'
@@ -121,12 +135,11 @@ Die Deinstallation erfolgt über „Installierte Apps“ beziehungsweise „Prog
         RuntimeDialogTitle = 'Select Microsoft Visual C++ x64 Redistributable'
         RuntimeDialogFilter = 'VC_redist.x64.exe|vc_redist.x64.exe|Applications (*.exe)|*.exe'
         RuntimeNotSelected = 'No Microsoft Visual C++ Redistributable was selected.'
-        InstallerSignatureInvalid = 'Installer.exe does not have a valid verifiable signature.'
-        PackageSignatureMismatch = 'The package signature does not match Installer.exe: {0}'
         ProcessFailed = '{0} (exit code {1}).'
         LocalSigningFailed = 'Local signing failed'
         InstallationFailed = 'Installation failed'
-        InstallationSuccess = 'xucRun was installed successfully.'
+        InstallationSuccessNew = "xucRun and the local certificate were installed successfully.`r`n`r`nCertificate:`r`nName: {0}`r`nValid from: {1}`r`nValid until: {2}`r`nThumbprint: {3}"
+        InstallationSuccessExisting = "xucRun was installed successfully. The existing local certificate was reused.`r`n`r`nCertificate:`r`nName: {0}`r`nValid from: {1}`r`nValid until: {2}`r`nThumbprint: {3}"
         Details = @'
 INSTALLATION
 
@@ -134,21 +147,29 @@ INSTALLATION
 
 2. xucRun requires Microsoft Visual C++ Redistributable x64. If it is missing, the installer can download it from the official Microsoft link or use an existing vc_redist.x64.exe. The Microsoft signature and original file name are checked before execution.
 
-3. For self-built packages, the installer can create a local code-signing certificate with a non-exportable private key, trust it on this computer, and sign the six installable files.
+3. The installer reuses an existing valid local xucRun code-signing certificate with its private key. If none exists, it creates a new certificate with a non-exportable private key. It configures trust on this computer and signs the six installable files.
 
-4. For a publisher-signed package, the installer can instead verify that Installer.exe and all embedded files were signed by the same certificate. It then configures that certificate as trusted.
+4. The installation script checks all signatures again, installs the client, broker, approval helper, and language files in C:\Program Files\xucRun, and configures the broker service and uninstall entry.
 
-5. The installation script checks all signatures again, installs the client, broker, approval helper, and language files in C:\Program Files\xucRun, and configures the broker service and uninstall entry.
-
-6. The selected language is written to xucRun.ini. The system-wide PATH entry is added or removed according to the selection.
+5. The selected language is written to xucRun.ini. The system-wide PATH entry is added or removed according to the selection.
 
 UPDATE
 
-An existing xucRun installation is updated. Stored xucRun credentials, approvals, and INI settings not managed by the installer are preserved.
+An existing xucRun installation is updated. Stored xucRun credentials, approvals, and INI settings not managed by the installer are preserved. An installed Tray can remain during reinstallation of the same version when its version and signer still match exactly. Remove Tray before changing versions.
+
+If the broker service was running before the update, it is restarted automatically after the files have been replaced. A broker service that was deliberately stopped or disabled remains stopped or disabled.
 
 UNINSTALLATION
 
-Uninstall through “Installed apps” or “Programs and Features”. Alternatively, run Install-xucRun.ps1 in the installation directory with -Uninstall. Stored xucRun data below %ProgramData%\xucRun is intentionally preserved.
+Uninstall through “Installed apps” or “Programs and Features”. Alternatively, run Install-xucRun.ps1 in the installation directory with -Uninstall.
+
+An installed xucRun Tray must be uninstalled separately first. When started through Installed apps, the PowerShell window remains hidden; a manual script invocation retains its console output.
+
+Uninstall requires explicit confirmation before making its first change. Cancelling leaves the installation and its data unchanged.
+
+WARNING: Uninstall permanently deletes all credentials and approvals that may be stored by xucRun for every Windows user, together with all local xucRun backups, security markers, and associated metadata. It also removes Core, the broker service, program files, and the standard local xucRun certificate, including its private key and trust entries.
+
+The success confirmation lists removed components, data, and certificate details. A failure remains visible in a dialog. Its technical diagnostic log is stored under %ProgramData%\xucRun\InstallerLogs; the dialog shows the full file path in a copyable field and can open the log folder. The log contains no stored passwords.
 '@
     }
 }
@@ -160,6 +181,138 @@ function Get-Text {
         return $value -f $Arguments
     }
     return $value
+}
+
+function Test-CodeSigningEku {
+    param([Parameter(Mandatory)]
+        [Security.Cryptography.X509Certificates.X509Certificate2]$Certificate)
+
+    foreach ($extension in $Certificate.Extensions) {
+        if ($extension -is
+            [Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]) {
+            foreach ($usage in $extension.EnhancedKeyUsages) {
+                if ($usage.Value -eq '1.3.6.1.5.5.7.3.3') {
+                    return $true
+                }
+            }
+        }
+    }
+    return $false
+}
+
+function Get-LocalCertificateState {
+    $subject = "CN=xucRun Local Signing ($env:COMPUTERNAME)"
+    $now = Get-Date
+    $matching = @(Get-ChildItem Cert:\LocalMachine\My -CodeSigningCert |
+        Where-Object {
+            $_.Subject -eq $subject -and $_.HasPrivateKey -and
+            (Test-CodeSigningEku -Certificate $_)
+        })
+    $valid = @($matching | Where-Object {
+        $_.NotBefore -le $now -and $_.NotAfter -gt $now
+    })
+    if ($valid.Count -gt 1) {
+        return [pscustomobject]@{ Kind = 'Ambiguous'; Certificate = $null }
+    }
+    if ($valid.Count -eq 1) {
+        return [pscustomobject]@{
+            Kind = 'Existing'
+            Certificate = $valid[0]
+        }
+    }
+    return [pscustomobject]@{
+        Kind = if ($matching.Count -gt 0) { 'Expired' } else { 'New' }
+        Certificate = $null
+    }
+}
+
+function Get-CertificateStatusText {
+    $state = $script:certificateState
+    if ($state.Kind -eq 'Existing') {
+        $cultureName = if ($script:language -eq 'de') { 'de-DE' } else { 'en-US' }
+        $culture = [Globalization.CultureInfo]::GetCultureInfo($cultureName)
+        return Get-Text -Key CertificateExisting -Arguments @(
+            $state.Certificate.NotBefore.ToString('d', $culture),
+            $state.Certificate.NotAfter.ToString('d', $culture),
+            $state.Certificate.Thumbprint)
+    }
+    return Get-Text -Key ("Certificate$($state.Kind)")
+}
+
+function Get-InstallationSuccessText {
+    param(
+        [Parameter(Mandatory)]
+        [Security.Cryptography.X509Certificates.X509Certificate2]$Certificate,
+        [Parameter(Mandatory)][bool]$Reused
+    )
+
+    $cultureName = if ($script:language -eq 'de') { 'de-DE' } else { 'en-US' }
+    $culture = [Globalization.CultureInfo]::GetCultureInfo($cultureName)
+    $name = $Certificate.GetNameInfo(
+        [Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+    $key = if ($Reused) {
+        'InstallationSuccessExisting'
+    } else {
+        'InstallationSuccessNew'
+    }
+    return Get-Text -Key $key -Arguments @(
+        $name,
+        $Certificate.NotBefore.ToString('g', $culture),
+        $Certificate.NotAfter.ToString('g', $culture),
+        $Certificate.Thumbprint)
+}
+
+function Get-InstalledProductState {
+    $uninstallPath =
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun'
+    if (-not (Test-Path -LiteralPath $uninstallPath)) {
+        return $null
+    }
+
+    $key = Get-Item -LiteralPath $uninstallPath
+    $version = [string]$key.GetValue('DisplayVersion', '')
+    if ([string]::IsNullOrWhiteSpace($version)) {
+        return $null
+    }
+
+    $installedAt = [DateTimeOffset]::MinValue
+    $timestamp = [string]$key.GetValue('InstallTimestampUtc', '')
+    if (-not [DateTimeOffset]::TryParse(
+        $timestamp,
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::RoundtripKind,
+        [ref]$installedAt)) {
+        $installLocation = [string]$key.GetValue('InstallLocation', '')
+        $clientPath = Join-Path $installLocation 'xucRun.exe'
+        $installedAt = if (Test-Path -LiteralPath $clientPath -PathType Leaf) {
+            [DateTimeOffset](Get-Item -LiteralPath $clientPath).CreationTime
+        } else {
+            $null
+        }
+    }
+
+    return [pscustomobject]@{
+        Version = $version
+        InstalledAt = $installedAt
+    }
+}
+
+function Get-InstallNoticeText {
+    if (-not $script:installedProductState) {
+        return Get-Text -Key NewInstallNotice
+    }
+
+    $cultureName = if ($script:language -eq 'de') { 'de-DE' } else { 'en-US' }
+    $culture = [Globalization.CultureInfo]::GetCultureInfo($cultureName)
+    $installedAtText = if ($script:installedProductState.InstalledAt) {
+        $script:installedProductState.InstalledAt.ToLocalTime().ToString(
+            'g', $culture)
+    } else {
+        Get-Text -Key UnknownInstallTime
+    }
+    return Get-Text -Key UpdateNotice -Arguments @(
+        $script:installedProductState.Version,
+        $installedAtText)
 }
 
 function Set-Status {
@@ -256,87 +409,6 @@ function Confirm-VcRuntime {
     }
 }
 
-function Add-CertificateTrust {
-    param([Parameter(Mandatory)]
-        [Security.Cryptography.X509Certificates.X509Certificate2]$Certificate)
-    foreach ($storeName in @('Root', 'TrustedPublisher')) {
-        $store = [Security.Cryptography.X509Certificates.X509Store]::new(
-            $storeName, [Security.Cryptography.X509Certificates.StoreLocation]::LocalMachine)
-        try {
-            $store.Open([Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
-            if (-not @($store.Certificates | Where-Object {
-                $_.Thumbprint -eq $Certificate.Thumbprint
-            })) {
-                $store.Add($Certificate)
-            }
-        }
-        finally {
-            $store.Close()
-        }
-    }
-}
-
-function Test-InstallablePackageSignature {
-    param([Parameter(Mandatory)]$Signature)
-
-    if (-not $Signature.SignerCertificate) {
-        return $false
-    }
-    if ($Signature.Status -eq [Management.Automation.SignatureStatus]::Valid) {
-        return $true
-    }
-    if ($Signature.Status -ne [Management.Automation.SignatureStatus]::UnknownError -or
-        $Signature.SignerCertificate.Subject -ne
-        $Signature.SignerCertificate.Issuer) {
-        return $false
-    }
-
-    $chain = [Security.Cryptography.X509Certificates.X509Chain]::new()
-    try {
-        $chain.ChainPolicy.ApplicationPolicy.Add(
-            [Security.Cryptography.Oid]::new('1.3.6.1.5.5.7.3.3'))
-        $chain.ChainPolicy.RevocationMode =
-            [Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
-        $chain.ChainPolicy.VerificationFlags =
-            [Security.Cryptography.X509Certificates.X509VerificationFlags]::
-                AllowUnknownCertificateAuthority
-        return $chain.Build($Signature.SignerCertificate) -and
-            $chain.ChainElements.Count -eq 1 -and
-            @($chain.ChainStatus | Where-Object {
-                $_.Status -ne
-                [Security.Cryptography.X509Certificates.X509ChainStatusFlags]::
-                    UntrustedRoot
-            }).Count -eq 0
-    }
-    finally {
-        $chain.Dispose()
-    }
-}
-
-function Install-PublisherCertificate {
-    $installerSignature = Get-AuthenticodeSignature -LiteralPath $InstallerPath
-    if (-not (Test-InstallablePackageSignature -Signature $installerSignature)) {
-        throw (Get-Text -Key InstallerSignatureInvalid)
-    }
-    $expectedThumbprint = $installerSignature.SignerCertificate.Thumbprint
-    foreach ($relativePath in @(
-        'xucRun.exe',
-        'xucRunBroker.exe',
-        'xucRunApproval.exe',
-        'Install-xucRun.ps1',
-        'Languages\xucRun.de-DE.dll',
-        'Languages\xucRun.en-US.dll'
-    )) {
-        $signature = Get-AuthenticodeSignature -LiteralPath (
-            Join-Path $PackageDirectory $relativePath)
-        if (-not (Test-InstallablePackageSignature -Signature $signature) -or
-            $signature.SignerCertificate.Thumbprint -ne $expectedThumbprint) {
-            throw (Get-Text -Key PackageSignatureMismatch -Arguments $relativePath)
-        }
-    }
-    Add-CertificateTrust -Certificate $installerSignature.SignerCertificate
-}
-
 function Invoke-HiddenPowerShell {
     param([Parameter(Mandatory)][string[]]$Arguments)
     $powerShellPath =
@@ -383,8 +455,10 @@ function Get-ProcessFailure {
     return $message
 }
 
+$script:certificateState = Get-LocalCertificateState
+$script:installedProductState = Get-InstalledProductState
 $form = [Windows.Forms.Form]::new()
-$form.ClientSize = [Drawing.Size]::new(620, 600)
+$form.ClientSize = [Drawing.Size]::new(620, 545)
 $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
@@ -403,57 +477,61 @@ $form.Controls.Add($description)
 
 $tabs = [Windows.Forms.TabControl]::new()
 $tabs.Location = [Drawing.Point]::new(28, 100)
-$tabs.Size = [Drawing.Size]::new(562, 350)
+$tabs.Size = [Drawing.Size]::new(562, 315)
 $form.Controls.Add($tabs)
 $settingsTab = [Windows.Forms.TabPage]::new()
 $detailsTab = [Windows.Forms.TabPage]::new()
 $tabs.TabPages.AddRange(@($settingsTab, $detailsTab))
 
 $languageLabel = [Windows.Forms.Label]::new()
-$languageLabel.Location = [Drawing.Point]::new(14, 20)
+$languageLabel.Location = [Drawing.Point]::new(14, 18)
 $languageLabel.Size = [Drawing.Size]::new(180, 24)
 $settingsTab.Controls.Add($languageLabel)
 $languageCombo = [Windows.Forms.ComboBox]::new()
 $languageCombo.DropDownStyle = 'DropDownList'
-$languageCombo.Location = [Drawing.Point]::new(210, 17)
+$languageCombo.Location = [Drawing.Point]::new(210, 15)
 $languageCombo.Size = [Drawing.Size]::new(326, 24)
 [void]$languageCombo.Items.Add('Deutsch')
 [void]$languageCombo.Items.Add('English')
 $languageCombo.SelectedIndex = if ($script:language -eq 'de') { 0 } else { 1 }
 $settingsTab.Controls.Add($languageCombo)
 
+$languageHint = [Windows.Forms.Label]::new()
+$languageHint.AutoSize = $true
+$languageHint.Location = [Drawing.Point]::new(14, 45)
+$languageHint.MaximumSize = [Drawing.Size]::new(522, 0)
+$settingsTab.Controls.Add($languageHint)
+
 $pathCheck = [Windows.Forms.CheckBox]::new()
-$pathCheck.Location = [Drawing.Point]::new(14, 60)
+$pathCheck.Location = [Drawing.Point]::new(14, 68)
 $pathCheck.Size = [Drawing.Size]::new(522, 28)
 $pathCheck.Checked = $true
 $settingsTab.Controls.Add($pathCheck)
 
 $certificateGroup = [Windows.Forms.GroupBox]::new()
 $certificateGroup.Location = [Drawing.Point]::new(14, 102)
-$certificateGroup.Size = [Drawing.Size]::new(522, 155)
+$certificateGroup.Size = [Drawing.Size]::new(522, 116)
 $settingsTab.Controls.Add($certificateGroup)
-$publisherRadio = [Windows.Forms.RadioButton]::new()
-$publisherRadio.Location = [Drawing.Point]::new(18, 28)
-$publisherRadio.Size = [Drawing.Size]::new(486, 24)
-$certificateGroup.Controls.Add($publisherRadio)
-$localRadio = [Windows.Forms.RadioButton]::new()
-$localRadio.Location = [Drawing.Point]::new(18, 60)
-$localRadio.Size = [Drawing.Size]::new(486, 24)
-$localRadio.Checked = $true
-$certificateGroup.Controls.Add($localRadio)
+$localCertificate = [Windows.Forms.Label]::new()
+$localCertificate.AutoSize = $true
+$localCertificate.Location = [Drawing.Point]::new(18, 24)
+$localCertificate.MaximumSize = [Drawing.Size]::new(486, 0)
+$certificateGroup.Controls.Add($localCertificate)
 $certificateWarning = [Windows.Forms.Label]::new()
-$certificateWarning.Location = [Drawing.Point]::new(18, 91)
-$certificateWarning.Size = [Drawing.Size]::new(486, 54)
+$certificateWarning.AutoSize = $true
+$certificateWarning.Location = [Drawing.Point]::new(18, 76)
+$certificateWarning.MaximumSize = [Drawing.Size]::new(486, 0)
 $certificateGroup.Controls.Add($certificateWarning)
 
 $updateNotice = [Windows.Forms.Label]::new()
-$updateNotice.Location = [Drawing.Point]::new(14, 273)
-$updateNotice.Size = [Drawing.Size]::new(522, 42)
+$updateNotice.AutoSize = $true
+$updateNotice.Location = [Drawing.Point]::new(14, 228)
+$updateNotice.MaximumSize = [Drawing.Size]::new(522, 0)
 $settingsTab.Controls.Add($updateNotice)
 
 $details = [Windows.Forms.TextBox]::new()
 $details.Location = [Drawing.Point]::new(10, 12)
-$details.Size = [Drawing.Size]::new(534, 298)
+$details.Size = [Drawing.Size]::new(534, 244)
 $details.Multiline = $true
 $details.ReadOnly = $true
 $details.ScrollBars = 'Vertical'
@@ -461,26 +539,42 @@ $details.BackColor = [Drawing.SystemColors]::Window
 $detailsTab.Controls.Add($details)
 
 $statusLabel = [Windows.Forms.Label]::new()
-$statusLabel.Location = [Drawing.Point]::new(28, 472)
+$statusLabel.Location = [Drawing.Point]::new(28, 432)
 $statusLabel.Size = [Drawing.Size]::new(562, 18)
 $form.Controls.Add($statusLabel)
 $progress = [Windows.Forms.ProgressBar]::new()
-$progress.Location = [Drawing.Point]::new(28, 494)
+$progress.Location = [Drawing.Point]::new(28, 454)
 $progress.Size = [Drawing.Size]::new(562, 18)
 $progress.Style = 'Marquee'
 $progress.Visible = $false
 $form.Controls.Add($progress)
 $installButton = [Windows.Forms.Button]::new()
-$installButton.Location = [Drawing.Point]::new(378, 536)
+$installButton.Location = [Drawing.Point]::new(378, 495)
 $installButton.Size = [Drawing.Size]::new(102, 34)
+$installButton.Enabled = $script:certificateState.Kind -ne 'Ambiguous'
 $form.AcceptButton = $installButton
 $form.Controls.Add($installButton)
 $cancelButton = [Windows.Forms.Button]::new()
-$cancelButton.Location = [Drawing.Point]::new(488, 536)
+$cancelButton.Location = [Drawing.Point]::new(488, 495)
 $cancelButton.Size = [Drawing.Size]::new(102, 34)
 $cancelButton.DialogResult = 'Cancel'
 $form.CancelButton = $cancelButton
 $form.Controls.Add($cancelButton)
+
+function Update-SettingsLayout {
+    $certificateWarning.Top = $localCertificate.Bottom + 10
+    $certificateGroup.Height = $certificateWarning.Bottom + 12
+    $updateNotice.Top = $certificateGroup.Bottom + 10
+
+    $tabs.Height = $updateNotice.Bottom + 38
+    $details.Height = $tabs.Height - 56
+    $statusLabel.Top = $tabs.Bottom + 16
+    $progress.Top = $statusLabel.Bottom + 4
+    $installButton.Top = $progress.Bottom + 24
+    $cancelButton.Top = $installButton.Top
+    $form.ClientSize = [Drawing.Size]::new(
+        620, $installButton.Bottom + 16)
+}
 
 function Update-Language {
     $form.Text = Get-Text -Key WindowTitle
@@ -489,17 +583,18 @@ function Update-Language {
     $settingsTab.Text = Get-Text -Key SettingsTab
     $detailsTab.Text = Get-Text -Key DetailsTab
     $languageLabel.Text = Get-Text -Key LanguageLabel
+    $languageHint.Text = Get-Text -Key LanguageHint
     $pathCheck.Text = Get-Text -Key PathCheck
     $certificateGroup.Text = Get-Text -Key CertificateGroup
-    $publisherRadio.Text = Get-Text -Key PublisherCertificate
-    $localRadio.Text = Get-Text -Key LocalCertificate
+    $localCertificate.Text = Get-CertificateStatusText
     $certificateWarning.Text = Get-Text -Key CertificateWarning
-    $updateNotice.Text = Get-Text -Key UpdateNotice
+    $updateNotice.Text = Get-InstallNoticeText
     $details.Text = (Get-Text -Key Details).Trim()
     $statusLabel.Text = Get-Text -Key $script:statusKey `
         -Arguments $script:statusArguments
     $installButton.Text = Get-Text -Key InstallButton
     $cancelButton.Text = Get-Text -Key CancelButton
+    Update-SettingsLayout
 }
 
 $languageCombo.Add_SelectedIndexChanged({
@@ -514,23 +609,22 @@ $installButton.Add_Click({
     $form.UseWaitCursor = $true
     [Windows.Forms.Application]::DoEvents()
     try {
+        $reusedCertificate = $script:certificateState.Kind -eq 'Existing'
         Confirm-VcRuntime
-        if ($publisherRadio.Checked) {
-            Set-Status -Key StatusCheckingSignatures
-            Install-PublisherCertificate
+        Set-Status -Key StatusSigning
+        $signScript =
+            Join-Path $PackageDirectory 'UserCodeSigning\Sign-xucRunPackage.ps1'
+        $signResult = Invoke-HiddenPowerShell -Arguments @(
+            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+            ('"' + $signScript + '"'), '-PackageDirectory',
+            ('"' + $PackageDirectory + '"'))
+        if ($signResult.ExitCode -ne 0) {
+            throw (Get-ProcessFailure -Heading (
+                Get-Text -Key LocalSigningFailed) -Result $signResult)
         }
-        else {
-            Set-Status -Key StatusSigning
-            $signScript =
-                Join-Path $PackageDirectory 'UserCodeSigning\Sign-xucRunPackage.ps1'
-            $signResult = Invoke-HiddenPowerShell -Arguments @(
-                '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-                ('"' + $signScript + '"'), '-PackageDirectory',
-                ('"' + $PackageDirectory + '"'))
-            if ($signResult.ExitCode -ne 0) {
-                throw (Get-ProcessFailure -Heading (
-                    Get-Text -Key LocalSigningFailed) -Result $signResult)
-            }
+        $script:certificateState = Get-LocalCertificateState
+        if ($script:certificateState.Kind -ne 'Existing') {
+            throw (Get-Text -Key LocalSigningFailed)
         }
 
         $machineInstaller = Join-Path $PackageDirectory 'Install-xucRun.ps1'
@@ -550,7 +644,9 @@ $installButton.Add_Click({
 
         Set-Status -Key StatusSuccess
         [Windows.Forms.MessageBox]::Show(
-            (Get-Text -Key InstallationSuccess),
+            (Get-InstallationSuccessText `
+                -Certificate $script:certificateState.Certificate `
+                -Reused $reusedCertificate),
             (Get-Text -Key WindowTitle), 'OK', 'Information') | Out-Null
         $form.DialogResult = 'OK'
         $form.Close()

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Purpose: Ensures changes to shared client resources are embedded in every dependent binary. -->
+<Project>
+  <Target Name="ForceSharedResourceCompilation" BeforeTargets="ResourceCompile">
+    <Delete Files="$(IntDir)ClientResources.res" />
+  </Target>
+</Project>

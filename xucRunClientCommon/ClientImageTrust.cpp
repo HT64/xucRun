@@ -7,6 +7,7 @@
 #include <wincrypt.h>
 #include <wintrust.h>
 
+#include <string>
 #include <vector>
 
 #pragma comment(lib, "Crypt32.lib")
@@ -203,5 +204,56 @@ namespace xucrun::image_trust
 		return VerifyInternal(
 			imagePath, trustStatus, microsoftPublisher, &signerCertificate) &&
 			!signerCertificate.empty();
+	}
+
+	bool GetSignerCertificateInfo(const std::vector<BYTE>& signerCertificate,
+		SignerCertificateInfo& certificateInfo)
+	{
+		certificateInfo = {};
+		if (signerCertificate.empty())
+			return false;
+
+		PCCERT_CONTEXT certificate = CertCreateCertificateContext(
+			X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, signerCertificate.data(),
+			static_cast<DWORD>(signerCertificate.size()));
+		if (!certificate)
+			return false;
+
+		const DWORD subjectLength = CertGetNameStringW(certificate,
+			CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nullptr, nullptr, 0);
+		std::vector<wchar_t> subject(subjectLength);
+		DWORD fingerprintLength = 32;
+		std::vector<BYTE> fingerprint(fingerprintLength);
+		SYSTEMTIME validFrom = {};
+		SYSTEMTIME validUntil = {};
+		const bool available = subjectLength > 1 &&
+			CertGetNameStringW(certificate, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0,
+				nullptr, subject.data(), subjectLength) == subjectLength &&
+			CryptHashCertificate2(L"SHA256", 0, nullptr,
+				certificate->pbCertEncoded, certificate->cbCertEncoded,
+				fingerprint.data(), &fingerprintLength) != FALSE &&
+			fingerprintLength == fingerprint.size() &&
+			FileTimeToSystemTime(&certificate->pCertInfo->NotBefore, &validFrom) != FALSE &&
+			FileTimeToSystemTime(&certificate->pCertInfo->NotAfter, &validUntil) != FALSE;
+		if (available)
+		{
+			certificateInfo.subject.assign(subject.data(), subjectLength - 1);
+			static constexpr wchar_t hexDigits[] = L"0123456789ABCDEF";
+			certificateInfo.sha256Fingerprint.reserve(fingerprint.size() * 2);
+			for (BYTE value : fingerprint)
+			{
+				certificateInfo.sha256Fingerprint += hexDigits[value >> 4];
+				certificateInfo.sha256Fingerprint += hexDigits[value & 0x0F];
+			}
+			wchar_t date[11] = {};
+			swprintf_s(date, L"%04u-%02u-%02u",
+				validFrom.wYear, validFrom.wMonth, validFrom.wDay);
+			certificateInfo.validFrom = date;
+			swprintf_s(date, L"%04u-%02u-%02u",
+				validUntil.wYear, validUntil.wMonth, validUntil.wDay);
+			certificateInfo.validUntil = date;
+		}
+		CertFreeCertificateContext(certificate);
+		return available;
 	}
 }

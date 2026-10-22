@@ -8,8 +8,7 @@ This document describes graphical and manual installation of xucRun.
 
 - an x64 Windows system,
 - a complete xucRun package,
-- administrator rights,
-- the same trusted Authenticode signature on all six installable package files.
+- administrator rights.
 
 ## Graphical installation
 
@@ -37,16 +36,17 @@ Get-FileHash .\xucRun-Installer-0.9.0.2-x64.exe -Algorithm SHA256
 The complete hash must match the entry for that file in `SHA256SUMS.txt` from the corresponding
 GitHub Release.
 
-Windows User Account Control requests the required administrator rights. The application
-language, machine PATH behavior, and trust model can then be selected.
+Windows User Account Control requests the required administrator rights. The application language
+and machine PATH behavior can then be selected.
 
-For a self-built package, leave **Create a local certificate and sign the package files**
-selected. The installer creates or reuses a non-exportable machine-local code-signing
-certificate, configures trust only on that computer, and signs the six installable files.
+For an existing installation, the interface shows its registered version and the time it was
+installed or last updated.
 
-**Use the existing package signatures** is intended for a package fully signed by the publisher.
-The versioned graphical installer and all six embedded installable files must be signed by the
-same valid certificate.
+The installer automatically looks for and reuses an existing valid local xucRun code-signing
+certificate with its private key. If none exists, it creates a new non-exportable machine-local
+certificate. It configures trust only on that computer and signs the six installable files. The
+interface shows in advance whether the certificate will be reused or created. For an existing
+certificate, it also displays “Valid from”, “Valid until”, and the thumbprint.
 
 If Microsoft Visual C++ Redistributable v14 for x64 is missing, the installer offers either the
 official Microsoft download or selection of an existing `vc_redist.x64.exe`. It verifies the
@@ -57,9 +57,10 @@ Microsoft signature and original file name before execution.
 The scripts support installation and signing without the graphical interface. Start Windows
 PowerShell 5.1 as an administrator in the package directory.
 
-### Local test signing
+### Local package signing
 
-The included local signing workflow is intended for self-built packages and testing:
+The graphical installer runs the same local signing workflow automatically. For manual
+installation, run it separately:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
@@ -67,12 +68,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -PackageDirectory .
 ```
 
-By default, the script creates a non-exportable machine-local code-signing certificate, trusts it
-on that machine, signs all six installable files and the versioned graphical installer when
-present with the same certificate, and updates `SHA256SUMS.json`.
+The script reuses an existing valid local xucRun code-signing certificate with its private key. If
+none exists, it creates a new non-exportable certificate. It trusts the certificate on that
+machine, signs all six installable files and the versioned graphical installer when present with
+it, and updates `SHA256SUMS.json`.
 
-Do not distribute the local certificate to other computers. Uninstalling xucRun does not
-remove this separately created certificate.
+Do not distribute the local certificate to other computers. During uninstallation, xucRun
+removes its verified standard machine-local certificate, including its private key, from the
+`My`, `Root`, and `TrustedPublisher` certificate stores. Separately created test certificates
+with custom names are not removed indiscriminately.
 
 ### Install
 
@@ -95,13 +99,18 @@ requests to the installed client path and signer.
 
 ## Update
 
-Install a completely signed newer package by running its versioned graphical installer or by
-using the same manual installation command. Reinstalling the same version does not create
-duplicate PATH entries.
+Install a newer package by running its versioned graphical installer. The existing valid local
+xucRun certificate is reused. For manual installation, run local package signing first and then
+use the same installation command. Reinstalling the same version does not create duplicate PATH
+entries.
 
-If the optional xucRun Tray add-on is installed, remove it through its separate Windows uninstall
-entry before updating xucRun. After the xucRun update, install a Tray release with the exact same
-four-part version from the public Tray repository.
+When reinstalling the same xucRun version, the optional Tray add-on can remain installed if its
+registered version, file version, and signers still match the Core package exactly. Remove it
+through its separate Windows uninstall entry before changing versions. After the xucRun update,
+install a Tray release with the exact same four-part version from the public Tray repository.
+If the broker service was running before reinstallation, the installer starts it again after
+replacing the files. Tray therefore returns to its active state without manual intervention. A
+broker service that was previously stopped or disabled remains stopped or disabled.
 
 ## Uninstall
 
@@ -113,8 +122,31 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -Uninstall
 ```
 
-Uninstall removes the service, installed files, uninstall registration, a PATH entry added by the
-installer, and active broker data. Separately created test certificates are not removed.
+Use the [manual removal instructions](MANUAL_REMOVAL.md) only if the normal uninstaller is
+unavailable or cannot complete. They inventory all xucRun-owned artifacts and preserve the
+required order for purging broker-managed secrets before deleting the service and files.
 
-Remove the optional Tray add-on first. xucRun update and uninstall stop with an explanatory
-message while the separate Tray add-on is still installed.
+> **Warning:** Uninstall permanently deletes all credentials and approvals stored by xucRun for
+> every Windows user, together with all local xucRun backups, security markers, and associated
+> metadata.
+
+Uninstall also removes the service, installed files, uninstall registration, a PATH entry added by
+the installer, and the verified standard machine-local xucRun certificate, including its private
+key and trust entries. Uninstall requires explicit confirmation before its first change. Cancelling
+leaves the installation and data unchanged. The success confirmation lists the removed components,
+all stored data that may have been present, and the removed certificate's name, validity period,
+and thumbprint. Separately created test certificates with custom names are not removed.
+
+An uninstall failure remains visible in a dialog even when uninstall was started through
+**Installed apps**. Its technical diagnostic log is stored under
+`%ProgramData%\xucRun\InstallerLogs`; the dialog shows the full path of the specific file in a
+copyable field and can open the folder directly. The log contains error, script, and system
+information, but no stored passwords. The path shown in the dialog is authoritative. A later
+successful Core uninstall also removes these logs.
+
+Remove the optional Tray add-on before uninstalling xucRun. Repair installation of the same Core
+version is allowed with a completely matching Tray; version changes or differing Tray signers stop
+with an explanatory message.
+If uninstall is started while Tray is still installed, no Core components or stored data are
+removed. A visible error dialog instructs the user to uninstall **xucRun Tray** through
+**Installed apps** first and then start the xucRun uninstall again.

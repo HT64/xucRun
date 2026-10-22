@@ -1,4 +1,41 @@
 // Purpose: Defines icon and version resources for the xucRun broker service executable.
+#pragma code_page(65001)
+
+#include <windows.h>
+#include "../xucRunSharedResources/BuildVersion.h"
 #include "resource.h"
 
 IDI_XUCRUN_BROKER ICON "xucRunBroker.ico"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,BUILD_NUMBER
+ PRODUCTVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,BUILD_NUMBER
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040704b0"
+        BEGIN
+            VALUE "CompanyName", "HT64"
+            VALUE "FileDescription", "xucRun Broker Service"
+            VALUE "FileVersion", VERSION_STRING
+            VALUE "InternalName", "xucRunBroker"
+            VALUE "LegalCopyright", "Copyright (C) 2024-2026"
+            VALUE "OriginalFilename", "xucRunBroker.exe"
+            VALUE "ProductName", "xucRun"
+            VALUE "ProductVersion", VERSION_STRING
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x407, 1200
+    END
+END

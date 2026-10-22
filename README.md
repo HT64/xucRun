@@ -2,7 +2,8 @@
 
 **Language:** English | [Deutsch](README.de.md)
 
-**Documentation:** [Changelog](CHANGELOG.md)
+**Documentation:** [Changelog](CHANGELOG.md) |
+[Manual removal](docs/en/MANUAL_REMOVAL.md)
 
 **xucRun** stands for **eXecute Under User Context**.
 
@@ -257,9 +258,8 @@ fleet management, or systems requiring a particularly high level of protection.
 
 ## Installation overview
 
-Installation requires a complete xucRun package. All installable package files must be signed
-with the same trusted Authenticode certificate. For self-built packages, xucRun includes a script
-for local test signing.
+Installation requires a complete xucRun package. The graphical installer signs all installable
+package files consistently on the target computer with a local xucRun certificate.
 
 ### Graphical installation
 
@@ -274,17 +274,19 @@ release source, compare its SHA-256 checksum with the checksum published there, 
 available Authenticode signature.
 
 When started, Windows User Account Control requests the required administrator rights. The
-graphical interface then offers a choice of application language, machine PATH behavior, and
-trust model:
-
-- For a package fully signed by the publisher, use the existing package signatures.
-- For a self-built package, the installer can configure a non-exportable machine-local
-  code-signing certificate and use it to sign the installable files.
+graphical interface then offers a choice of application language and machine PATH behavior. The
+installer also shows the registered version and installation or last-update time for an existing
+installation. The
+installer automatically reuses an existing valid local xucRun code-signing certificate with its
+private key. If none exists, it creates a new non-exportable certificate. The interface shows in
+advance whether a certificate will be reused or created and displays its validity period and
+fingerprint. It then signs all installable files with that certificate.
 
 The installer also checks Microsoft Visual C++ Runtime and, if necessary, offers either a verified
 Microsoft download or an existing `vc_redist.x64.exe`. It installs the client, broker, approval
 helper, and language files under `%ProgramFiles%\xucRun`. It also configures the demand-start
-broker service and uninstall entry.
+broker service and uninstall entry. The success confirmation identifies the installed or reused
+local certificate with its validity period and thumbprint.
 
 Internally, the graphical installer uses the same included PowerShell installation script as the
 supported manual installation method. The script verifies the package files and signatures and
@@ -293,13 +295,23 @@ machine PATH.
 
 ### Update and uninstall
 
-xucRun and the optional Tray add-on use an exact four-part version match. Before updating or
-removing xucRun, remove the Tray add-on through its separate Windows uninstall entry. After an
-xucRun update, install the publicly available Tray release with the same version.
+xucRun and the optional Tray add-on use an exact four-part version match. When reinstalling the
+same xucRun version, Tray can remain installed if its registered version, file version, and signer
+still match the Core package exactly. Before changing versions or removing xucRun, remove the Tray
+add-on through its separate Windows uninstall entry. After an xucRun update, install the publicly
+available Tray release with the same version.
+If the broker service was running before a repair installation, it is restarted automatically
+after the files have been replaced so that Tray returns to its active state without manual
+intervention. A broker service that was deliberately stopped or disabled remains stopped or
+disabled.
+If xucRun uninstall is started while Tray is still installed, the Core installation remains
+unchanged and a visible error dialog instructs the user to uninstall **xucRun Tray** through
+**Installed apps** first.
 
-To update xucRun, start the versioned graphical installer from a fully signed newer package.
-Alternatively, run the PowerShell installation script from that package again. Stored xucRun
-credentials, approvals, and INI settings not managed by the installer are preserved.
+To update xucRun, start the versioned graphical installer from the newer package. It reuses the
+existing valid local xucRun certificate and signs the new package files with it. Alternatively,
+run the local signing workflow and then the PowerShell installation script from the new package.
+Stored xucRun credentials, approvals, and INI settings not managed by the installer are preserved.
 
 Uninstall through **Installed apps**. Alternatively, no separate uninstallation script is needed:
 run the installed `Install-xucRun.ps1` under `%ProgramFiles%\xucRun` with `-Uninstall`:
@@ -309,6 +321,22 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File "$env:ProgramFiles\xucRun\Install-xucRun.ps1" `
   -Uninstall
 ```
+
+> **Warning:** Uninstall permanently deletes all credentials and approvals stored by xucRun for
+> every Windows user, together with all local xucRun backups, security markers, and associated
+> metadata. It also removes the standard local xucRun certificate, including its private key and
+> trust entries.
+
+Before making the first change, uninstall requires explicit confirmation of this permanent
+deletion. Cancelling leaves the installation and its data unchanged. The success confirmation
+then lists the removed program components, all stored data that may have been present, and the
+removed certificate with its details.
+
+If uninstall fails, xucRun writes a technical diagnostic log under
+`%ProgramData%\xucRun\InstallerLogs`. The visible error dialog shows the full path of the specific
+log file in a copyable field and can open the log folder directly. The log contains error, script,
+and system information, but no stored passwords. The file path shown in the dialog is
+authoritative. A later successful Core uninstall also removes these diagnostic logs.
 
 Both installation methods and the local test-signing instructions are described in detail in the
 [installation guide](docs/en/INSTALLATION.md).
@@ -582,7 +610,7 @@ authorization.
 | `xucRun.exe /showcred` | show accounts for which xucRun credentials are stored |
 | `xucRun.exe /showapprovals` | show stored approvals |
 | `xucRun.exe /resetapprovals[:<Account>]` | reset approvals |
-| `xucRun.exe /info` | show versions, broker status, and current configuration |
+| `xucRun.exe /info` | show versions, signing certificate, broker status, and current configuration |
 | `xucRun.exe /admin-status` | show and manage data for all Windows users with elevation |
 | `xucRun.exe /backup` | manage local backups |
 | `xucRun.exe /audit` | run security diagnostics |
@@ -632,9 +660,11 @@ Uninstalling xucRun also removes locally stored xucRun backups.
 
 ## Troubleshooting
 
-`xucRun.exe /info` shows information including the client version, broker status, current account,
-and effective configuration. `xucRun.exe /audit` checks security-relevant properties of the
-running installation. If xucRun Tray is installed separately, the audit also checks its installed
+`xucRun.exe /info` shows information including the client version, signing certificate name,
+SHA-256 fingerprint and validity period, broker status, current account, and effective
+configuration. `xucRun.exe /audit` checks security-relevant properties of the running installation
+and also identifies the verified certificate when the client signature is valid. If xucRun Tray
+is installed separately, the audit also checks its installed
 files and signatures, uninstall registration, and per-user autostart tasks. If the broker service
 was disabled,
 `xucRun.exe /enable-broker` enables it again. `xucRun.exe /help` displays the complete local
@@ -701,7 +731,9 @@ process and supported versions are documented in [SECURITY.md](SECURITY.md).
 
 The [build instructions](docs/en/BUILDING.md) describe how to create an xucRun package from source.
 The [installation instructions](docs/en/INSTALLATION.md) cover local test signing, installation,
-updates, and uninstall.
+updates, and uninstall. If the normal uninstaller is unavailable, the
+[manual removal instructions](docs/en/MANUAL_REMOVAL.md) list all xucRun-owned artifacts and the
+safe removal order.
 
 ## License
 
