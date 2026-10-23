@@ -146,6 +146,17 @@ unterschiedlicher Einsatz- und Sicherheitsmodelle nur eingeschränkt vergleichba
 
 ## Freigaben und UAC in xucRun
 
+Wenn das aktuelle Windows-Konto Mitglied der Administratorengruppe ist, verwendet xucRun dieses
+Konto standardmäßig auch für das gestartete Programm. Falls das Konto noch nicht erhöht ist,
+fordert Windows die Zustimmung über die Benutzerkontensteuerung (UAC) an. In diesem Fall zeigt
+xucRun keinen eigenen Freigabedialog und benötigt keine gespeicherte Programmfreigabe. Die
+Zustimmung erfolgt ausschließlich über Windows-UAC.
+
+Die xucRun-Programmfreigaben werden verwendet, wenn ein Programm mit den gespeicherten
+Anmeldedaten eines anderen Kontos gestartet wird. Die Bindung einer xucRun-Freigabe an ein
+bestimmtes Programm gilt deshalb nicht für den direkten Start unter dem eigenen
+Administratorkonto.
+
 Eine gespeicherte Freigabe allein erlaubt einem Standardbenutzer keinen vollständig dialoglosen
 Start unter einem Administratorkonto. Soll das Zielprogramm ohne erhöhte Administratorrechte
 laufen, zeigt Windows bei jedem Aufruf einmal UAC für das xucRun-Hilfsprogramm. Diese Abfrage
@@ -332,12 +343,17 @@ Oberfläche zeigt vorab, ob ein Zertifikat wiederverwendet oder neu erstellt wir
 Gültigkeitszeitraum sowie Fingerabdruck. Anschließend signiert der Installer damit alle
 installierbaren Dateien.
 
-Der Installer prüft außerdem die Microsoft Visual C++ Runtime und bietet bei Bedarf den geprüften
-Microsoft-Download oder die Auswahl einer vorhandenen `vc_redist.x64.exe` an. Installiert werden
-Client, Broker, Approval-Helper und Sprachdateien nach `%ProgramFiles%\xucRun`. Zusätzlich richtet
-der Installer den bedarfsgestarteten Brokerdienst und den Deinstallationseintrag ein. Die
-Erfolgsbestätigung nennt das installierte beziehungsweise wiederverwendete lokale Zertifikat mit
-Gültigkeitszeitraum und Fingerabdruck.
+Der Installer zeigt die erkannte Version der Microsoft Visual C++ Runtime x64 und kennzeichnet sie
+als kompatibel oder zu alt beziehungsweise als nicht gefunden. Nur wenn eine passende Runtime
+fehlt, nennt der Aufforderungsdialog die erforderliche Mindestversion und bietet den geprüften
+Microsoft-Download oder die Auswahl einer vorhandenen `vc_redist.x64.exe` an. Eine ausgewählte
+Datei, deren Produktversion die Mindestversion unterschreitet, wird vor der Ausführung mit einer
+verständlichen Versionsangabe abgelehnt. Nach einer Runtime-Installation wird die Anzeige
+aktualisiert; die Erfolgsbestätigung nennt die installierte beziehungsweise aktualisierte Runtime
+samt Version. Installiert werden Client, Broker, Approval-Helper und Sprachdateien nach
+`%ProgramFiles%\xucRun`. Zusätzlich richtet der Installer den bedarfsgestarteten Brokerdienst und
+den Deinstallationseintrag ein. Die Erfolgsbestätigung nennt außerdem das installierte
+beziehungsweise wiederverwendete lokale Zertifikat mit Gültigkeitszeitraum und Fingerabdruck.
 
 Intern verwendet der grafische Installer dasselbe mitgelieferte PowerShell-Installationsskript wie
 der weiterhin unterstützte manuelle Installationsweg. Dieses prüft Paketdateien und Signaturen und
@@ -634,6 +650,13 @@ Datei, muss die Übernahme der Freigabe auf die neue Version ausdrücklich best�
 Eine Freigabe begrenzt nicht die Fähigkeiten des gestarteten Programms. Allgemeine oder dauerhafte
 Freigaben für universelle Interpreter wie `cmd.exe`, PowerShell oder `wscript.exe` sind deshalb
 besonders weitreichend.
+
+Bei `cmd.exe`, `powershell.exe`, `pwsh.exe`, TCC und Windows Script Host weist der Freigabedialog
+deshalb darauf hin, dass eine wiederverwendbare Freigabe nicht an die angezeigten Argumente
+gebunden ist. Ziel, Argumente und Arbeitsverzeichnis sollten besonders sorgfältig geprüft und nach
+Möglichkeit nur einmalig freigegeben werden. Bei PowerShell kann eine administrativ erzwungene
+Richtlinie `AllSigned` Skriptdateien zusätzlich absichern, schützt jedoch nicht vor direkten oder
+interaktiven Befehlen.
 
 ## Programme, Argumente und Sonderzeichen
 

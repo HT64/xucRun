@@ -134,6 +134,15 @@ differ.
 
 ## Approvals and UAC in xucRun
 
+If the current Windows account is a member of the Administrators group, xucRun uses this account
+for the started program by default. If the account is not yet elevated, Windows requests consent
+through User Account Control (UAC). In this case, xucRun does not display its own approval dialog
+and does not require a stored program approval. Consent is handled exclusively by Windows UAC.
+
+xucRun program approvals are used when a program is started with the stored credentials of
+another account. Binding an xucRun approval to a specific program therefore does not apply to a
+direct launch under the current administrator account.
+
 A stored approval alone does not allow a standard user to start a program under an administrator
 account without any dialogs. If the target program is to run without elevated administrator
 privileges, Windows displays UAC once for the xucRun helper on every invocation. This prompt only
@@ -303,11 +312,16 @@ private key or creates the certificate described above. The interface shows in a
 certificate will be reused or created and displays its validity period and fingerprint. It then
 signs all installable files with that certificate.
 
-The installer also checks Microsoft Visual C++ Runtime and, if necessary, offers either a verified
-Microsoft download or an existing `vc_redist.x64.exe`. It installs the client, broker, approval
-helper, and language files under `%ProgramFiles%\xucRun`. It also configures the demand-start
-broker service and uninstall entry. The success confirmation identifies the installed or reused
-local certificate with its validity period and thumbprint.
+The installer displays the detected Microsoft Visual C++ Runtime x64 version and identifies it as
+compatible or too old, or reports that it was not found. Only when a compatible runtime is
+missing does the prompt state the required minimum version and offer either a verified Microsoft
+download or an existing `vc_redist.x64.exe`. A selected file whose product version is below the
+minimum is rejected with a clear version message before it is executed. The display is updated
+after runtime installation. The success confirmation also reports the installed or updated runtime
+and its version. It installs the client, broker, approval helper, and language files under
+`%ProgramFiles%\xucRun`. It also configures the demand-start broker service and uninstall entry.
+The success confirmation identifies the installed or reused local certificate with its validity
+period and thumbprint.
 
 Internally, the graphical installer uses the same included PowerShell installation script as the
 supported manual installation method. The script verifies the package files and signatures and
@@ -592,6 +606,12 @@ confirmation.
 An approval does not restrict what the started program can do. General or permanent approvals for
 universal interpreters such as `cmd.exe`, PowerShell, or `wscript.exe` are therefore particularly
 powerful.
+
+For `cmd.exe`, `powershell.exe`, `pwsh.exe`, TCC, and Windows Script Host, the approval dialog
+therefore explains that a reusable approval is not bound to the displayed arguments. Carefully
+verify the target, arguments, and working directory, and use a one-time approval whenever
+possible. For PowerShell, an administratively enforced `AllSigned` policy can additionally protect
+script files, but does not protect against direct or interactive commands.
 
 ## Programs, arguments, and special characters
 
