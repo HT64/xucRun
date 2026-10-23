@@ -7,7 +7,7 @@ and publication processes are not listed.
 
 ## [Unreleased]
 
-## [0.9.0.2] - 2026-10-21
+## [0.9.0.2] - 2026-10-23
 
 ### Note
 
@@ -15,6 +15,14 @@ and publication processes are not listed.
 
 ### Changed
 
+- For universal command and script interpreters, the approval dialog now warns directly within the
+  existing window that reusable approvals are not bound to arguments and recommends careful
+  verification and a one-time approval whenever possible. For PowerShell, it also identifies
+  `AllSigned` as limited additional hardening.
+- The installer now displays the detected Microsoft Visual C++ Runtime x64 version and its
+  compatibility. If installation or an update is required, it states the minimum version in the
+  prompt, rejects an older selected redistributable before execution, and reports a Runtime change
+  with the resulting version in the success confirmation.
 - The graphical installer now always creates or reuses the machine-local xucRun certificate and
   no longer offers an inapplicable publisher-signature choice.
 - Reinstalling the same Core version no longer requires removing a matching Tray installation.

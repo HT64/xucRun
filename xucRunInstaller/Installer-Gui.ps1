@@ -29,6 +29,9 @@ $texts = @{
         LanguageLabel = 'Programmsprache'
         LanguageHint = 'Später über xucRun.ini, mit dem optionalen Tray-Add-on auch direkt in dessen Menü änderbar.'
         PathCheck = 'C:\Program Files\xucRun zum systemweiten PATH hinzufügen'
+        RuntimeCompatible = 'Erkannte Version der Microsoft Visual C++ Runtime x64: {0} (kompatibel)'
+        RuntimeTooOld = 'Erkannte Version der Microsoft Visual C++ Runtime x64: {0} (zu alt)'
+        RuntimeMissing = 'Microsoft Visual C++ Runtime x64: nicht gefunden'
         CertificateGroup = 'Vertrauen und Codesignierung'
         CertificateExisting = "Vorhandenes lokales xucRun-Zertifikat wird wiederverwendet.`r`nGültig seit: {0}   Gültig bis: {1}`r`nFingerabdruck: {2}"
         CertificateNew = 'Bei der Installation wird ein neues lokales xucRun-Zertifikat erstellt.'
@@ -49,12 +52,17 @@ $texts = @{
         StatusFailed = 'Installation fehlgeschlagen.'
         InvalidMicrosoftSignature = 'Die ausgewählte Datei besitzt keine gültige Microsoft-Signatur.'
         InvalidRedistributableFile = 'Die ausgewählte Datei ist nicht vc_redist.x64.exe.'
+        InvalidRedistributableVersion = "Die ausgewählte Microsoft Visual C++ Runtime x64 ist Version {0}. xucRun benötigt mindestens Version {1}. Wählen Sie eine neuere vc_redist.x64.exe aus."
+        UnreadableRedistributableVersion = 'Die Version der ausgewählten Microsoft Visual C++ Runtime x64 konnte nicht ermittelt werden.'
         RuntimeInstallFailed = 'Die Microsoft Visual C++ Runtime konnte nicht installiert werden (Exitcode {0}).'
         RuntimeMissingAfterInstall = 'Die Microsoft Visual C++ Runtime wurde nach der Installation nicht gefunden.'
+        RuntimeTooOldAfterInstall = 'Die Microsoft Visual C++ Runtime x64 ist nach der Installation weiterhin Version {0}. xucRun benötigt mindestens Version {1}.'
         RuntimeRestartMessage = 'Die Runtime wurde installiert. Windows benötigt einen Neustart, bevor xucRun verwendet wird.'
         RuntimeRestartTitle = 'Neustart erforderlich'
-        RuntimePrompt = "xucRun benötigt Microsoft Visual C++ Redistributable x64.`r`n`r`nJa: Von Microsoft herunterladen und installieren`r`nNein: Vorhandene vc_redist.x64.exe auswählen`r`nAbbrechen: Installation beenden"
+        RuntimeInstallPrompt = "xucRun benötigt Microsoft Visual C++ Redistributable x64 mindestens in Version {0}.`r`n`r`nJa: Von Microsoft herunterladen und installieren`r`nNein: Vorhandene vc_redist.x64.exe auswählen`r`nAbbrechen: Installation beenden"
+        RuntimeUpdatePrompt = "Die installierte Microsoft Visual C++ Runtime x64 muss auf mindestens Version {0} aktualisiert werden.`r`n`r`nJa: Von Microsoft herunterladen und installieren`r`nNein: Vorhandene vc_redist.x64.exe auswählen`r`nAbbrechen: Installation beenden"
         RuntimeMissingTitle = 'Microsoft Visual C++ Runtime fehlt'
+        RuntimeUpdateTitle = 'Microsoft Visual C++ Runtime aktualisieren'
         RuntimeDownloadFailed = "Das Redistributable konnte nicht heruntergeladen werden.`r`n{0}"
         RuntimeDialogTitle = 'Microsoft Visual C++ x64 Redistributable auswählen'
         RuntimeDialogFilter = 'VC_redist.x64.exe|vc_redist.x64.exe|Programme (*.exe)|*.exe'
@@ -64,6 +72,8 @@ $texts = @{
         InstallationFailed = 'Die Installation ist fehlgeschlagen'
         InstallationSuccessNew = "xucRun und das lokale Zertifikat wurden erfolgreich installiert.`r`n`r`nZertifikat:`r`nName: {0}`r`nGültig seit: {1}`r`nGültig bis: {2}`r`nFingerabdruck: {3}"
         InstallationSuccessExisting = "xucRun wurde erfolgreich installiert. Das vorhandene lokale Zertifikat wurde wiederverwendet.`r`n`r`nZertifikat:`r`nName: {0}`r`nGültig seit: {1}`r`nGültig bis: {2}`r`nFingerabdruck: {3}"
+        RuntimeInstalledSuccess = "Microsoft Visual C++ Runtime x64 wurde installiert.`r`nVersion: {0}"
+        RuntimeUpdatedSuccess = "Microsoft Visual C++ Runtime x64 wurde aktualisiert.`r`nVersion: {0}"
         Details = @'
 INSTALLATION
 
@@ -105,6 +115,9 @@ Die Erfolgsbestätigung führt entfernte Komponenten, Daten und Zertifikatsdetai
         LanguageLabel = 'Application language'
         LanguageHint = 'Can be changed later in xucRun.ini or, with the optional Tray add-on, directly in its menu.'
         PathCheck = 'Add C:\Program Files\xucRun to the system-wide PATH'
+        RuntimeCompatible = 'Detected Microsoft Visual C++ Runtime x64 version: {0} (compatible)'
+        RuntimeTooOld = 'Detected Microsoft Visual C++ Runtime x64 version: {0} (too old)'
+        RuntimeMissing = 'Microsoft Visual C++ Runtime x64: not found'
         CertificateGroup = 'Trust and code signing'
         CertificateExisting = "The existing local xucRun certificate will be reused.`r`nValid from: {0}   Valid until: {1}`r`nThumbprint: {2}"
         CertificateNew = 'A new local xucRun certificate will be created during installation.'
@@ -125,12 +138,17 @@ Die Erfolgsbestätigung führt entfernte Komponenten, Daten und Zertifikatsdetai
         StatusFailed = 'Installation failed.'
         InvalidMicrosoftSignature = 'The selected file does not have a valid Microsoft signature.'
         InvalidRedistributableFile = 'The selected file is not vc_redist.x64.exe.'
+        InvalidRedistributableVersion = "The selected Microsoft Visual C++ Runtime x64 is version {0}. xucRun requires version {1} or later. Select a newer vc_redist.x64.exe."
+        UnreadableRedistributableVersion = 'The version of the selected Microsoft Visual C++ Runtime x64 could not be determined.'
         RuntimeInstallFailed = 'Microsoft Visual C++ Runtime could not be installed (exit code {0}).'
         RuntimeMissingAfterInstall = 'Microsoft Visual C++ Runtime was not found after installation.'
+        RuntimeTooOldAfterInstall = 'Microsoft Visual C++ Runtime x64 is still version {0} after installation. xucRun requires version {1} or later.'
         RuntimeRestartMessage = 'The runtime was installed. Windows must be restarted before xucRun can be used.'
         RuntimeRestartTitle = 'Restart required'
-        RuntimePrompt = "xucRun requires Microsoft Visual C++ Redistributable x64.`r`n`r`nYes: Download and install it from Microsoft`r`nNo: Select an existing vc_redist.x64.exe`r`nCancel: Stop installation"
+        RuntimeInstallPrompt = "xucRun requires Microsoft Visual C++ Redistributable x64 version {0} or later.`r`n`r`nYes: Download and install it from Microsoft`r`nNo: Select an existing vc_redist.x64.exe`r`nCancel: Stop installation"
+        RuntimeUpdatePrompt = "The installed Microsoft Visual C++ Runtime x64 must be updated to version {0} or later.`r`n`r`nYes: Download and install it from Microsoft`r`nNo: Select an existing vc_redist.x64.exe`r`nCancel: Stop installation"
         RuntimeMissingTitle = 'Microsoft Visual C++ Runtime is missing'
+        RuntimeUpdateTitle = 'Update Microsoft Visual C++ Runtime'
         RuntimeDownloadFailed = "The redistributable could not be downloaded.`r`n{0}"
         RuntimeDialogTitle = 'Select Microsoft Visual C++ x64 Redistributable'
         RuntimeDialogFilter = 'VC_redist.x64.exe|vc_redist.x64.exe|Applications (*.exe)|*.exe'
@@ -140,6 +158,8 @@ Die Erfolgsbestätigung führt entfernte Komponenten, Daten und Zertifikatsdetai
         InstallationFailed = 'Installation failed'
         InstallationSuccessNew = "xucRun and the local certificate were installed successfully.`r`n`r`nCertificate:`r`nName: {0}`r`nValid from: {1}`r`nValid until: {2}`r`nThumbprint: {3}"
         InstallationSuccessExisting = "xucRun was installed successfully. The existing local certificate was reused.`r`n`r`nCertificate:`r`nName: {0}`r`nValid from: {1}`r`nValid until: {2}`r`nThumbprint: {3}"
+        RuntimeInstalledSuccess = "Microsoft Visual C++ Runtime x64 was installed.`r`nVersion: {0}"
+        RuntimeUpdatedSuccess = "Microsoft Visual C++ Runtime x64 was updated.`r`nVersion: {0}"
         Details = @'
 INSTALLATION
 
@@ -243,7 +263,8 @@ function Get-InstallationSuccessText {
     param(
         [Parameter(Mandatory)]
         [Security.Cryptography.X509Certificates.X509Certificate2]$Certificate,
-        [Parameter(Mandatory)][bool]$Reused
+        [Parameter(Mandatory)][bool]$Reused,
+        [AllowNull()][string]$RuntimeAction
     )
 
     $cultureName = if ($script:language -eq 'de') { 'de-DE' } else { 'en-US' }
@@ -255,11 +276,22 @@ function Get-InstallationSuccessText {
     } else {
         'InstallationSuccessNew'
     }
-    return Get-Text -Key $key -Arguments @(
+    $text = Get-Text -Key $key -Arguments @(
         $name,
         $Certificate.NotBefore.ToString('g', $culture),
         $Certificate.NotAfter.ToString('g', $culture),
         $Certificate.Thumbprint)
+    if (-not [string]::IsNullOrWhiteSpace($RuntimeAction)) {
+        $runtimeKey = if ($RuntimeAction -eq 'Updated') {
+            'RuntimeUpdatedSuccess'
+        }
+        else {
+            'RuntimeInstalledSuccess'
+        }
+        $text += "`r`n`r`n" + (Get-Text -Key $runtimeKey `
+            -Arguments $script:vcRuntimeState.Version)
+    }
+    return $text
 }
 
 function Get-InstalledProductState {
@@ -323,18 +355,20 @@ function Set-Status {
     [Windows.Forms.Application]::DoEvents()
 }
 
-function Test-VcRuntime {
+function Get-VcRuntimeState {
     $runtimeKeys = @(
         'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64',
         'HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\x64'
     )
+    $detectedVersion = $null
     foreach ($key in $runtimeKeys) {
         $runtime = Get-ItemProperty -LiteralPath $key -ErrorAction SilentlyContinue
         if ($runtime -and $runtime.Installed -eq 1) {
             try {
-                if ([Version]"$($runtime.Major).$($runtime.Minor).$($runtime.Bld).$($runtime.Rbld)" -ge
-                    $minimumVcRuntimeVersion) {
-                    return $true
+                $version = [Version](
+                    "$($runtime.Major).$($runtime.Minor).$($runtime.Bld).$($runtime.Rbld)")
+                if (-not $detectedVersion -or $version -gt $detectedVersion) {
+                    $detectedVersion = $version
                 }
             }
             catch {
@@ -342,7 +376,29 @@ function Test-VcRuntime {
             }
         }
     }
-    return $false
+    return [pscustomobject]@{
+        Installed = $null -ne $detectedVersion
+        Version = $detectedVersion
+        MeetsMinimum = $null -ne $detectedVersion -and
+            $detectedVersion -ge $minimumVcRuntimeVersion
+    }
+}
+
+function Get-VcRuntimeStatusText {
+    if ($script:vcRuntimeState.MeetsMinimum) {
+        return Get-Text -Key RuntimeCompatible -Arguments $script:vcRuntimeState.Version
+    }
+    if ($script:vcRuntimeState.Installed) {
+        return Get-Text -Key RuntimeTooOld -Arguments $script:vcRuntimeState.Version
+    }
+    return Get-Text -Key RuntimeMissing
+}
+
+function Update-VcRuntimeDisplay {
+    $runtimeStatus.Text = Get-VcRuntimeStatusText
+    if ($form) {
+        Update-SettingsLayout
+    }
 }
 
 function Assert-MicrosoftRedistributable {
@@ -354,21 +410,48 @@ function Assert-MicrosoftRedistributable {
         $signature.SignerCertificate.Subject -notmatch '(^|, )O=Microsoft Corporation(,|$)') {
         throw (Get-Text -Key InvalidMicrosoftSignature)
     }
-    if ((Get-Item -LiteralPath $resolvedPath).VersionInfo.OriginalFilename -ine
-        'VC_redist.x64.exe') {
+    $versionInfo = (Get-Item -LiteralPath $resolvedPath).VersionInfo
+    if ($versionInfo.OriginalFilename -ine 'VC_redist.x64.exe') {
         throw (Get-Text -Key InvalidRedistributableFile)
+    }
+    $versionMatch = [regex]::Match(
+        [string]$versionInfo.ProductVersion,
+        '(?<!\d)\d+\.\d+\.\d+\.\d+(?!\d)')
+    if (-not $versionMatch.Success) {
+        throw (Get-Text -Key UnreadableRedistributableVersion)
+    }
+    $redistributableVersion = [Version]$versionMatch.Value
+    if ($redistributableVersion -lt $minimumVcRuntimeVersion) {
+        throw (Get-Text -Key InvalidRedistributableVersion -Arguments @(
+            $redistributableVersion,
+            $minimumVcRuntimeVersion))
     }
     return $resolvedPath
 }
 
 function Confirm-VcRuntime {
     Set-Status -Key StatusCheckingRuntime
-    if (Test-VcRuntime) {
+    $script:vcRuntimeState = Get-VcRuntimeState
+    Update-VcRuntimeDisplay
+    if ($script:vcRuntimeState.MeetsMinimum) {
         return
     }
+    $runtimeWasInstalled = $script:vcRuntimeState.Installed
+    $promptKey = if ($script:vcRuntimeState.Installed) {
+        'RuntimeUpdatePrompt'
+    }
+    else {
+        'RuntimeInstallPrompt'
+    }
+    $titleKey = if ($script:vcRuntimeState.Installed) {
+        'RuntimeUpdateTitle'
+    }
+    else {
+        'RuntimeMissingTitle'
+    }
     $choice = [Windows.Forms.MessageBox]::Show(
-        (Get-Text -Key RuntimePrompt), (Get-Text -Key RuntimeMissingTitle),
-        'YesNoCancel', 'Warning')
+        (Get-Text -Key $promptKey -Arguments $minimumVcRuntimeVersion),
+        (Get-Text -Key $titleKey), 'YesNoCancel', 'Warning')
     if ($choice -eq 'Cancel') {
         throw (Get-Text -Key RuntimeMissingTitle)
     }
@@ -396,11 +479,25 @@ function Confirm-VcRuntime {
     Set-Status -Key StatusInstallingRuntime
     $process = Start-Process -FilePath $redistributablePath `
         -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
-    if ($process.ExitCode -notin @(0, 3010) -and -not (Test-VcRuntime)) {
+    $script:vcRuntimeState = Get-VcRuntimeState
+    Update-VcRuntimeDisplay
+    if ($process.ExitCode -notin @(0, 3010) -and
+        -not $script:vcRuntimeState.MeetsMinimum) {
         throw (Get-Text -Key RuntimeInstallFailed -Arguments $process.ExitCode)
     }
-    if (-not (Test-VcRuntime)) {
+    if (-not $script:vcRuntimeState.MeetsMinimum) {
+        if ($script:vcRuntimeState.Installed) {
+            throw (Get-Text -Key RuntimeTooOldAfterInstall -Arguments @(
+                $script:vcRuntimeState.Version,
+                $minimumVcRuntimeVersion))
+        }
         throw (Get-Text -Key RuntimeMissingAfterInstall)
+    }
+    $script:vcRuntimeAction = if ($runtimeWasInstalled) {
+        'Updated'
+    }
+    else {
+        'Installed'
     }
     if ($process.ExitCode -eq 3010) {
         [Windows.Forms.MessageBox]::Show(
@@ -457,6 +554,7 @@ function Get-ProcessFailure {
 
 $script:certificateState = Get-LocalCertificateState
 $script:installedProductState = Get-InstalledProductState
+$script:vcRuntimeState = Get-VcRuntimeState
 $form = [Windows.Forms.Form]::new()
 $form.ClientSize = [Drawing.Size]::new(620, 545)
 $form.FormBorderStyle = 'FixedDialog'
@@ -508,8 +606,14 @@ $pathCheck.Size = [Drawing.Size]::new(522, 28)
 $pathCheck.Checked = $true
 $settingsTab.Controls.Add($pathCheck)
 
+$runtimeStatus = [Windows.Forms.Label]::new()
+$runtimeStatus.AutoSize = $true
+$runtimeStatus.Location = [Drawing.Point]::new(14, 102)
+$runtimeStatus.MaximumSize = [Drawing.Size]::new(522, 0)
+$settingsTab.Controls.Add($runtimeStatus)
+
 $certificateGroup = [Windows.Forms.GroupBox]::new()
-$certificateGroup.Location = [Drawing.Point]::new(14, 102)
+$certificateGroup.Location = [Drawing.Point]::new(14, 132)
 $certificateGroup.Size = [Drawing.Size]::new(522, 116)
 $settingsTab.Controls.Add($certificateGroup)
 $localCertificate = [Windows.Forms.Label]::new()
@@ -562,6 +666,7 @@ $form.CancelButton = $cancelButton
 $form.Controls.Add($cancelButton)
 
 function Update-SettingsLayout {
+    $certificateGroup.Top = $runtimeStatus.Bottom + 10
     $certificateWarning.Top = $localCertificate.Bottom + 10
     $certificateGroup.Height = $certificateWarning.Bottom + 12
     $updateNotice.Top = $certificateGroup.Bottom + 10
@@ -585,6 +690,7 @@ function Update-Language {
     $languageLabel.Text = Get-Text -Key LanguageLabel
     $languageHint.Text = Get-Text -Key LanguageHint
     $pathCheck.Text = Get-Text -Key PathCheck
+    $runtimeStatus.Text = Get-VcRuntimeStatusText
     $certificateGroup.Text = Get-Text -Key CertificateGroup
     $localCertificate.Text = Get-CertificateStatusText
     $certificateWarning.Text = Get-Text -Key CertificateWarning
@@ -610,6 +716,7 @@ $installButton.Add_Click({
     [Windows.Forms.Application]::DoEvents()
     try {
         $reusedCertificate = $script:certificateState.Kind -eq 'Existing'
+        $script:vcRuntimeAction = $null
         Confirm-VcRuntime
         Set-Status -Key StatusSigning
         $signScript =
@@ -646,7 +753,8 @@ $installButton.Add_Click({
         [Windows.Forms.MessageBox]::Show(
             (Get-InstallationSuccessText `
                 -Certificate $script:certificateState.Certificate `
-                -Reused $reusedCertificate),
+                -Reused $reusedCertificate `
+                -RuntimeAction $script:vcRuntimeAction),
             (Get-Text -Key WindowTitle), 'OK', 'Information') | Out-Null
         $form.DialogResult = 'OK'
         $form.Close()

@@ -32,6 +32,9 @@ namespace
 	constexpr int ApprovalAccountCurrent = 1450;
 	constexpr int ApprovalAccountAll = 1451;
 	constexpr int ApprovalCountdownControl = 1500;
+	constexpr int ApprovalInterpreterWarningY = 167;
+	constexpr int ApprovalInterpreterWarningHeight = 52;
+	constexpr int ApprovalInterpreterLayoutOffset = 56;
 	constexpr int ApprovalExistingContentBottom = 324;
 	constexpr int ApprovalMarkerY = 329;
 	constexpr int ApprovalMarkerHeight = 24;
@@ -107,6 +110,34 @@ namespace
 	static_assert(ApprovalMarkerY + ApprovalMarkerHeight < ApprovalButtonY);
 	static_assert(ApprovalButtonY + ApprovalButtonHeight <= ApprovalDialogHeight);
 	bool g_useGerman = false;
+
+	enum class InterpreterWarningType
+	{
+		None,
+		General,
+		PowerShell
+	};
+
+	InterpreterWarningType GetInterpreterWarningType(
+		const std::wstring& executablePath)
+	{
+		const std::size_t separator = executablePath.find_last_of(L"\\/");
+		const std::wstring fileName = separator == std::wstring::npos
+			? executablePath : executablePath.substr(separator + 1);
+		const auto equals = [&fileName](const wchar_t* candidate)
+		{
+			return CompareStringOrdinal(fileName.c_str(), -1,
+				candidate, -1, TRUE) == CSTR_EQUAL;
+		};
+		if (equals(L"powershell.exe") || equals(L"pwsh.exe"))
+			return InterpreterWarningType::PowerShell;
+		if (equals(L"cmd.exe") || equals(L"tcc.exe") || equals(L"tcmd.exe") ||
+			equals(L"wscript.exe") || equals(L"cscript.exe"))
+		{
+			return InterpreterWarningType::General;
+		}
+		return InterpreterWarningType::None;
+	}
 
 	bool ApplyEarlyProcessHardening()
 	{
@@ -623,6 +654,7 @@ namespace
 		const std::wstring* details;
 		const std::wstring* authenticityMarker;
 		const std::wstring* clientName;
+		InterpreterWarningType interpreterWarningType;
 		std::uint32_t elapsedSeconds;
 		bool foregroundActivated;
 		bool* timedOut;
@@ -688,32 +720,73 @@ namespace
 			SendMessageW(detailsControl, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN,
 				MAKELPARAM(6, 6));
 
+			const bool showInterpreterWarning =
+				context->interpreterWarningType != InterpreterWarningType::None;
+			const int layoutOffset = showInterpreterWarning
+				? ApprovalInterpreterLayoutOffset : 0;
+			if (showInterpreterWarning)
+			{
+				const std::wstring warning = context->interpreterWarningType ==
+					InterpreterWarningType::PowerShell
+					? Text(
+						L"WARNUNG: PowerShell kann beliebige Befehle und Skripte ausführen. "
+						L"Eine wiederverwendbare Freigabe ist nicht an die hier angezeigten "
+						L"Argumente gebunden und kann später für andere PowerShell-Befehle "
+						L"verwendet werden. Prüfen Sie daher Ziel, Argumente und Arbeitsverzeichnis "
+						L"besonders sorgfältig und wählen Sie möglichst „Nur dieses eine Mal“.\r\n"
+						L"Eine administrativ erzwungene AllSigned-Richtlinie kann "
+						L"PowerShell-Skriptdateien zusätzlich absichern, schützt jedoch nicht vor "
+						L"direkten oder interaktiven Befehlen.",
+						L"WARNING: PowerShell can run arbitrary commands and scripts. A reusable "
+						L"approval is not bound to the arguments shown here and can later be used "
+						L"for other PowerShell commands. Carefully verify the target, arguments, "
+						L"and working directory, and choose \"This time only\" whenever possible.\r\n"
+						L"An administratively enforced AllSigned policy can additionally protect "
+						L"PowerShell script files, but does not protect against direct or "
+						L"interactive commands.")
+					: Text(
+						L"WARNUNG: Dieses Ziel ist ein universeller Befehls- oder "
+						L"Skriptinterpreter. Eine wiederverwendbare Freigabe ist nicht an die "
+						L"hier angezeigten Argumente gebunden und kann später für andere Befehle "
+						L"verwendet werden. Prüfen Sie daher Ziel, Argumente und Arbeitsverzeichnis "
+						L"besonders sorgfältig und wählen Sie möglichst „Nur dieses eine Mal“.",
+						L"WARNING: This target is a universal command or script interpreter. "
+						L"A reusable approval is not bound to the arguments shown here and can "
+						L"later be used for other commands. Carefully verify the target, arguments, "
+						L"and working directory, and choose \"This time only\" whenever possible.");
+				AddControl(dialog, L"STATIC", warning, SS_LEFT,
+					8, ApprovalInterpreterWarningY, 374,
+					ApprovalInterpreterWarningHeight, 0, font);
+			}
+
 			AddControl(dialog, L"STATIC", Text(L"Geltungsbereich:", L"Scope:"),
-				SS_LEFT, 8, 167, 180, 10, 0, font);
+				SS_LEFT, 8, 167 + layoutOffset, 180, 10, 0, font);
 			AddControl(dialog, L"BUTTON", Text(L"Nur für dieses Zielprogramm",
 				L"Only for this target program"),
-				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, 11, 179, 210, 11,
+				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
+				11, 179 + layoutOffset, 210, 11,
 				ApprovalTargetProgram, font);
 			AddControl(dialog, L"BUTTON", Text(L"Für alle Programme",
 				L"For all programs"), BS_AUTORADIOBUTTON | WS_TABSTOP,
-				11, 192, 210, 11, ApprovalProgramGeneral, font);
+				11, 192 + layoutOffset, 210, 11, ApprovalProgramGeneral, font);
 			SendMessageW(GetDlgItem(dialog, ApprovalTargetProgram), BM_SETCHECK,
 				BST_CHECKED, 0);
 
 			AddControl(dialog, L"STATIC", Text(L"Kontobereich:", L"Account scope:"),
-				SS_LEFT, 8, 208, 180, 10, 0, font);
+				SS_LEFT, 8, 208 + layoutOffset, 180, 10, 0, font);
 			AddControl(dialog, L"BUTTON", Text(L"Nur für dieses Zielkonto",
 				L"Only for this target account"),
-				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP, 11, 220, 210, 11,
+				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
+				11, 220 + layoutOffset, 210, 11,
 				ApprovalAccountCurrent, font);
 			AddControl(dialog, L"BUTTON", Text(L"Für alle gespeicherten Zielkonten",
 				L"For all stored target accounts"), BS_AUTORADIOBUTTON | WS_TABSTOP,
-				11, 233, 210, 11, ApprovalAccountAll, font);
+				11, 233 + layoutOffset, 210, 11, ApprovalAccountAll, font);
 			SendMessageW(GetDlgItem(dialog, ApprovalAccountCurrent), BM_SETCHECK,
 				BST_CHECKED, 0);
 
 			AddControl(dialog, L"STATIC", Text(L"Freigabedauer:", L"Approval duration:"),
-				SS_LEFT, 8, 249, 180, 10, 0, font);
+				SS_LEFT, 8, 249 + layoutOffset, 180, 10, 0, font);
 			const wchar_t* choices[] = {
 				Text(L"Nur dieses eine Mal", L"This time only"),
 				Text(L"Für 10 Minuten", L"For 10 minutes"),
@@ -724,7 +797,8 @@ namespace
 			for (int index = 0; index < static_cast<int>(std::size(choices)); index++)
 			{
 				AddControl(dialog, L"BUTTON", choices[index], BS_AUTORADIOBUTTON |
-					WS_TABSTOP | (index == 0 ? WS_GROUP : 0), 11, 261 + index * 13,
+					WS_TABSTOP | (index == 0 ? WS_GROUP : 0),
+					11, 261 + layoutOffset + index * 13,
 					180, 11, ApprovalDurationFirst + index, font);
 			}
 			SendMessageW(GetDlgItem(dialog, ApprovalDurationFirst), BM_SETCHECK,
@@ -733,15 +807,18 @@ namespace
 
 			AddControl(dialog, L"STATIC", AuthenticityMarkerText(
 				*context->authenticityMarker, *context->clientName), SS_CENTER,
-				8, ApprovalMarkerY, 374,
+				8, ApprovalMarkerY + layoutOffset, 374,
 				ApprovalMarkerHeight, 0, font);
-			AddControl(dialog, L"STATIC", L"", SS_LEFT, 11, 361, 130, 10,
+			AddControl(dialog, L"STATIC", L"", SS_LEFT,
+				11, 361 + layoutOffset, 130, 10,
 				ApprovalCountdownControl, font);
 			AddControl(dialog, L"BUTTON", Text(L"Freigeben", L"Approve"),
-				BS_DEFPUSHBUTTON | WS_TABSTOP, 278, ApprovalButtonY, 50,
+				BS_DEFPUSHBUTTON | WS_TABSTOP,
+				278, ApprovalButtonY + layoutOffset, 50,
 				ApprovalButtonHeight, IDOK, font);
 			AddControl(dialog, L"BUTTON", Text(L"Abbrechen", L"Cancel"),
-				BS_PUSHBUTTON | WS_TABSTOP, 332, ApprovalButtonY, 50,
+				BS_PUSHBUTTON | WS_TABSTOP,
+				332, ApprovalButtonY + layoutOffset, 50,
 				ApprovalButtonHeight, IDCANCEL, font);
 
 			UpdateCountdown(dialog, 0);
@@ -861,7 +938,11 @@ namespace
 		dialogTemplate->style = DS_SETFONT | DS_CENTER | WS_POPUP | WS_CAPTION |
 			WS_SYSMENU | WS_BORDER;
 		dialogTemplate->width = 390;
-		dialogTemplate->height = ApprovalDialogHeight;
+		const InterpreterWarningType interpreterWarningType =
+			GetInterpreterWarningType(challenge.finalExecutablePath);
+		dialogTemplate->height = ApprovalDialogHeight +
+			(interpreterWarningType != InterpreterWarningType::None
+				? ApprovalInterpreterLayoutOffset : 0);
 		WORD* data = reinterpret_cast<WORD*>(buffer + sizeof(DialogTemplateHeader));
 		*data++ = 0;
 		*data++ = 0;
@@ -872,7 +953,8 @@ namespace
 
 		ApprovalDialogContext context = {
 			&decision, &fixedDetails, &details, &challenge.authenticityMarker,
-			&challenge.canonicalClientName, 0, false, &timedOut
+			&challenge.canonicalClientName, interpreterWarningType,
+			0, false, &timedOut
 		};
 		return DialogBoxIndirectParamW(GetModuleHandleW(nullptr),
 			reinterpret_cast<DLGTEMPLATE*>(buffer), nullptr, ApprovalDialogProc,

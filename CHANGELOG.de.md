@@ -8,7 +8,7 @@ aufgeführt.
 
 ## [Unveröffentlicht]
 
-## [0.9.0.2] - 2026-10-21
+## [0.9.0.2] - 2026-10-23
 
 ### Hinweis
 
@@ -16,6 +16,14 @@ aufgeführt.
 
 ### Geändert
 
+- Der Freigabedialog warnt bei universellen Befehls- und Skriptinterpretern nun direkt im
+  bestehenden Fenster vor der fehlenden Argumentbindung wiederverwendbarer Freigaben und empfiehlt
+  die sorgfältige Prüfung sowie eine möglichst einmalige Freigabe. Bei PowerShell ordnet er
+  außerdem `AllSigned` als begrenzte Zusatzhärtung ein.
+- Der Installer zeigt nun die erkannte Version der Microsoft Visual C++ Runtime x64 und deren
+  Kompatibilität. Ist eine Installation oder Aktualisierung erforderlich, nennt die Aufforderung
+  die Mindestversion, eine ausgewählte zu alte Redistributable wird vor der Ausführung abgelehnt
+  und die Erfolgsbestätigung nennt eine Runtime-Änderung samt resultierender Version.
 - Der grafische Installer erstellt oder verwendet nun immer das rechnerlokale xucRun-Zertifikat
   und bietet keine unzutreffende Auswahl für Herausgebersignaturen mehr an.
 - Bei erneuter Installation derselben Core-Version muss eine passende Tray-Installation nicht
