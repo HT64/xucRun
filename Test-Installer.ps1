@@ -409,7 +409,7 @@ try {
         'Blocked uninstall did not explain that xucRun Tray must be removed first.'
     Assert-InstalledState
 
-    & $installedInstaller -Uninstall
+    & $installedInstaller -Uninstall -NoSuccessDialog
     Wait-ServiceAbsent
     Assert-Condition (-not (Test-Path -LiteralPath $installDirectory)) `
         'The install directory remains after uninstall.'
