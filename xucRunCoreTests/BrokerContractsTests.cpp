@@ -20,6 +20,8 @@ using xucrun::broker::ContractValidationError;
 using xucrun::broker::LaunchRequest;
 using xucrun::broker::ValidateLaunchRequest;
 
+int RunDocumentationNameMappingTests();
+
 namespace
 {
 	int failures = 0;
@@ -3060,6 +3062,7 @@ namespace
 // Runs all core contract tests and reports their overall result.
 int main()
 {
+	failures += RunDocumentationNameMappingTests();
 	ExpectBrokerBackupArchiveSerialization();
 	ExpectBrokerBackupContractSerialization();
 	LaunchRequest request = MakeValidRequest();

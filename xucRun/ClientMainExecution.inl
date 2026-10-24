@@ -164,7 +164,8 @@ int RunNormalProgramLaunch(int argc, LPWSTR* argv,
 			if (!specificUserParam.empty())
 				message += xucrun::localization::Format(
 					xucrun::localization::TextId::AccountDetail,
-					{ specificUserParam });
+					{ xucrun::documentation_names::DisplayAccount(
+						specificUserParam) });
 			message += xucrun::localization::Format(
 				xucrun::localization::TextId::SaveCredentialInstruction,
 				{ PROGRAM_EXE_NAME });

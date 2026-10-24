@@ -343,6 +343,8 @@ Oberfläche zeigt vorab, ob ein Zertifikat wiederverwendet oder neu erstellt wir
 Gültigkeitszeitraum sowie Fingerabdruck. Anschließend signiert der Installer damit alle
 installierbaren Dateien.
 
+![Grafischer xucRun-Installer](docs/de/images/installer.png)
+
 Der Installer zeigt die erkannte Version der Microsoft Visual C++ Runtime x64 und kennzeichnet sie
 als kompatibel oder zu alt beziehungsweise als nicht gefunden. Nur wenn eine passende Runtime
 fehlt, nennt der Aufforderungsdialog die erforderliche Mindestversion und bietet den geprüften
@@ -354,6 +356,8 @@ samt Version. Installiert werden Client, Broker, Approval-Helper und Sprachdatei
 `%ProgramFiles%\xucRun`. Zusätzlich richtet der Installer den bedarfsgestarteten Brokerdienst und
 den Deinstallationseintrag ein. Die Erfolgsbestätigung nennt außerdem das installierte
 beziehungsweise wiederverwendete lokale Zertifikat mit Gültigkeitszeitraum und Fingerabdruck.
+
+![Erfolgreiche xucRun-Installation](docs/de/images/installation-success.png)
 
 Intern verwendet der grafische Installer dasselbe mitgelieferte PowerShell-Installationsskript wie
 der weiterhin unterstützte manuelle Installationsweg. Dieses prüft Paketdateien und Signaturen und
@@ -619,6 +623,10 @@ Ohne Benutzerschalter verwendet xucRun einen passenden aktuellen Benutzerkontext
 Administratorkonto, für das xucRun-Anmeldedaten gespeichert sind. Gibt es genau ein passendes
 Konto mit xucRun-Anmeldedaten, wird es automatisch gewählt; bei mehreren erscheint eine Auswahl.
 
+| Konto mit gespeicherten Anmeldedaten wählen | Lokalen Zielbenutzer wählen |
+|:---:|:---:|
+| ![Kontowahl für gespeicherte Anmeldedaten](docs/de/images/target-account-selection.png) | ![Auswahl eines lokalen Zielbenutzers](docs/de/images/target-user-selection.png) |
+
 | Aufruf | Verhalten |
 |---|---|
 | `xucRun.exe <Programm> [Argumente ...]` | Konto automatisch bestimmen; bei Bedarf erhöhte Rechte anfordern |
@@ -715,6 +723,10 @@ nicht verborgen oder überwacht.
 die aktiven allgemeinen und programmspezifischen Freigaben. Die gespeicherten Kennwörter werden
 dabei nicht angezeigt oder an den Client übertragen.
 
+| Gespeicherte Anmeldedaten | Aktive Freigaben |
+|:---:|:---:|
+| ![Gespeicherte Anmeldedaten](docs/de/images/credentials.png) | ![Aktive Programmfreigaben](docs/de/images/approvals.png) |
+
 Ohne Kontonamen zeigt `/deletecred` eine Auswahl und verlangt vor der Löschung eine Bestätigung.
 Beim Löschen eines Kontos entfernt xucRun auch dessen kontogebundene Freigaben. Profilweite
 Freigaben für alle Konten bleiben bestehen.
@@ -724,10 +736,21 @@ Mit `/resetapprovals` können einzelne oder mehrere Freigaben ausgewählt und en
 löscht nach ausdrücklicher Bestätigung alle xucRun-Anmeldedaten, Freigaben, Sicherheitsmerkmale und
 zugehörigen Metadaten aller Windows-Benutzer dieses Rechners.
 
+| Gespeicherte Anmeldedaten löschen | Freigaben zurücksetzen |
+|:---:|:---:|
+| ![Bestätigung vor dem Löschen gespeicherter Anmeldedaten](docs/de/images/delete-credential.png) | ![Bestätigung vor dem Zurücksetzen von Freigaben](docs/de/images/reset-approvals.png) |
+
+Für eine rechnerweite Übersicht zeigt `/admin-status` die gespeicherten xucRun-Daten aller
+Windows-Benutzer und stellt die verfügbaren administrativen Bereinigungsaktionen bereit.
+
+![Administrativer Status aller Benutzer](docs/de/images/administrative-status.png)
+
 ## Datensicherungen
 
 `xucRun.exe /backup` öffnet die interaktive Verwaltung lokaler Datensicherungen. Zusätzlich stehen
 folgende Befehle zur Verfügung:
+
+![Verwaltung lokaler Datensicherungen](docs/de/images/data-backups.png)
 
 ```text
 xucRun.exe /backup-create [<Beschreibung>]
@@ -756,6 +779,10 @@ installierte Dateien und Signaturen, Deinstallationsregistrierung und benutzerbe
 Autostartaufgaben. Wurde der Brokerdienst deaktiviert, kann er mit
 `xucRun.exe /enable-broker` wieder aktiviert werden. `xucRun.exe /help` zeigt die vollständige
 lokale Befehlsübersicht.
+
+| Laufzeitinformationen | Sicherheitsaudit |
+|:---:|:---:|
+| ![xucRun-Laufzeitinformationen](docs/de/images/runtime-information.png) | ![xucRun-Sicherheitsaudit](docs/de/images/security-audit.png) |
 
 Die Client-Dateiprotokollierung und die Ereignisprotokollierung des Brokers werden unter
 [Konfigurationsdatei und Sprache](#konfigurationsdatei-und-sprache) beschrieben.

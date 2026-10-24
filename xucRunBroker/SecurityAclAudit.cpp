@@ -7,6 +7,7 @@
 #include "ClientImageIdentity.h"
 #include "CredentialMetadataStore.h"
 #include "CredentialStore.h"
+#include "FileIdentity.h"
 #include "SensitiveClientAuthorization.h"
 
 #include <Windows.h>
@@ -929,84 +930,8 @@ namespace
 bool IsFileSystemObjectProtectedForBrokerAuthorization(
 	HANDLE object, DWORD unexpectedWriteMask, DWORD& error)
 {
-	error = ERROR_ACCESS_DENIED;
-	FILE_ATTRIBUTE_TAG_INFO attributes = {};
-	if (!object || object == INVALID_HANDLE_VALUE ||
-		!GetFileInformationByHandleEx(object, FileAttributeTagInfo,
-			&attributes, sizeof(attributes)))
-	{
-		error = GetLastError();
-		return false;
-	}
-	if ((attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
-	{
-		error = ERROR_REPARSE_TAG_INVALID;
-		return false;
-	}
-	PSID owner = nullptr;
-	PACL dacl = nullptr;
-	PSECURITY_DESCRIPTOR descriptor = nullptr;
-	const DWORD status = GetSecurityInfo(object, SE_FILE_OBJECT,
-		OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION,
-		&owner, nullptr, &dacl, nullptr, &descriptor);
-	if (status != ERROR_SUCCESS)
-	{
-		error = status;
-		return false;
-	}
-	bool protectedObject = IsExpectedWriter(owner) && dacl != nullptr;
-	GENERIC_MAPPING mapping = {
-		FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_GENERIC_EXECUTE, FILE_ALL_ACCESS
-	};
-	for (DWORD index = 0; protectedObject && index < dacl->AceCount; ++index)
-	{
-		void* ace = nullptr;
-		if (!GetAce(dacl, index, &ace) || !ace)
-		{
-			protectedObject = false;
-			break;
-		}
-		const auto* header = static_cast<const ACE_HEADER*>(ace);
-		if ((header->AceFlags & INHERIT_ONLY_ACE) != 0)
-			continue;
-		const bool allowedAce = header->AceType == ACCESS_ALLOWED_ACE_TYPE ||
-			header->AceType == ACCESS_ALLOWED_OBJECT_ACE_TYPE ||
-			header->AceType == ACCESS_ALLOWED_CALLBACK_ACE_TYPE ||
-			header->AceType == ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE;
-		const bool knownNonGrantingAce =
-			header->AceType == ACCESS_DENIED_ACE_TYPE ||
-			header->AceType == ACCESS_DENIED_OBJECT_ACE_TYPE ||
-			header->AceType == ACCESS_DENIED_CALLBACK_ACE_TYPE ||
-			header->AceType == ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE ||
-			header->AceType == SYSTEM_AUDIT_ACE_TYPE ||
-			header->AceType == SYSTEM_AUDIT_OBJECT_ACE_TYPE ||
-			header->AceType == SYSTEM_AUDIT_CALLBACK_ACE_TYPE ||
-			header->AceType == SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE ||
-			header->AceType == SYSTEM_MANDATORY_LABEL_ACE_TYPE ||
-			header->AceType == SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE ||
-			header->AceType == SYSTEM_SCOPED_POLICY_ID_ACE_TYPE ||
-			header->AceType == SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE ||
-			header->AceType == SYSTEM_ACCESS_FILTER_ACE_TYPE;
-		if (!allowedAce && !knownNonGrantingAce)
-		{
-			protectedObject = false;
-			break;
-		}
-		if (!allowedAce)
-			continue;
-		PSID sid = GetAllowedAceSid(ace);
-		DWORD mask = GetAllowedAceMask(ace);
-		MapGenericMask(&mask, &mapping);
-		if (!sid || !IsValidSid(sid) ||
-			((mask & unexpectedWriteMask) != 0 &&
-			!IsExpectedWriter(sid)))
-		{
-			protectedObject = false;
-		}
-	}
-	LocalFree(descriptor);
-	error = protectedObject ? NO_ERROR : ERROR_ACCESS_DENIED;
-	return protectedObject;
+	return xucrun::files::IsFileSystemObjectProtectedForPrivilegedWriters(
+		object, unexpectedWriteMask, error);
 }
 
 // Audits all broker files, configuration keys, and store directories for unexpected writers.

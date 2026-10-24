@@ -5,6 +5,7 @@
 #include <Windows.h>
 
 #include "ClientUiCommon.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 
 namespace
@@ -35,7 +36,10 @@ namespace
 			SetForegroundWindow(dialog);
 			const std::wstring header = xucrun::localization::Format(
 				xucrun::localization::TextId::ResetHeader,
-				{ *context->invokingAccount, *context->targetAccount,
+				{ xucrun::documentation_names::DisplayAccount(
+						*context->invokingAccount),
+					xucrun::documentation_names::DisplayAccount(
+						*context->targetAccount),
 					std::to_wstring(context->options->size()) });
 			xucrun::ui::CreateDialogControl(dialog, 0, L"STATIC", header.c_str(),
 				SS_LEFT, 8, 8, 364, 20);

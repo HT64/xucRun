@@ -312,6 +312,8 @@ private key or creates the certificate described above. The interface shows in a
 certificate will be reused or created and displays its validity period and fingerprint. It then
 signs all installable files with that certificate.
 
+![xucRun graphical installer](docs/en/images/installer.png)
+
 The installer displays the detected Microsoft Visual C++ Runtime x64 version and identifies it as
 compatible or too old, or reports that it was not found. Only when a compatible runtime is
 missing does the prompt state the required minimum version and offer either a verified Microsoft
@@ -322,6 +324,8 @@ and its version. It installs the client, broker, approval helper, and language f
 `%ProgramFiles%\xucRun`. It also configures the demand-start broker service and uninstall entry.
 The success confirmation identifies the installed or reused local certificate with its validity
 period and thumbprint.
+
+![Successful xucRun installation](docs/en/images/installation-success.png)
 
 Internally, the graphical installer uses the same included PowerShell installation script as the
 supported manual installation method. The script verifies the package files and signatures and
@@ -575,6 +579,10 @@ for which xucRun credentials are stored. If exactly one account with matching xu
 credentials is available, it is selected automatically; if several match, a selection dialog is
 shown.
 
+| Select an account with stored credentials | Select a local target user |
+|:---:|:---:|
+| ![Account selection for stored credentials](docs/en/images/target-account-selection.png) | ![Local target user selection](docs/en/images/target-user-selection.png) |
+
 | Invocation | Behavior |
 |---|---|
 | `xucRun.exe <Program> [Arguments ...]` | determine the account automatically and request elevation when required |
@@ -669,6 +677,10 @@ these options.
 lists active general and program-specific approvals. Stored passwords are neither displayed nor
 returned to the client.
 
+| Stored credentials | Active approvals |
+|:---:|:---:|
+| ![Stored credentials](docs/en/images/credentials.png) | ![Active program approvals](docs/en/images/approvals.png) |
+
 Without an account name, `/deletecred` presents a selection and asks for confirmation before
 deletion. Deleting an account also removes approvals bound to that account. Profile-wide approvals
 for all accounts remain in place.
@@ -678,10 +690,21 @@ administrative full cleanup command. It must be run elevated and, after explicit
 deletes all xucRun credentials, approvals, security identifiers, and associated metadata for every
 Windows user on the computer.
 
+| Delete stored credentials | Reset approvals |
+|:---:|:---:|
+| ![Confirmation before deleting stored credentials](docs/en/images/delete-credential.png) | ![Confirmation before resetting approvals](docs/en/images/reset-approvals.png) |
+
+For a computer-wide overview, `/admin-status` displays the stored xucRun data of all Windows users
+and provides the available administrative cleanup actions.
+
+![Administrative status for all users](docs/en/images/administrative-status.png)
+
 ## Backups
 
 `xucRun.exe /backup` opens the interactive local backup manager. The following commands are also
 available:
+
+![Local backup manager](docs/en/images/data-backups.png)
 
 ```text
 xucRun.exe /backup-create [<Description>]
@@ -710,6 +733,10 @@ files and signatures, uninstall registration, and per-user autostart tasks. If t
 was disabled,
 `xucRun.exe /enable-broker` enables it again. `xucRun.exe /help` displays the complete local
 command overview.
+
+| Runtime information | Security audit |
+|:---:|:---:|
+| ![xucRun runtime information](docs/en/images/runtime-information.png) | ![xucRun security audit](docs/en/images/security-audit.png) |
 
 Client file logging and broker event logging are described under
 [Configuration file and language](#configuration-file-and-language).

@@ -9,6 +9,7 @@
 #include "ClientAccountIdentity.h"
 #include "ClientLogging.h"
 #include "ClientUiCommon.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 
 namespace
@@ -72,6 +73,8 @@ namespace
 				? (domain.empty() ? username : domain + L"\\" + username)
 				: xucrun::localization::GetText(
 					xucrun::localization::TextId::ValueUnknown);
+			const std::wstring displayedInvokingAccount =
+				xucrun::documentation_names::DisplayAccount(invokingAccount);
 			const std::wstring header = xucrun::localization::Format(deleteMode
 				? xucrun::localization::TextId::CredentialSelectionDeleteHeader
 				: (resetMode
@@ -81,11 +84,13 @@ namespace
 						: (context->mode == CredentialSelectionMode::ElevatedLaunch
 						? xucrun::localization::TextId::CredentialSelectionElevatedHeader
 						: xucrun::localization::TextId::CredentialSelectionLaunchHeader))),
-				{ invokingAccount });
+				{ displayedInvokingAccount });
 			const std::wstring resetHint = resetMode && context->approvalCounts &&
 				!context->approvalCounts->empty() && !context->credentials->empty()
 				? xucrun::credential_formatting::GetResetApprovalSelectionHint(
-					(*context->approvalCounts)[0], (*context->credentials)[0].username)
+					(*context->approvalCounts)[0],
+					xucrun::documentation_names::DisplayAccount(
+						(*context->credentials)[0].username))
 				: L"";
 			const std::wstring footer = deleteMode
 				? xucrun::localization::GetText(
@@ -112,8 +117,10 @@ namespace
 				6, listY, 268, listHeight, CredentialListId);
 			for (const auto& credential : *context->credentials)
 			{
+				const std::wstring displayedAccount =
+					xucrun::documentation_names::DisplayAccount(credential.username);
 				SendMessageW(credentialList, LB_ADDSTRING, 0,
-					reinterpret_cast<LPARAM>(credential.username.c_str()));
+					reinterpret_cast<LPARAM>(displayedAccount.c_str()));
 			}
 			SendMessageW(credentialList, LB_SETCURSEL, 0, 0);
 			xucrun::ui::CreateDialogControl(dialog, 0, L"STATIC", footer.c_str(),
@@ -162,7 +169,8 @@ namespace
 					SetWindowTextW(GetDlgItem(dialog, CredentialHintId),
 						xucrun::credential_formatting::GetResetApprovalSelectionHint(
 							approvalCount,
-							(*context->credentials)[index].username).c_str());
+							xucrun::documentation_names::DisplayAccount(
+								(*context->credentials)[index].username)).c_str());
 					SetWindowTextW(GetDlgItem(dialog, IDOK),
 						xucrun::localization::GetText(
 							approvalCount > 1

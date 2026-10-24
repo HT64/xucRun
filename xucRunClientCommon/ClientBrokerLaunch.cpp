@@ -22,6 +22,7 @@
 #include "ClientUiCommon.h"
 #include "ClientWindowActivation.h"
 #include "ClientWindowsError.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 #include "TargetNaming.h"
 
@@ -186,7 +187,8 @@ namespace xucrun::broker_launch
 			: localization::GetText(localization::TextId::ValueUnknown);
 		const std::wstring accountContext = localization::Format(
 			localization::TextId::BrokerAccountContext,
-			{ invokingAccount, credential.username });
+			{ documentation_names::DisplayAccount(invokingAccount),
+				documentation_names::DisplayAccount(credential.username) });
 		const DWORD directoryLength = GetCurrentDirectoryW(0, nullptr);
 		std::vector<wchar_t> directoryBuffer(directoryLength);
 		if (directoryLength == 0 ||

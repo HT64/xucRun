@@ -15,6 +15,7 @@
 #include "ApplicationIcon.h"
 #include "BrokerContracts.h"
 #include "BrokerPipeClient.h"
+#include "DocumentationNameMapping.h"
 #include "SecureDesktopHost.h"
 #include "SensitiveString.h"
 #include "resource.h"
@@ -398,12 +399,18 @@ namespace
 		};
 
 		const std::wstring caption = WindowTitle();
+		const std::wstring displayedClientName =
+			xucrun::documentation_names::DisplayAccount(
+				helperResponse.result.canonicalClientName);
+		const std::wstring displayedAccountName =
+			xucrun::documentation_names::DisplayAccount(
+				helperResponse.result.canonicalAccountName);
 		const std::wstring message = AuthenticityMarkerText(
 			helperResponse.result.authenticityMarker,
-			helperResponse.result.canonicalClientName) + L"\n\n" + std::wstring(Text(
+			displayedClientName) + L"\n\n" + std::wstring(Text(
 			L"Zugangsdaten auf dem geschützten privaten Desktop eingeben für ",
 			L"Enter credentials on the protected private desktop for ")) +
-			helperResponse.result.canonicalAccountName;
+			displayedAccountName;
 		CREDUI_INFOW ui = {};
 		ui.cbSize = sizeof(ui);
 		ui.pszCaptionText = caption.c_str();
@@ -411,7 +418,7 @@ namespace
 		std::vector<wchar_t> userName(CREDUI_MAX_USERNAME_LENGTH + 1);
 		std::vector<wchar_t> password(CREDUI_MAX_PASSWORD_LENGTH + 1);
 		wcscpy_s(userName.data(), userName.size(),
-			helperResponse.result.canonicalAccountName.c_str());
+			displayedAccountName.c_str());
 		BOOL save = FALSE;
 		CredentialDialogTimeoutState timeoutState;
 		timeoutState.stopEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
@@ -448,7 +455,8 @@ namespace
 			password.data(), static_cast<ULONG>(password.size()), &save,
 			CREDUI_FLAGS_ALWAYS_SHOW_UI | CREDUI_FLAGS_DO_NOT_PERSIST |
 			CREDUI_FLAGS_GENERIC_CREDENTIALS | CREDUI_FLAGS_KEEP_USERNAME |
-			CREDUI_FLAGS_VALIDATE_USERNAME);
+			(xucrun::documentation_names::IsActive()
+				? 0 : CREDUI_FLAGS_VALIDATE_USERNAME));
 		if (iconHook)
 			UnhookWindowsHookEx(iconHook);
 		activeCredentialDialogTimeout = nullptr;
@@ -480,7 +488,8 @@ namespace
 		xucrun::broker::CredentialCaptureSubmitRequest submit;
 		submit.requestId = xucrun::broker::GenerateBrokerRequestId();
 		submit.challengeId = challengeId;
-		submit.enteredAccountName = userName.data();
+		submit.enteredAccountName =
+			xucrun::documentation_names::OperationalAccount(userName.data());
 		const std::size_t passwordCharacters = wcsnlen_s(password.data(), password.size());
 		if (!submit.password.assign(password.data(), passwordCharacters))
 		{
@@ -951,9 +960,12 @@ namespace
 		data += title.size() + 1;
 		WriteDefaultDialogFont(data, 50);
 
+		const std::wstring displayedClientName =
+			xucrun::documentation_names::DisplayAccount(
+				challenge.canonicalClientName);
 		ApprovalDialogContext context = {
 			&decision, &fixedDetails, &details, &challenge.authenticityMarker,
-			&challenge.canonicalClientName, interpreterWarningType,
+			&displayedClientName, interpreterWarningType,
 			0, false, &timedOut
 		};
 		return DialogBoxIndirectParamW(GetModuleHandleW(nullptr),
@@ -967,6 +979,12 @@ namespace
 		timedOut = false;
 		if (!challenge.approvalHelperView)
 			return false;
+		const std::wstring displayedClientName =
+			xucrun::documentation_names::DisplayAccount(
+				challenge.canonicalClientName);
+		const std::wstring displayedAccountName =
+			xucrun::documentation_names::DisplayAccount(
+				challenge.canonicalAccountName);
 		std::wstring launchDetails;
 		switch (challenge.helperStartMode)
 		{
@@ -989,8 +1007,8 @@ namespace
 			return false;
 		}
 		const std::wstring accountDetails = std::wstring(Text(
-			L"Aufrufendes Konto: ", L"Calling account: ")) + challenge.canonicalClientName +
-			Text(L"\nZielkonto: ", L"\nTarget account: ") + challenge.canonicalAccountName;
+			L"Aufrufendes Konto: ", L"Calling account: ")) + displayedClientName +
+			Text(L"\nZielkonto: ", L"\nTarget account: ") + displayedAccountName;
 		const std::wstring details = std::wstring(Text(
 			L"Geprüfter xucRun-Client: ", L"Verified xucRun client: ")) + challenge.clientPath +
 			L"\nSHA-256: " + Hex(challenge.clientSha256) +
@@ -1023,7 +1041,7 @@ namespace
 				L"the path and file contents again immediately before launch and blocks "
 				L"a changed file.");
 			if (ShowChoice(challenge.challengeId, challenge.authenticityMarker,
-				challenge.canonicalClientName,
+				displayedClientName,
 				Text(L"Unsicheres erhöhtes Ziel einmalig starten?",
 					L"Run unsafe elevated target once?"),
 				risk + L"\n\n" + firstStepDetails,
@@ -1062,7 +1080,7 @@ namespace
 					L"Accept change for all target accounts") }
 			};
 			const int selected = ShowChoice(challenge.challengeId,
-				challenge.authenticityMarker, challenge.canonicalClientName,
+				challenge.authenticityMarker, displayedClientName,
 				Text(L"Geänderten Programmhash freigeben?",
 				L"Approve the changed program hash?"),
 				firstStepDetails + Text(L"\n\nGeändertes Programm: ", L"\n\nChanged program: ") +
@@ -1088,6 +1106,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 		return ERROR_ACCESS_DENIED;
 	if (!InitializeLanguage())
 		return ERROR_INVALID_DATA;
+	std::wstring documentationNameError;
+	if (!xucrun::documentation_names::Initialize(documentationNameError))
+	{
+		ShowMessageBox(documentationNameError,
+			L"xucRun - Documentation name mapping error", MB_OK | MB_ICONERROR);
+		return ERROR_INVALID_DATA;
+	}
 
 	int argc = 0;
 	wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
