@@ -18,6 +18,7 @@
 #include "ClientTextDialog.h"
 #include "ClientUiCommon.h"
 #include "ClientWindowsError.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 
 namespace xucrun::info_command
@@ -194,7 +195,7 @@ namespace xucrun::info_command
 				GetServiceStatusText(serviceState),
 				brokerCommunication,
 				brokerAvailable ? FormatVersion(health.brokerVersion) : unavailable,
-				account,
+				documentation_names::DisplayAccount(account),
 				GetElevationText(),
 				configurationPath,
 				clientLogging,

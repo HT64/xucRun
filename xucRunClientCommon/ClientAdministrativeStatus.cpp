@@ -25,6 +25,7 @@
 #include "ClientTextDialog.h"
 #include "ClientUiCommon.h"
 #include "ClientWindowsError.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 #include "TargetNaming.h"
 
@@ -177,7 +178,7 @@ namespace xucrun::administrative_status
 				const std::wstring ownerName = ResolveOwnerName(ownerSid);
 				const std::wstring displayedOwnerName = ownerName == ownerSid
 					? localization::GetText(localization::TextId::ValueNotAvailable)
-					: ownerName;
+					: documentation_names::DisplayAccount(ownerName);
 				for (const auto* credential : data.credentials)
 				{
 					broker::AdministrativeDeleteRequest deleteRequest;
@@ -186,7 +187,8 @@ namespace xucrun::administrative_status
 					deleteRequest.accountSid = credential->accountSid;
 					records.push_back({ { displayedOwnerName, localization::GetText(
 							localization::TextId::AdministrativeStatusTypeCredential),
-						credential->canonicalAccountName, L"",
+						documentation_names::DisplayAccount(
+							credential->canonicalAccountName), L"",
 						credential_formatting::FormatCredentialTimestamp(
 							credential->lastWritten),
 						L"", L"" },
@@ -202,7 +204,7 @@ namespace xucrun::administrative_status
 						? localization::GetText(
 							localization::TextId::ShowApprovalsAllAccountsValue)
 						: accountName != accountNames.end()
-							? accountName->second
+							? documentation_names::DisplayAccount(accountName->second)
 							: localization::GetText(
 								localization::TextId::ValueNotAvailable);
 					const bool general = approvalValue->programScope ==

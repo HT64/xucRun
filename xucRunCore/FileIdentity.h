@@ -15,4 +15,6 @@ namespace xucrun::files
 	bool ResolveFinalFilePathFromHandle(HANDLE file, std::wstring& resolvedPath);
 	bool ComputeFileSHA256(const std::wstring& path, std::vector<std::uint8_t>& hash);
 	bool ComputeFileSHA256FromHandle(HANDLE file, std::vector<std::uint8_t>& hash);
+	bool IsFileSystemObjectProtectedForPrivilegedWriters(
+		HANDLE object, DWORD unexpectedWriteMask, DWORD& error);
 }

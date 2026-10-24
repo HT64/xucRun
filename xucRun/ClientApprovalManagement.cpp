@@ -25,11 +25,20 @@
 #include "ClientTextDialog.h"
 #include "ClientUiCommon.h"
 #include "ClientWindowsError.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 #include "TargetNaming.h"
 
 namespace xucrun::approval_management
 {
+	namespace
+	{
+		std::wstring DisplayAccount(const std::wstring& accountName)
+		{
+			return documentation_names::DisplayAccount(accountName);
+		}
+	}
+
 	int ResetBrokerApprovals(const std::wstring& specificUser)
 	{
 		std::wstring currentUser;
@@ -98,7 +107,7 @@ namespace xucrun::approval_management
 				{
 					ui::ReportError(localization::Format(
 						localization::TextId::CredentialUserUnresolved,
-						{ specificUser }),
+						{ DisplayAccount(specificUser) }),
 						L"The requested approval account could not be resolved: " +
 							specificUser);
 					return 1;
@@ -111,7 +120,7 @@ namespace xucrun::approval_management
 				{
 					ui::ReportError(localization::Format(
 						localization::TextId::BrokerCredentialUserNotFound,
-						{ specificUser }),
+						{ DisplayAccount(specificUser) }),
 						L"No stored broker credential exists for the requested approval account: " +
 							specificUser);
 					return 1;
@@ -156,7 +165,8 @@ namespace xucrun::approval_management
 			{
 				ui::ShowInfo(localization::Format(
 					localization::TextId::BrokerApprovalNone,
-					{ invokingAccount, credential.username }));
+					{ DisplayAccount(invokingAccount),
+						DisplayAccount(credential.username) }));
 				return 0;
 			}
 
@@ -193,8 +203,9 @@ namespace xucrun::approval_management
 						: resetResponse.windowsError;
 					ui::ReportError(localization::Format(
 						localization::TextId::BrokerApprovalDeleteFailed,
-						{ std::to_wstring(deletedCount), invokingAccount,
-							credential.username,
+						{ std::to_wstring(deletedCount),
+							DisplayAccount(invokingAccount),
+							DisplayAccount(credential.username),
 							windows_error::FormatWindowsError(resetError) }),
 						L"Resetting a broker approval failed after " +
 							std::to_wstring(deletedCount) +
@@ -206,8 +217,9 @@ namespace xucrun::approval_management
 			}
 			ui::ReportInfo(localization::Format(
 				localization::TextId::BrokerApprovalDeleteSucceeded,
-				{ std::to_wstring(deletedCount), invokingAccount,
-					credential.username }),
+				{ std::to_wstring(deletedCount),
+					DisplayAccount(invokingAccount),
+					DisplayAccount(credential.username) }),
 				L"Broker approvals reset successfully. Deleted count: " +
 					std::to_wstring(deletedCount) + L"; target account: " +
 					credential.username);
@@ -260,7 +272,8 @@ namespace xucrun::approval_management
 			return 1;
 		}
 		std::wstring output = localization::Format(
-			localization::TextId::ShowApprovalsIntro, { fullCurrentUser });
+			localization::TextId::ShowApprovalsIntro,
+			{ DisplayAccount(fullCurrentUser) });
 		if (response.result.entries.empty())
 		{
 			output += localization::GetText(localization::TextId::ShowApprovalsEmpty);
@@ -292,7 +305,7 @@ namespace xucrun::approval_management
 						{ credential == brokerCredentials.end()
 							? localization::GetText(
 								localization::TextId::ValueNotAvailable)
-							: credential->username });
+							: DisplayAccount(credential->username) });
 				}
 				const bool general = approvalValue.programScope ==
 					approval::BrokerApprovalProgramScope::General;
@@ -393,7 +406,7 @@ namespace xucrun::approval_management
 							localization::TextId::ShowApprovalsAllAccountsValue)
 						: (credential == brokerCredentials.end()
 							? localization::GetText(localization::TextId::ValueNotAvailable)
-							: credential->username),
+							: DisplayAccount(credential->username)),
 					general
 						? localization::GetText(
 							localization::TextId::ShowApprovalsProgramGeneralValue)
@@ -407,7 +420,7 @@ namespace xucrun::approval_management
 			}
 			table_dialog::Show(ui::GetWindowTitle(title),
 				localization::Format(localization::TextId::ShowApprovalsIntro,
-					{ fullCurrentUser }), L"", columns, rows,
+					{ DisplayAccount(fullCurrentUser) }), L"", columns, rows,
 				ui::GetDialogOwnerWindow());
 		}
 		return 0;

@@ -20,6 +20,7 @@
     <ClCompile Include="BrokerSerialization.cpp" />
     <ClCompile Include="ClientCommandLine.cpp" />
     <ClCompile Include="ClientProcessContext.cpp" />
+    <ClCompile Include="DocumentationNameMapping.cpp" />
     <ClCompile Include="FileIdentity.cpp" />
     <ClCompile Include="SecureDesktopHost.cpp" />
     <ClCompile Include="SensitiveString.cpp" />
@@ -38,6 +39,7 @@
     <ClInclude Include="BrokerSerialization.h" />
     <ClInclude Include="ClientCommandLine.h" />
     <ClInclude Include="ClientProcessContext.h" />
+    <ClInclude Include="DocumentationNameMapping.h" />
     <ClInclude Include="FileIdentity.h" />
     <ClInclude Include="SecureDesktopHost.h" />
     <ClInclude Include="SensitiveString.h" />

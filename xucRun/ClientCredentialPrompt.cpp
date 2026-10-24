@@ -7,6 +7,7 @@
 #include "ClientLogging.h"
 #include "ClientUiCommon.h"
 #include "ClientWindowsError.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 
 namespace xucrun::credential_prompt
@@ -45,18 +46,20 @@ namespace xucrun::credential_prompt
 		LPVOID inputAuthBuffer = nullptr;
 		ULONG inputAuthBufferSize = 0;
 		BOOL save = FALSE;
+		const std::wstring displayedPrefilledUsername =
+			documentation_names::DisplayAccount(prefilledUsername);
 
-		if (!prefilledUsername.empty())
+		if (!displayedPrefilledUsername.empty())
 		{
 			wchar_t emptyPassword[] = L"";
 			if (!CredPackAuthenticationBufferW(0,
-				const_cast<LPWSTR>(prefilledUsername.c_str()), emptyPassword,
+				const_cast<LPWSTR>(displayedPrefilledUsername.c_str()), emptyPassword,
 				nullptr, &inputAuthBufferSize) &&
 				GetLastError() == ERROR_INSUFFICIENT_BUFFER)
 			{
 				inputAuthBuffer = CoTaskMemAlloc(inputAuthBufferSize);
 				if (inputAuthBuffer && !CredPackAuthenticationBufferW(0,
-					const_cast<LPWSTR>(prefilledUsername.c_str()), emptyPassword,
+					const_cast<LPWSTR>(displayedPrefilledUsername.c_str()), emptyPassword,
 					static_cast<PBYTE>(inputAuthBuffer), &inputAuthBufferSize))
 				{
 					CoTaskMemFree(inputAuthBuffer);
@@ -121,6 +124,7 @@ namespace xucrun::credential_prompt
 		outUsername = wcslen(domain) > 0
 			? std::wstring(domain) + L"\\" + username
 			: std::wstring(username);
+		outUsername = documentation_names::OperationalAccount(outUsername);
 		outPassword.assign(password, wcslen(password));
 		SecureZeroMemory(username, sizeof(username));
 		SecureZeroMemory(domain, sizeof(domain));

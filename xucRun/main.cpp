@@ -246,6 +246,7 @@
 //   ClientTextDialog.h                 Console-aware display of long read-only text.
 //   ClientUiCommon.h                   Shared window ownership, icons, titles, and notifications.
 //   ClientWindowsError.h               Localized formatting of Windows error codes.
+//   DocumentationNameMapping.h         Optional display-only names for documentation screenshots.
 //   Localization.h                     Language-resource loading, lookup, and formatting.
 //   ClientResourceIds.h                Shared resource identifiers for dialogs, icons, and text.
 //
@@ -299,6 +300,7 @@
 #include "ClientTextDialog.h"
 #include "ClientUiCommon.h"
 #include "ClientWindowsError.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 #include "ClientResourceIds.h"
 
@@ -424,6 +426,14 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		return ERROR_RESOURCE_LANG_NOT_FOUND;
 	}
 	const std::vector<std::wstring> hardeningWarnings = ApplyEarlyProcessHardening();
+	std::wstring documentationNameError;
+	if (!xucrun::documentation_names::Initialize(documentationNameError))
+	{
+		ShowMessageBox(nullptr, documentationNameError,
+			L"xucRun - Documentation name mapping error",
+			MB_OK | MB_ICONERROR);
+		return ERROR_INVALID_DATA;
+	}
 
 	// Initialize logging and report a configured but unusable target path once.
 	std::wstring configuredLogDirectory;

@@ -23,6 +23,7 @@
 #include "ClientTextDialog.h"
 #include "ClientUiCommon.h"
 #include "ClientWindowsError.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 #include "TargetNaming.h"
 
@@ -35,6 +36,11 @@ namespace xucrun::broker_credential_management
 		constexpr int CredentialTableSummaryId = 1700;
 		constexpr int CredentialTableListId = 1701;
 		constexpr int CredentialTableNoteId = 1702;
+
+		std::wstring DisplayAccount(const std::wstring& accountName)
+		{
+			return documentation_names::DisplayAccount(accountName);
+		}
 
 		struct CredentialTableContext
 		{
@@ -152,7 +158,9 @@ namespace xucrun::broker_credential_management
 					LVITEMW item = {};
 					item.mask = LVIF_TEXT;
 					item.iItem = row;
-					item.pszText = const_cast<LPWSTR>(credential.username.c_str());
+					const std::wstring displayedAccount =
+						DisplayAccount(credential.username);
+					item.pszText = const_cast<LPWSTR>(displayedAccount.c_str());
 					ListView_InsertItem(list, &item);
 					SetCredentialTableCell(list, row, 1,
 						credential_formatting::FormatCredentialTimestamp(
@@ -281,7 +289,10 @@ namespace xucrun::broker_credential_management
 					: currentDomain + L"\\" + currentUsername;
 			}
 			account_identity::GetCurrentUserSID(currentAccountSid);
-			std::vector<std::wstring> displayAccounts = accounts;
+			std::vector<std::wstring> displayAccounts;
+			displayAccounts.reserve(accounts.size());
+			for (const std::wstring& account : accounts)
+				displayAccounts.push_back(DisplayAccount(account));
 			std::vector<bool> storedAccounts(accounts.size(), false);
 			size_t currentAccountIndex = static_cast<size_t>(-1);
 			std::vector<CredentialInfo> storedCredentials;
@@ -324,7 +335,7 @@ namespace xucrun::broker_credential_management
 
 			return local_account_selection_dialog::Show(
 				accounts, displayAccounts, storedAccounts,
-				currentAccount, currentAccountIndex,
+				DisplayAccount(currentAccount), currentAccountIndex,
 				credentialListAvailable && storedCredentials.empty(),
 				selectedAccount, owner);
 		}
@@ -435,7 +446,8 @@ namespace xucrun::broker_credential_management
 			{
 				ui::ReportError(localization::Format(
 					localization::TextId::CredentialDeleteNotFound,
-					{ invokingAccount, canonicalUsername }),
+					{ DisplayAccount(invokingAccount),
+						DisplayAccount(canonicalUsername) }),
 					L"The broker credential selected for deletion was not found: " +
 						canonicalUsername, owner);
 				return 1;
@@ -444,7 +456,8 @@ namespace xucrun::broker_credential_management
 			{
 				ui::ReportError(localization::Format(
 					localization::TextId::CredentialDeleteFailed,
-					{ invokingAccount, canonicalUsername,
+					{ DisplayAccount(invokingAccount),
+						DisplayAccount(canonicalUsername),
 						windows_error::FormatWindowsError(response.result.windowsError) }),
 					L"Deleting the broker credential failed. Target account: " +
 						canonicalUsername + L"; Windows error: " +
@@ -456,7 +469,8 @@ namespace xucrun::broker_credential_management
 				L"Ok", L"Broker credential deleted: " + canonicalUsername);
 			ui::ShowInfo(localization::Format(
 				localization::TextId::CredentialDeleteSucceeded,
-				{ invokingAccount, canonicalUsername }), owner);
+				{ DisplayAccount(invokingAccount),
+					DisplayAccount(canonicalUsername) }), owner);
 			return 0;
 		}
 	}
@@ -481,7 +495,7 @@ namespace xucrun::broker_credential_management
 		{
 			ui::ReportError(localization::Format(
 				localization::TextId::CredentialAccountUnresolved,
-				{ selectedUsername }),
+				{ DisplayAccount(selectedUsername) }),
 				L"The selected credential account could not be resolved: " +
 					selectedUsername, owner);
 			return false;
@@ -548,7 +562,8 @@ namespace xucrun::broker_credential_management
 			ui::ReportError(localization::GetText(
 				localization::TextId::CredentialSaveFailed) + localization::Format(
 				localization::TextId::CredentialErrorDetails,
-				{ currentAccount, canonicalUsername,
+				{ DisplayAccount(currentAccount),
+					DisplayAccount(canonicalUsername),
 					windows_error::FormatWindowsError(response.result.windowsError) }),
 				L"The broker rejected the credential capture challenge. Status: " +
 					std::to_wstring(static_cast<unsigned int>(response.result.status)) +
@@ -595,7 +610,8 @@ namespace xucrun::broker_credential_management
 					: localization::GetText(localization::TextId::CredentialSaveFailed);
 				message += localization::Format(
 					localization::TextId::CredentialErrorDetails,
-					{ currentAccount, canonicalUsername,
+					{ DisplayAccount(currentAccount),
+						DisplayAccount(canonicalUsername),
 						windows_error::FormatWindowsError(helperError) });
 				ui::ReportError(message,
 					L"The credential capture helper failed. Target account: " +
@@ -611,7 +627,8 @@ namespace xucrun::broker_credential_management
 				: localization::TextId::CredentialUserIsNotAdmin);
 		const std::wstring message = localization::Format(
 			localization::TextId::CredentialSaveSucceeded,
-			{ currentAccount, canonicalUsername, adminStatus });
+			{ DisplayAccount(currentAccount),
+				DisplayAccount(canonicalUsername), adminStatus });
 		client_logging::Write(
 			L"Ok", L"Broker credential stored successfully for target account: " +
 				canonicalUsername);
@@ -629,7 +646,7 @@ namespace xucrun::broker_credential_management
 		{
 			ui::ReportError(localization::Format(
 				localization::TextId::CredentialAccountUnresolved,
-				{ accountName }),
+				{ DisplayAccount(accountName) }),
 				L"The credential account requested for deletion could not be resolved: " +
 					accountName, owner);
 			return 1;
@@ -637,7 +654,8 @@ namespace xucrun::broker_credential_management
 
 		const std::wstring confirmation = localization::Format(
 			localization::TextId::CredentialDeleteConfirmation,
-			{ GetInvokingAccount(), canonicalUsername });
+			{ DisplayAccount(GetInvokingAccount()),
+				DisplayAccount(canonicalUsername) });
 		if (ui::ShowMessageBox(owner ? owner : ui::GetDialogOwnerWindow(), confirmation,
 			ui::GetWindowTitle(localization::GetText(
 				localization::TextId::CredentialDeleteTitle)),
@@ -686,7 +704,7 @@ namespace xucrun::broker_credential_management
 				{
 					ui::ReportError(localization::Format(
 						localization::TextId::CredentialUserUnresolved,
-						{ specificUser }),
+						{ DisplayAccount(specificUser) }),
 						L"The requested credential account could not be resolved: " +
 							specificUser);
 					return 1;
@@ -706,7 +724,7 @@ namespace xucrun::broker_credential_management
 				{
 					ui::ReportError(localization::Format(
 						localization::TextId::CredentialUserNotStored,
-						{ specificUser }),
+						{ DisplayAccount(specificUser) }),
 						L"No broker credential is stored for the requested account: " +
 							specificUser);
 					return 1;
@@ -728,7 +746,8 @@ namespace xucrun::broker_credential_management
 			const std::wstring invokingAccount = GetInvokingAccount();
 			const std::wstring confirmation = localization::Format(
 				localization::TextId::CredentialDeleteConfirmation,
-				{ invokingAccount, credential.username });
+				{ DisplayAccount(invokingAccount),
+					DisplayAccount(credential.username) });
 			int answer = ui::ShowMessageBox(
 				ui::GetDialogOwnerWindow(),
 				confirmation,
@@ -836,7 +855,8 @@ namespace xucrun::broker_credential_management
 		}
 
 		std::wstring output = localization::Format(
-			localization::TextId::ShowCredentialsIntro, { fullCurrentUser });
+			localization::TextId::ShowCredentialsIntro,
+			{ DisplayAccount(fullCurrentUser) });
 		if (credentials.empty())
 		{
 			output += localization::Format(
@@ -855,7 +875,8 @@ namespace xucrun::broker_credential_management
 				const CredentialInfo& credential = credentials[index];
 				output += localization::Format(
 					localization::TextId::ShowCredentialsEntry,
-					{ std::to_wstring(index + 1), credential.username });
+					{ std::to_wstring(index + 1),
+						DisplayAccount(credential.username) });
 				output += localization::Format(
 					localization::TextId::ShowCredentialsStored,
 					{ credential_formatting::FormatCredentialTimestamp(
@@ -886,7 +907,8 @@ namespace xucrun::broker_credential_management
 			console_output::TextOutputResult::Complete)
 		{
 			const std::wstring summary = TrimLineBreaks(localization::Format(
-				localization::TextId::ShowCredentialsIntro, { fullCurrentUser })) + L"\n" +
+				localization::TextId::ShowCredentialsIntro,
+				{ DisplayAccount(fullCurrentUser) })) + L"\n" +
 				TrimLineBreaks(localization::Format(
 					localization::TextId::ShowCredentialsFound,
 					{ std::to_wstring(credentials.size()) })) + L"\n" +
