@@ -636,14 +636,19 @@ namespace
 		config.cbSize = sizeof(config);
 		config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_SIZE_TO_CONTENT |
 			TDF_CALLBACK_TIMER;
-		config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
 		const std::wstring title = WindowTitle();
 		config.pszWindowTitle = title.c_str();
 		config.pszMainIcon = TD_SHIELD_ICON;
 		config.pszMainInstruction = instruction.c_str();
 		config.pszContent = content.c_str();
-		config.cButtons = buttonCount;
-		config.pButtons = buttons;
+		std::vector<TASKDIALOG_BUTTON> localizedButtons;
+		localizedButtons.reserve(static_cast<std::size_t>(buttonCount) + 1);
+		for (UINT index = 0; index < buttonCount; index++)
+			localizedButtons.push_back(buttons[index]);
+		localizedButtons.push_back(
+			{ IDCANCEL, Text(L"Abbrechen", L"Cancel") });
+		config.cButtons = static_cast<UINT>(localizedButtons.size());
+		config.pButtons = localizedButtons.data();
 		config.nDefaultButton = IDCANCEL;
 		const std::wstring footer = ChoiceFooter(authenticityMarker, clientName,
 			xucrun::broker::ApprovalDialogTimeoutMilliseconds / 1000);
