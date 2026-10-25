@@ -73,6 +73,12 @@ function Test-SystemPathEntry {
     }).Count -eq 1
 }
 
+function Test-SystemPathValueKind {
+    $environmentKey = Get-Item -LiteralPath $machineEnvironmentPath
+    return $environmentKey.GetValueKind('Path') -eq
+        [Microsoft.Win32.RegistryValueKind]::ExpandString
+}
+
 function Remove-SystemPathEntry {
     if (-not (Test-Path -LiteralPath $machineEnvironmentPath)) {
         return
@@ -84,8 +90,8 @@ function Remove-SystemPathEntry {
         -not [string]::IsNullOrWhiteSpace($_) -and
         $_.TrimEnd('\') -ine $installDirectory.TrimEnd('\')
     }) -join ';'
-    Set-ItemProperty -LiteralPath $machineEnvironmentPath -Name Path -Value $updated
-    [Environment]::SetEnvironmentVariable('Path', $updated, 'Machine')
+    Set-ItemProperty -LiteralPath $machineEnvironmentPath -Name Path `
+        -Type ExpandString -Value $updated
 }
 
 function Wait-ServiceAbsent {
@@ -218,6 +224,8 @@ function Assert-InstalledState {
         'The uninstall entry does not hide its PowerShell host.'
     Assert-Condition (Test-SystemPathEntry) `
         'The installation directory is not registered exactly once in the system PATH.'
+    Assert-Condition (Test-SystemPathValueKind) `
+        'The system PATH registry value is not REG_EXPAND_SZ.'
 
     $configuration = [IO.File]::ReadAllText($configurationPath)
     Assert-Condition ($configuration -match '(?m)^Language=en\r?$') `
@@ -417,6 +425,8 @@ try {
         'The uninstall registry entry remains after uninstall.'
     Assert-Condition (-not (Test-SystemPathEntry)) `
         'The system PATH entry remains after uninstall.'
+    Assert-Condition (Test-SystemPathValueKind) `
+        'The system PATH registry value is not REG_EXPAND_SZ after uninstall.'
     Assert-Condition (-not (Test-Path -LiteralPath $brokerStoreDirectory)) `
         'Broker product data remains after uninstall.'
     foreach ($storeName in @('My', 'Root', 'TrustedPublisher')) {

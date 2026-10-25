@@ -62,6 +62,20 @@ function Assert-Administrator {
     }
 }
 
+function Send-EnvironmentChanged {
+    if (-not ('Native.EnvironmentBroadcast' -as [type])) {
+        Add-Type -Namespace Native -Name EnvironmentBroadcast -MemberDefinition @'
+[DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+public static extern IntPtr SendMessageTimeout(
+    IntPtr hWnd, uint Msg, IntPtr wParam, string lParam,
+    uint flags, uint timeout, out IntPtr result);
+'@
+    }
+    $result = [IntPtr]::Zero
+    [void][Native.EnvironmentBroadcast]::SendMessageTimeout(
+        [IntPtr]0xffff, 0x001a, [IntPtr]::Zero, 'Environment', 2, 5000, [ref]$result)
+}
+
 function Assert-NotReparsePoint {
     param([Parameter(Mandatory)][string]$Path)
 
@@ -593,8 +607,9 @@ function Set-SystemPathRegistration {
         $parts += $installDirectory
     }
     $newValue = $parts -join ';'
-    Set-ItemProperty -LiteralPath $machineEnvironmentPath -Name Path -Value $newValue
-    [Environment]::SetEnvironmentVariable('Path', $newValue, 'Machine')
+    Set-ItemProperty -LiteralPath $machineEnvironmentPath -Name Path `
+        -Type ExpandString -Value $newValue
+    Send-EnvironmentChanged
     return $Enabled
 }
 
