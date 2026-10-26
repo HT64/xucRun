@@ -9,8 +9,9 @@
 
 **xucRun** steht für **eXecute Under User Context**.
 
-> **Status:** xucRun befindet sich in Entwicklung. Der Quellcode kann selbst gebaut und mit
-> einem lokalen Testzertifikat installiert werden.
+> **Status:** xucRun befindet sich in Entwicklung. Die Dokumentation beschreibt das vorgesehene
+> Verhalten. Der aktuelle Stand kann Fehler enthalten, davon abweichen und sich ändern. Der
+> Quellcode kann selbst gebaut und mit einem lokalen Testzertifikat installiert werden.
 
 ## Motivation und Zweck
 
@@ -39,11 +40,10 @@ eine einzige Bestätigung per Mausklick erforderlich ist.
 
 Die grundlegenden Aktionen, Programme unter einem anderen Benutzerkonto zu starten und
 administrative Rechte anzufordern, lassen sich auch mit Windows-eigenen Mitteln ausführen. xucRun
-verbindet diese Möglichkeiten in einem komfortableren Ablauf und ergänzt sie um kontrollierte
-Freigaben für gespeicherte Anmeldedaten. Dieser Komfort ist jedoch mit zusätzlichen
-Sicherheitsrisiken verbunden, weil Anmeldedaten von xucRun gespeichert und für spätere Aufrufe
-wiederverwendet werden. Wer diese Risiken nicht eingehen möchte, sollte besser Windows-eigene
-Möglichkeiten wie z. B. den schnellen Benutzerwechsel nutzen.
+verbindet diese Möglichkeiten in einem Ablauf und ergänzt sie um kontrollierte Freigaben für
+gespeicherte Anmeldedaten. Das Speichern und Wiederverwenden der Anmeldedaten ist mit zusätzlichen
+Sicherheitsrisiken verbunden. Wer diese Risiken nicht eingehen möchte, sollte besser
+Windows-eigene Möglichkeiten wie z. B. den schnellen Benutzerwechsel nutzen.
 
 ## Vergleich mit Windows-Funktionen und anderen Lösungen
 
@@ -84,14 +84,14 @@ erneut abzufragen. Bei der Verwendung von `runas.exe` bestehen jedoch einige Ein
   Fehleranfälligkeit besonders dann, wenn dem erhöht auszuführenden Programm komplexe Argumente
   oder Argumente mit Sonderzeichen übergeben werden müssen.
 
-xucRun greift die Idee gespeicherter und wiederverwendbarer Anmeldedaten von `runas.exe` auf
-und verbindet sie mit kontrollierten Freigaben und einem komfortableren Einsatz in Skripten,
-Desktop-Verknüpfungen und anderen fest konfigurierten Aufrufen ebenso wie bei interaktiven
-Aufrufen über die Kommandozeile. Der Start unter einem anderen Benutzerkonto, gespeicherte
-Anmeldedaten und eine bei Bedarf weiterhin interaktive Erhöhung über UAC werden dabei in einem
-Werkzeug zusammengeführt. Sind passende Anmeldedaten gespeichert, muss der Aufruf weder Zielkonto
-noch Kennwort enthalten. Programmpfade, Argumente, Arbeitsverzeichnisse, Batchdateien und typische
-Shell-Sonderzeichen werden kontrolliert über die notwendigen Prozessgrenzen hinweg behandelt.
+xucRun greift die Idee gespeicherter und wiederverwendbarer Anmeldedaten von `runas.exe` auf und
+ergänzt sie um kontrollierte Freigaben. Es lässt sich in Skripten, Desktop-Verknüpfungen und
+anderen fest konfigurierten Aufrufen ebenso wie bei interaktiven Aufrufen über die Kommandozeile
+verwenden. Der Start unter einem anderen Benutzerkonto, gespeicherte Anmeldedaten und eine bei
+Bedarf weiterhin interaktive Erhöhung über UAC werden dabei in einem Werkzeug zusammengeführt.
+Sind passende Anmeldedaten gespeichert, muss der Aufruf weder Zielkonto noch Kennwort enthalten.
+Programmpfade, Argumente, Arbeitsverzeichnisse, Batchdateien und typische Shell-Sonderzeichen
+werden kontrolliert über die notwendigen Prozessgrenzen hinweg behandelt.
 
 Zur Veranschaulichung dient der Start des Gerätemanagers aus einem Standardbenutzerkonto als reales
 Beispiel. Mit genau einem Administratorkonto, für das xucRun-Anmeldedaten gespeichert sind, genügt
@@ -174,17 +174,19 @@ erhöhten Rechte.
 ![Windows-UAC-Anwesenheitsbestätigung für den xucRun Approval Helper](docs/de/images/approval-helper-uac.png)
 
 Auch ein Start unter einem anderen Standardkonto kann eine UAC-Anwesenheitsbestätigung erfordern.
-Verwendet xucRun dafür ein Administratorkonto, dient es nur zum geschützten Öffnen des
-xucRun-Dialogs; das Zielprogramm läuft weiterhin unter dem gewählten Standardkonto.
+Verwendet xucRun dafür ein Administratorkonto, dient es nur zum Öffnen des xucRun-Dialogs auf dem
+separaten Windows-Desktop; das Zielprogramm läuft weiterhin unter dem gewählten Standardkonto.
 
-Ist keine passende Freigabe aktiv, erscheint der xucRun-Freigabedialog auf einem geschützten
-privaten Desktop. Normale, nicht erhöhte Programme können diesen Dialog nicht auslesen oder
-steuern. Kann xucRun den Dialog dort nicht geschützt öffnen, wird der Vorgang abgebrochen.
+Ist keine passende Freigabe aktiv, erscheint der xucRun-Freigabedialog auf einem separaten
+Windows-Desktop. Im vorgesehenen Ablauf trennt Windows diesen Desktop von normalen, nicht erhöhten
+Programmen. Kann xucRun den Dialog dort nicht öffnen, wird der Vorgang abgebrochen. Softwarefehler
+und bereits mit Administrator- oder SYSTEM-Rechten laufende Schadsoftware liegen außerhalb dieser
+Schutzgrenze.
 
 Bei einer erhöht auszuführenden Startdatei, die für den Aufrufer beschreibbar ist, verlangt xucRun
-trotz vorhandener Freigabe für jeden Start eine geschützte Risikobestätigung. Diese Zustimmung
-gilt nur einmal und wird nicht gespeichert. Ist auch das Verzeichnis der Startdatei für den
-Aufrufer beschreibbar, wird der erhöhte Start blockiert.
+trotz vorhandener Freigabe für jeden Start eine Risikobestätigung auf dem separaten Desktop. Diese
+Zustimmung gilt nur einmal und wird nicht gespeichert. Ist auch das Verzeichnis der Startdatei für
+den Aufrufer beschreibbar, wird der erhöhte Start blockiert.
 
 Der zentrale Anwendungsfall von xucRun ist ein angemeldeter Standardbenutzer, für den genau ein
 Administratorkonto mit xucRun-Anmeldedaten gespeichert ist und Programme bei Bedarf unter diesem
@@ -230,23 +232,26 @@ und Freigabeschritte. Fehlen ein Zielkonto, gespeicherte Anmeldedaten oder eine 
 fordert xucRun die notwendige Auswahl, Eingabe oder Bestätigung unmittelbar im laufenden Ablauf an
 und setzt den ursprünglichen Aufruf anschließend fort. Kontoauswahl sowie Verwaltungs-,
 Informations- und Fehlerdialoge erscheinen auf dem normalen Benutzerdesktop. Kennworteingaben,
-Freigabeentscheidungen und erforderliche Risikobestätigungen zeigt xucRun dagegen auf seinem
-geschützten privaten Desktop an. Die Dialoge laufen dort mit erhöhten Administratorrechten und sind
-von normalen, nicht erhöhten Programmen auf dem üblichen Benutzerdesktop abgeschirmt. Windows-UAC
-bleibt davon getrennt und verwendet den durch Windows konfigurierten UAC-Desktop.
+Freigabeentscheidungen und erforderliche Risikobestätigungen zeigt xucRun dagegen auf einem
+separaten Windows-Desktop an. Die Dialoge laufen dort mit erhöhten Administratorrechten. Im
+vorgesehenen Ablauf trennt Windows diesen Desktop von normalen, nicht erhöhten Programmen.
+Softwarefehler und bereits mit Administrator- oder SYSTEM-Rechten laufende Schadsoftware liegen
+außerhalb dieser Schutzgrenze. Windows-UAC bleibt davon getrennt und verwendet den durch Windows
+konfigurierten UAC-Desktop.
 
 Beim ersten solchen Dialog erzeugt xucRun für das aufrufende Windows-Benutzerkonto ein
 zufälliges xucRun-Sicherheitsmerkmal im Format `XXXX-XXXX`. Kennwort-, Freigabe- und
 Risikodialoge auf dem privaten Desktop zeigen dieses Merkmal anschließend unverändert an. Der
-Benutzer sollte es nach einer vertrauenswürdig durchgeführten Installation beim bewusst
-ausgelösten ersten Dialog einprägen oder sicher notieren und spätere xucRun-Dialoge nur bestätigen,
-wenn es übereinstimmt. Diese erste Anzeige ist ein Vertrauensstart und lässt sich noch nicht mit
-einem früheren Wert vergleichen. xucRun fordert niemals zur Eingabe dieses Merkmals auf. Das
-getrennte Windows-UAC-Fenster zeigt es nicht an.
+Benutzer sollte es nach einer anhand der Prüfsumme überprüften Installation beim bewusst
+ausgelösten ersten Dialog einprägen oder an einem nur für ihn zugänglichen Ort notieren und spätere
+xucRun-Dialoge nur bestätigen, wenn es übereinstimmt. Diese erste Anzeige ist ein Vertrauensstart
+und lässt sich noch nicht mit einem früheren Wert vergleichen. xucRun fordert nicht zur Eingabe
+dieses Merkmals auf. Das getrennte Windows-UAC-Fenster zeigt es nicht an.
 
 Wiederholte Starts ohne erneute Kennworteingabe setzen voraus, dass xucRun die Anmeldedaten des
-Zielkontos speichert. xucRun schützt sie mit Windows-Sicherheitsmechanismen. Für einen Start unter
-einem anderen Konto muss xucRun die benötigten Anmeldedaten jedoch vorübergehend verarbeiten.
+Zielkontos speichert. Dafür verwendet xucRun Windows-APIs. Im vorgesehenen Ablauf gelangen
+Kennwörter weder in die Kommandozeile noch an das Zielprogramm. Für einen Start unter einem anderen
+Konto muss xucRun die benötigten Anmeldedaten jedoch vorübergehend verarbeiten.
 
 Die Übereinstimmung ist ein Originalitätshinweis für den xucRun-Helperdialog, aber kein Beweis,
 dass die angezeigte Operation ungefährlich ist oder vom Benutzer selbst ausgelöst wurde. Ein
@@ -263,7 +268,7 @@ xucRun enthält:
 
 - den Client `xucRun.exe`,
 - den bedarfsgestarteten Brokerdienst `xucRunBroker`, der bei Bedarf automatisch gestartet wird,
-  anschließend im Hintergrund läuft, die von xucRun geschützten Anmeldedaten verwaltet und
+  anschließend im Hintergrund läuft, die von xucRun gespeicherten Anmeldedaten verwaltet und
   Programmstarts unter dem gewählten Benutzerkonto ausführt,
 - den Approval-Helper,
 - gemeinsame Protokoll-, Serialisierungs- und Sicherheitskomponenten,
@@ -278,19 +283,19 @@ Microsoft Visual C++ Redistributable v14 für x64.
 
 xucRun ist für erfahrene Privatanwender und Entwickler auf selbst verwalteten Rechnern sowie in
 persönlichen Entwicklungs- und Testsystemen vorgesehen. Es ist keine Lösung für unbeaufsichtigte
-Rechteerhöhung, zentrale Flottenverwaltung oder besonders schutzbedürftige Systeme.
+Rechteerhöhung, zentrale Rechteverwaltung oder Systeme mit erhöhtem Schutzbedarf.
 
-> **Wichtiger Sicherheitshinweis:** xucRun schützt gespeicherte Anmeldedaten
-> mithilfe von Windows-Sicherheitsmechanismen. Damit xucRun ein Programm unter einem anderen
+> **Wichtiger Sicherheitshinweis:** xucRun verwendet Windows-APIs zur Speicherung von
+> Anmeldedaten. Damit xucRun ein Programm unter einem anderen
 > Benutzerkonto starten kann, muss xucRun die benötigten Anmeldedaten jedoch vorübergehend
 > verarbeiten. Ein vollständiger Schutz vor dem Auslesen oder Missbrauch durch ausreichend
 > privilegierte Malware oder ein bereits kompromittiertes System kann deshalb nicht gewährleistet
 > werden. Der Quellcode von xucRun wird
-> offengelegt, damit die eingesetzten Schutzmaßnahmen, ihre technischen Grenzen und die
+> offengelegt, damit die eingesetzten technischen Maßnahmen, ihre Grenzen und die
 > verbleibenden Risiken nachvollzogen und unabhängig geprüft werden können. Die Offenlegung allein
 > ist jedoch weder eine Sicherheitsgarantie noch der Nachweis einer unabhängigen
 > Sicherheitsprüfung. Der Einsatz erfolgt eigenverantwortlich. xucRun sollte nur auf
-> vertrauenswürdigen, selbst verwalteten und nicht besonders schutzbedürftigen Systemen sowie
+> vertrauenswürdigen, selbst verwalteten Systemen ohne erhöhten Schutzbedarf sowie
 > möglichst mit dedizierten, minimal berechtigten Zielkonten eingesetzt werden.
 > Soweit gesetzlich zulässig, übernehmen der Autor und die Mitwirkenden keine Haftung für Schäden,
 > Datenverluste oder sonstige Folgen, die aus der Nutzung oder fehlerhaften Anwendung von xucRun,
@@ -454,12 +459,12 @@ xucRun.exe /addcred Administrator
 
 Wird der Kontoname weggelassen, öffnet xucRun zuerst ein Dialogfenster zur Auswahl eines
 aktivierten lokalen Kontos. Anschließend erscheint unabhängig davon, ob das Konto angegeben oder
-ausgewählt wurde, ein geschütztes Dialogfenster zur Kennworteingabe. Für ein Domänenkonto wird
-`DOMAIN\Benutzername` angegeben.
+ausgewählt wurde, ein Dialogfenster zur Kennworteingabe auf dem separaten Windows-Desktop. Für ein
+Domänenkonto wird `DOMAIN\Benutzername` angegeben.
 
-| Geschützte Anmeldedateneingabe | Bestätigung gespeicherter Anmeldedaten |
+| Anmeldedateneingabe auf separatem Desktop | Bestätigung gespeicherter Anmeldedaten |
 |:---:|:---:|
-| ![Geschützte Anmeldedateneingabe](docs/de/images/credential-entry.png) | ![Bestätigung gespeicherter Anmeldedaten](docs/de/images/credential-stored.png) |
+| ![Anmeldedateneingabe auf separatem Desktop](docs/de/images/credential-entry.png) | ![Bestätigung gespeicherter Anmeldedaten](docs/de/images/credential-stored.png) |
 
 Programme werden mit ihrem normalen Programmpfad und den anschließenden Argumenten aufgerufen:
 
@@ -664,7 +669,8 @@ Konto mit xucRun-Anmeldedaten, wird es automatisch gewählt; bei mehreren ersche
 
 Gespeicherte Anmeldedaten umgehen Windows-UAC nicht. Ist eine Erhöhung erforderlich, bleibt die
 UAC-Bestätigung interaktiv. Bei einer neuen Freigabe für einen erhöhten Start können zunächst der
-geschützte Freigabedialog und anschließend der UAC-Dialog für das Zielprogramm erscheinen.
+Freigabedialog auf dem separaten Desktop und anschließend der UAC-Dialog für das Zielprogramm
+erscheinen.
 
 ## Freigaben
 
@@ -695,7 +701,7 @@ Möglichkeit nur einmalig freigegeben werden. Bei PowerShell kann eine administr
 Richtlinie `AllSigned` Skriptdateien zusätzlich absichern, schützt jedoch nicht vor direkten oder
 interaktiven Befehlen.
 
-![Geschützter xucRun-Freigabedialog](docs/de/images/approval-dialog.png)
+![xucRun-Freigabedialog auf separatem Desktop](docs/de/images/approval-dialog.png)
 
 ## Programme, Argumente und Sonderzeichen
 
@@ -793,9 +799,9 @@ xucRun.exe /backup-delete-all
 
 Eine Sicherung umfasst gespeicherte Anmeldedaten, Freigaben, Sicherheitsmerkmale und zugehörige
 Metadaten. Datensicherungen werden getrennt von den aktiven Anmeldedaten und Freigaben unter
-`%ProgramData%\xucRun\BrokerBackups` gespeichert. Sie sind ebenfalls durch
-Windows-Sicherheitsmechanismen geschützt und zusätzlich an den Rechner gebunden. Sie können deshalb
-nur auf demselben Rechner wiederhergestellt werden und sind kein portabler Kennwortexport.
+`%ProgramData%\xucRun\BrokerBackups` gespeichert. Für die Speicherung verwendet xucRun
+Windows-APIs und bindet die Datensicherungen an den Rechner. xucRun stellt sie nur auf demselben
+Rechner wieder her; sie sind kein portabler Kennwortexport.
 
 Die Deinstallation entfernt auch die lokal gespeicherten xucRun-Datensicherungen.
 
@@ -871,9 +877,9 @@ stillen Sprachwechsel.
 
 Das separat installierte optionale
 [xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) ergänzt eine Status- und
-Komfortoberfläche, deren Symbol im Benachrichtigungsbereich der Windows-Taskleiste neben der Uhr
-erscheint. Es ist ein eigenständiges Projekt, zeigt Informationen aus xucRun an und erleichtert den
-Zugriff auf dessen vorhandene Verwaltungsfunktionen. Es ersetzt xucRun nicht.
+Bedienoberfläche, deren Symbol im Benachrichtigungsbereich der Windows-Taskleiste neben der Uhr
+erscheint. Es ist ein eigenständiges Projekt, zeigt Informationen aus xucRun an und stellt den
+Zugriff auf dessen vorhandene Verwaltungsfunktionen bereit. Es ersetzt xucRun nicht.
 
 ## Persönliche Notiz zur Entstehung von xucRun
 

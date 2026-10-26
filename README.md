@@ -9,8 +9,9 @@
 
 **xucRun** stands for **eXecute Under User Context**.
 
-> **Status:** xucRun is under development. The source can be built and installed with a local
-> test certificate.
+> **Status:** xucRun is under development. The documentation describes the intended behavior. The
+> current state may contain defects, differ from that behavior, and change. The source can be built
+> and installed with a local test certificate.
 
 ## Motivation and purpose
 
@@ -36,11 +37,10 @@ credentials and approvals are reused for later invocations when they match the r
 only a single confirmation click is normally required afterward.
 
 The basic operations of starting programs under another user account and requesting administrative
-rights are also available through Windows itself. xucRun combines these capabilities into a more
-convenient workflow and adds controlled approvals for stored credentials. This convenience creates
-additional security risks because xucRun stores credentials and reuses them for later invocations.
-Users who do not want to accept these risks should use native Windows alternatives such as Fast
-User Switching instead.
+rights are also available through Windows itself. xucRun combines these capabilities in one
+workflow and adds controlled approvals for stored credentials. Storing and reusing credentials
+creates additional security risks. Users who do not want to accept these risks should use native
+Windows alternatives such as Fast User Switching instead.
 
 ## Comparison with Windows features and other solutions
 
@@ -77,13 +77,13 @@ the password again. However, `runas.exe` has several limitations:
   and quoting layers. This increases the risk of errors, especially when the elevated program
   needs complex arguments or arguments containing special characters.
 
-xucRun adopts the idea of stored and reusable credentials from `runas.exe` and combines it with
-controlled approvals and more convenient use in scripts, desktop shortcuts, other fixed
-invocations, and interactive command-line use. Starting a program under another account, stored
-credentials, and interactive UAC elevation when required are combined in one tool. When suitable
-credentials are stored, the invocation needs neither the target account nor its password. Program
-paths, arguments, working directories, batch files, and common shell special characters are
-handled in a controlled manner across the required process boundaries.
+xucRun adopts the idea of stored and reusable credentials from `runas.exe` and adds controlled
+approvals. It can be used in scripts, desktop shortcuts, other fixed invocations, and interactive
+command-line use. Starting a program under another account, stored credentials, and interactive
+UAC elevation when required are combined in one tool. When suitable credentials are stored, the
+invocation needs neither the target account nor its password. Program paths, arguments, working
+directories, batch files, and common shell special characters are handled in a controlled manner
+across the required process boundaries.
 
 Starting Device Manager from a standard user account provides a practical example. With exactly
 one administrator account for which xucRun credentials are stored, this invocation is sufficient:
@@ -160,16 +160,19 @@ confirmation grants the requested elevated privileges to the target program.
 
 Starting a program under another standard account can also require UAC presence confirmation. If
 xucRun uses an administrator account for this purpose, that account is used only to open the
-xucRun dialog securely; the target program continues to run under the selected standard account.
+xucRun dialog on the separate Windows desktop; the target program continues to run under the
+selected standard account.
 
-If no suitable approval is active, the xucRun approval dialog appears on a protected private
-desktop. Normal, non-elevated programs cannot read or control this dialog. If xucRun cannot open
-the dialog there securely, the operation is aborted.
+If no suitable approval is active, the xucRun approval dialog appears on a separate Windows
+desktop. In the intended workflow, Windows separates this desktop from normal, non-elevated
+programs. If xucRun cannot open the dialog there, the operation is aborted. Software defects and
+malware already running with administrator or SYSTEM privileges are outside this protection
+boundary.
 
 For an executable that is to be started elevated but is writable by the caller, xucRun requires a
-protected risk confirmation for every start despite an existing approval. This consent applies
-once only and is not stored. If the executable's directory is also writable by the caller, the
-elevated start is blocked.
+risk confirmation on the separate desktop for every start despite an existing approval. This
+consent applies once only and is not stored. If the executable's directory is also writable by the
+caller, the elevated start is blocked.
 
 xucRun's central use case is a signed-in standard user for whom exactly one administrator account
 has been stored in xucRun and programs are to be started elevated under that account when needed.
@@ -209,21 +212,25 @@ steps. If a target account, stored credentials, or a suitable approval is missin
 the required selection, input, or confirmation directly in the current workflow and then
 continues the original invocation. Account selection, management, information, and error dialogs
 appear on the normal user desktop. Password entry, approval decisions, and required risk
-confirmations instead appear on xucRun's protected private desktop. These dialogs run with
-elevated administrator privileges and are isolated from normal, non-elevated programs on the
-regular user desktop. Windows UAC remains separate and uses the UAC desktop configured by Windows.
+confirmations instead appear on a separate Windows desktop. These dialogs run with elevated
+administrator privileges. In the intended workflow, Windows separates this desktop from normal,
+non-elevated programs. Software defects and malware already running with administrator or SYSTEM
+privileges are outside this protection boundary. Windows UAC remains separate and uses the UAC
+desktop configured by Windows.
 
 For the first such dialog, xucRun creates a random xucRun security identifier in the format
 `XXXX-XXXX` for the calling Windows user account. Password, approval, and risk dialogs on the
-private desktop then display this identifier unchanged. After a trusted installation, the user
-should remember or securely record it during the first deliberately initiated dialog and confirm
-later xucRun dialogs only when it matches. This initial display establishes trust and cannot yet
-be compared with an earlier value. xucRun never asks the user to enter this identifier. The
-separate Windows UAC window does not display it.
+private desktop then display this identifier unchanged. After verifying the installation against
+the published checksum, the user should remember or record the identifier in a location accessible
+only to that user during the first deliberately initiated dialog and confirm later xucRun dialogs
+only when it matches. This initial display establishes trust and cannot yet be compared with an
+earlier value. xucRun does not ask the user to enter this identifier. The separate Windows UAC
+window does not display it.
 
 Repeated starts without entering the password again require xucRun to store the target account
-credentials. xucRun protects them with Windows security mechanisms. Starting a program under
-another account nevertheless requires xucRun to process the credentials temporarily.
+credentials. xucRun uses Windows APIs for this storage. In the intended workflow, passwords are
+not passed through the command line or to the target program. Starting a program under another
+account nevertheless requires xucRun to process the credentials temporarily.
 
 A matching identifier indicates that the dialog originates from the xucRun helper, but it does
 not prove that the displayed operation is safe or was initiated by the user. An attacker can still
@@ -240,7 +247,7 @@ xucRun contains:
 
 - the `xucRun.exe` client,
 - the demand-start `xucRunBroker` service, which starts automatically when needed, then runs in the
-  background, manages credentials protected by xucRun, and starts programs under the selected user
+  background, manages credentials stored by xucRun, and starts programs under the selected user
   account,
 - the Approval Helper,
 - shared protocol, serialization, and security components,
@@ -255,18 +262,18 @@ Visual C++ Redistributable v14 for x64.
 
 xucRun is intended for experienced private users and developers on self-managed computers and in
 personal development and test systems. It is not a solution for unattended elevation, centralized
-fleet management, or systems requiring a particularly high level of protection.
+privilege management, or systems requiring an elevated level of protection.
 
-> **Important security notice:** xucRun protects stored credentials using Windows
-> security mechanisms. For xucRun to start a program under another user account, however, xucRun
+> **Important security notice:** xucRun uses Windows APIs to store credentials. For xucRun to
+> start a program under another user account, however, xucRun
 > must process the required credentials temporarily. Complete protection against reading or
 > misuse by sufficiently privileged malware or an already compromised system therefore cannot be
 > guaranteed. The source code of xucRun is
-> disclosed so that the implemented protections, their technical limits, and the remaining
+> disclosed so that the implemented technical measures, their limits, and the remaining
 > risks can be understood and independently reviewed. Disclosure alone is neither a security
 > guarantee nor evidence of an independent security audit. Use xucRun at your own responsibility.
-> xucRun should be used only on trusted, self-managed systems that do not require a particularly
-> high level of protection, and preferably with dedicated target accounts having the minimum
+> xucRun should be used only on trusted, self-managed systems that do not require an elevated level
+> of protection, and preferably with dedicated target accounts having the minimum
 > required privileges. To the extent permitted by law, the author and contributors accept
 > no liability for damage, data loss, or other consequences arising from the use or incorrect use
 > of xucRun, software defects or security vulnerabilities, malware, or a compromised system. This
@@ -413,12 +420,12 @@ xucRun.exe /addcred Administrator
 ```
 
 If the account name is omitted, xucRun first opens a dialog for selecting an enabled local
-account. A protected password-entry dialog then appears regardless of whether the account was
-specified or selected. Specify `DOMAIN\UserName` for a domain account.
+account. A password-entry dialog on the separate Windows desktop then appears regardless of
+whether the account was specified or selected. Specify `DOMAIN\UserName` for a domain account.
 
-| Protected credential entry | Stored credential confirmation |
+| Credential entry on separate desktop | Stored credential confirmation |
 |:---:|:---:|
-| ![Protected credential entry](docs/en/images/credential-entry.png) | ![Stored credential confirmation](docs/en/images/credential-stored.png) |
+| ![Credential entry on separate desktop](docs/en/images/credential-entry.png) | ![Stored credential confirmation](docs/en/images/credential-stored.png) |
 
 Run programs by specifying their normal path followed by their arguments:
 
@@ -617,8 +624,8 @@ shown.
 | `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated |
 
 Stored credentials do not bypass Windows UAC. When elevation is required, UAC confirmation remains
-interactive. For a new approval involving an elevated start, the protected approval dialog may
-appear first, followed by the UAC dialog for the target program.
+interactive. For a new approval involving an elevated start, the approval dialog on the separate
+desktop may appear first, followed by the UAC dialog for the target program.
 
 ## Approvals
 
@@ -648,7 +655,7 @@ verify the target, arguments, and working directory, and use a one-time approval
 possible. For PowerShell, an administratively enforced `AllSigned` policy can additionally protect
 script files, but does not protect against direct or interactive commands.
 
-![Protected xucRun approval dialog](docs/en/images/approval-dialog.png)
+![xucRun approval dialog on separate desktop](docs/en/images/approval-dialog.png)
 
 ## Programs, arguments, and special characters
 
@@ -745,9 +752,9 @@ xucRun.exe /backup-delete-all
 
 A backup contains stored credentials, approvals, security identifiers, and associated metadata.
 Backups are stored separately from the active credentials and approvals under
-`%ProgramData%\xucRun\BrokerBackups`. They are also protected by Windows security mechanisms and
-additionally bound to the computer. They can therefore be restored only on the same computer and
-are not a portable password export.
+`%ProgramData%\xucRun\BrokerBackups`. xucRun uses Windows APIs for storage and binds the backups to
+the computer. xucRun restores them only on the same computer; they are not a portable password
+export.
 
 Uninstalling xucRun also removes locally stored xucRun backups.
 
@@ -818,10 +825,10 @@ language.
 ## Optional Tray
 
 The separately installed optional
-[xucRun Tray add-on](https://github.com/HT64/xucRun-Tray) provides a status and convenience
+[xucRun Tray add-on](https://github.com/HT64/xucRun-Tray) provides a status and control
 interface whose icon appears in the notification area of the Windows taskbar next to the clock. It
-is a separate project that displays information from xucRun and provides easier access to existing
-xucRun management functions. It does not replace xucRun.
+is a separate project that displays information from xucRun and provides access to existing xucRun
+management functions. It does not replace xucRun.
 
 ## A personal note on the origins of xucRun
 

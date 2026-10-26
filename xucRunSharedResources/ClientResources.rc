@@ -662,7 +662,7 @@ BEGIN
 		BEGIN
 			VALUE "CompanyName", "HT64"
 #ifdef XUCRUN_TRAY_RESOURCE
-			VALUE "FileDescription", "xucRun Tray - Status- und Komfortoberfläche"
+			VALUE "FileDescription", "xucRun Tray - Status- und Bedienoberfläche"
 			VALUE "InternalName", "xucRunTray"
 			VALUE "OriginalFilename", "xucRunTray.exe"
 #else
