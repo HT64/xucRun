@@ -562,7 +562,7 @@ These entries use the classic Win32 Explorer context-menu registration under
 appear under **Show more options**. When the classic context menu is used instead, they appear
 directly.
 
-### Integrate with Total Commander
+### Total Commander integration
 
 The following examples were tested with Total Commander 11.58 (64-bit). They may also work with
 other versions, but their compatibility has not been verified. For general information about
@@ -880,7 +880,7 @@ password each time. At the same time, every such launch should still require exp
 confirmation, with a single mouse click being sufficient. One central use case for me is being
 able to open a file manager in another account's user context from within my existing Windows
 session, without switching to that account's separate session. The resulting
-[specific configuration examples for Total Commander](#integrate-with-total-commander) are
+[specific configuration examples for Total Commander](#total-commander-integration) are
 documented in the corresponding section. Over time, new requirements and features were added,
 such as desktop shortcuts for fixed elevated program launches, combined with a user switch when
 required, and directly replacing a running shell with one in the appropriate user and privilege

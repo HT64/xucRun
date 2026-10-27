@@ -605,7 +605,7 @@ Diese Einträge verwenden die klassische Win32-Registrierung für Explorer-Konte
 normalerweise erst unter **Weitere Optionen anzeigen**. Wird stattdessen das klassische
 Kontextmenü verwendet, erscheinen sie unmittelbar.
 
-### In Total Commander integrieren
+### Integration in Total Commander
 
 Die folgenden Beispiele wurden mit Total Commander 11.58 (64 Bit) getestet. Sie können auch mit
 anderen Versionen funktionieren; deren Kompatibilität wurde jedoch nicht geprüft. Allgemeine
@@ -935,7 +935,7 @@ dafür ein einziger Mausklick genügen soll. Ein zentraler Anwendungsfall besteh
 meiner bestehenden Windows-Sitzung heraus einen Dateimanager im Benutzerkontext eines anderen
 Kontos öffnen zu können, ohne dafür in dessen separate Sitzung wechseln zu müssen. Die daraus
 hervorgegangenen konkreten
-[Konfigurationsbeispiele für Total Commander](#in-total-commander-integrieren) sind im
+[Konfigurationsbeispiele für Total Commander](#integration-in-total-commander) sind im
 entsprechenden Abschnitt dokumentiert. Mit der Zeit kamen weitere Anforderungen und Funktionen
 hinzu, etwa Desktopverknüpfungen für festgelegte Programmstarts mit erhöhten Rechten, bei Bedarf
 verbunden mit einem Benutzerwechsel, sowie das direkte Ersetzen einer laufenden Shell durch eine
