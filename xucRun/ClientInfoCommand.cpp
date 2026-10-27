@@ -50,6 +50,58 @@ namespace xucrun::info_command
 			return std::wstring(programFiles) + L"\\xucRun\\xucRun.ini";
 		}
 
+		std::wstring GetVersionResourceString(const std::wstring& path,
+			const wchar_t* valueName)
+		{
+			DWORD ignored = 0;
+			const DWORD size = GetFileVersionInfoSizeW(path.c_str(), &ignored);
+			if (size == 0)
+				return {};
+			std::vector<BYTE> versionInfo(size);
+			if (!GetFileVersionInfoW(
+				path.c_str(), 0, size, versionInfo.data()))
+			{
+				return {};
+			}
+
+			struct LanguageAndCodePage
+			{
+				WORD language;
+				WORD codePage;
+			};
+			LanguageAndCodePage* translations = nullptr;
+			UINT translationsSize = 0;
+			if (!VerQueryValueW(versionInfo.data(), L"\\VarFileInfo\\Translation",
+				reinterpret_cast<void**>(&translations), &translationsSize))
+			{
+				return {};
+			}
+
+			const UINT translationCount =
+				translationsSize / sizeof(LanguageAndCodePage);
+			for (UINT index = 0; index < translationCount; ++index)
+			{
+				wchar_t query[128] = {};
+				if (swprintf_s(query,
+					L"\\StringFileInfo\\%04x%04x\\%s",
+					translations[index].language,
+					translations[index].codePage,
+					valueName) < 0)
+				{
+					continue;
+				}
+				wchar_t* value = nullptr;
+				UINT valueLength = 0;
+				if (VerQueryValueW(versionInfo.data(), query,
+					reinterpret_cast<void**>(&value), &valueLength) &&
+					value && valueLength > 1)
+				{
+					return value;
+				}
+			}
+			return {};
+		}
+
 		std::wstring FormatVersion(const broker::ProductVersion& version)
 		{
 			return std::to_wstring(version.major) + L"." +
@@ -131,6 +183,11 @@ namespace xucrun::info_command
 		const bool brokerInformationEnabled =
 			_wcsicmp(brokerInformationEvents, L"true") == 0;
 		const std::wstring executablePath = GetExecutablePath();
+		std::wstring copyright = executablePath == unavailable
+			? std::wstring{}
+			: GetVersionResourceString(executablePath, L"LegalCopyright");
+		if (copyright.empty())
+			copyright = unavailable;
 		LONG signerTrustStatus = TRUST_E_NOSIGNATURE;
 		std::vector<BYTE> signerCertificate;
 		image_trust::SignerCertificateInfo signerInfo;
@@ -183,6 +240,7 @@ namespace xucrun::info_command
 					std::to_wstring(VERSION_MINOR) + L"." +
 					std::to_wstring(VERSION_PATCH) + L"." +
 					std::to_wstring(BUILD_NUMBER),
+				copyright,
 				executablePath,
 				L"x64",
 				localization::GetText(localization::UsesGermanResources()

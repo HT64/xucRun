@@ -856,7 +856,7 @@ Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
 | `xucRun.exe /showcred` | Konten anzeigen, für die xucRun-Anmeldedaten gespeichert sind |
 | `xucRun.exe /showapprovals` | gespeicherte Freigaben anzeigen |
 | `xucRun.exe /resetapprovals[:<Konto>]` | Freigaben zurücksetzen |
-| `xucRun.exe /info` | Version, Signierzertifikat, Brokerstatus und aktuelle Konfiguration anzeigen |
+| `xucRun.exe /info` | Version, Copyright, Signierzertifikat, Brokerstatus und aktuelle Konfiguration anzeigen |
 | `xucRun.exe /admin-status` | Daten aller Windows-Benutzer erhöht anzeigen und verwalten |
 | `xucRun.exe /backup` | lokale Datensicherungen verwalten |
 | `xucRun.exe /audit` | Sicherheitsdiagnose ausführen |
@@ -921,7 +921,7 @@ Die Deinstallation entfernt auch die lokal gespeicherten xucRun-Datensicherungen
 
 ## Fehlerdiagnose
 
-`xucRun.exe /info` zeigt unter anderem Clientversion, Name, SHA-256-Fingerabdruck und
+`xucRun.exe /info` zeigt unter anderem Clientversion, Copyright, Name, SHA-256-Fingerabdruck und
 Gültigkeitszeitraum des Signierzertifikats, Brokerstatus, aktuelles Konto und wirksame
 Konfiguration. `xucRun.exe /audit` prüft sicherheitsrelevante Eigenschaften der laufenden
 Installation und nennt bei gültiger Clientsignatur ebenfalls das geprüfte Zertifikat. Ist xucRun
@@ -1035,6 +1035,15 @@ am Rechner selbst und entwickelte xucRun auf Grundlage dieser Erfahrungen weiter
 xucRun auf diese Weise einen aus meiner Sicht angemessenen Reifegrad erreicht hatte, stellte ich
 die erste öffentliche Version bereit.
 Die fachlichen Entscheidungen und die Verantwortung für das Ergebnis liegen weiterhin bei mir.
+
+Die ausführliche Darstellung der Sicherheitsaspekte kann auf den ersten Blick ungewöhnlich
+kritisch wirken, insbesondere im Vergleich mit einer knappen Produktbeschreibung. Sie ist jedoch
+eine bewusste Folge der Veröffentlichung: Gerade weil xucRun gespeicherte Anmeldedaten verarbeitet
+und einen privilegierten Dienst verwendet, sah ich mich mit der Entscheidung zur Veröffentlichung
+in der Verantwortung, die damit verbundenen Sicherheitsfragen, die getroffenen Schutzmaßnahmen
+und die verbleibenden Grenzen ausführlich und nachvollziehbar darzustellen. Diese Ausführlichkeit
+ist weder als Aussage zu verstehen, xucRun sei unsicherer als weniger ausführlich dokumentierte
+Werkzeuge, noch als Zusage, alle Risiken erkannt oder ausgeschlossen zu haben.
 
 Kommerzielle Interessen verfolge ich mit xucRun nicht. Ebenso beabsichtige ich nicht, daraus ein
 kommerzielles Produkt zu machen und dafür einen bestimmten Funktionsumfang, Fehlerfreiheit,

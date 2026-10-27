@@ -798,7 +798,7 @@ authorization.
 | `xucRun.exe /showcred` | show accounts for which xucRun credentials are stored |
 | `xucRun.exe /showapprovals` | show stored approvals |
 | `xucRun.exe /resetapprovals[:<Account>]` | reset approvals |
-| `xucRun.exe /info` | show versions, signing certificate, broker status, and current configuration |
+| `xucRun.exe /info` | show version, copyright, signing certificate, broker status, and current configuration |
 | `xucRun.exe /admin-status` | show and manage data for all Windows users with elevation |
 | `xucRun.exe /backup` | manage local backups |
 | `xucRun.exe /audit` | run security diagnostics |
@@ -863,7 +863,7 @@ Uninstalling xucRun also removes locally stored xucRun backups.
 
 ## Troubleshooting
 
-`xucRun.exe /info` shows information including the client version, signing certificate name,
+`xucRun.exe /info` shows information including the client version, copyright, signing certificate name,
 SHA-256 fingerprint and validity period, broker status, current account, and effective
 configuration. `xucRun.exe /audit` checks security-relevant properties of the running installation
 and also identifies the verified certificate when the client signature is valid. If xucRun Tray
@@ -967,6 +967,15 @@ used successive development versions in my everyday computer work and continued 
 based on that experience. Only after xucRun had reached what I considered an appropriate level of
 maturity in this way did I make the first public version available. The technical decisions and
 responsibility for the result remain mine.
+
+The detailed discussion of security considerations may initially appear unusually critical,
+particularly when compared with a brief product description. It is, however, a deliberate
+consequence of publication: precisely because xucRun processes stored credentials and uses a
+privileged service, I considered it my responsibility, when deciding to publish it, to describe
+the associated security considerations, the safeguards implemented, and the remaining
+limitations in detail and in a way that can be understood. This level of detail should be
+understood neither as a claim that xucRun is less secure than tools with less detailed
+documentation nor as an assurance that all risks have been identified or eliminated.
 
 I do not pursue commercial interests with xucRun. Nor do I intend to turn it into a commercial
 product and make commitments regarding a particular feature set, absence of defects, continued
