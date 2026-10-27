@@ -123,10 +123,9 @@ xucRun.exe "%windir%\System32\netsh.exe" advfirewall firewall add rule name="Lok
 ```
 
 Dabei erhält `netsh.exe` mehrere Schlüssel-Wert-Argumente sowie einen Regelnamen und einen
-Programmpfad mit Leerzeichen. In der Werkzeugkette aus `runas.exe` und einem separaten
-Elevationswerkzeug müssten diese Anführungszeichen zusätzlich die äußere Befehlszeile für
-`runas.exe` und die Auswertung durch das Elevationswerkzeug unverändert überstehen. Die dafür
-erforderliche Schreibweise hängt wiederum vom konkreten Elevationswerkzeug ab.
+Programmpfad mit Leerzeichen. Eine Werkzeugkette aus `runas.exe` und einem separaten
+Elevationswerkzeug wäre daher deutlich komplizierter; ihre zuverlässige Verwendung mit
+Sonderzeichen hinge außerdem vom konkreten Elevationswerkzeug und dessen Quoting-Regeln ab.
 
 Nach der erstmaligen Kennworteingabe kann `runas.exe /savecred /user:Administrator` dasselbe Konto,
 dessen Anmeldedaten gespeichert wurden, auch für andere Programme verwenden, ohne erneut das
@@ -154,22 +153,13 @@ unterschiedlicher Einsatz- und Sicherheitsmodelle nur eingeschränkt vergleichba
 Wenn das aktuelle Windows-Konto Mitglied der Administratorengruppe ist, verwendet xucRun dieses
 Konto standardmäßig auch für das gestartete Programm. Falls das Konto noch nicht erhöht ist,
 fordert Windows die Zustimmung über die Benutzerkontensteuerung (UAC) an. In diesem Fall zeigt
-xucRun keinen eigenen Freigabedialog und benötigt keine gespeicherte Programmfreigabe. Die
-Zustimmung erfolgt ausschließlich über Windows-UAC.
+xucRun keinen eigenen Freigabedialog; die Zustimmung erfolgt ausschließlich über Windows-UAC.
 
-Die xucRun-Programmfreigaben werden verwendet, wenn ein Programm mit den gespeicherten
-Anmeldedaten eines anderen Kontos gestartet wird. Die Bindung einer xucRun-Freigabe an ein
-bestimmtes Programm gilt deshalb nicht für den direkten Start unter dem eigenen
-Administratorkonto.
-
-Eine gespeicherte Freigabe allein erlaubt einem Standardbenutzer keinen vollständig dialoglosen
-Start unter einem Administratorkonto. Soll das Zielprogramm ohne erhöhte Administratorrechte
-laufen, zeigt Windows bei jedem Aufruf einmal UAC für das xucRun-Hilfsprogramm. Diese Abfrage
-bestätigt nur die Anwesenheit des Benutzers; das Zielprogramm startet danach mit den nicht erhöhten
-Rechten des Administratorkontos, für das xucRun-Anmeldedaten gespeichert sind. Soll das
-Zielprogramm dagegen mit erhöhten Administratorrechten laufen, zeigt Windows die UAC-Abfrage beim
-Start des Zielprogramms. Erst diese Bestätigung erteilt dem Zielprogramm die angeforderten
-erhöhten Rechte.
+xucRun-Programmfreigaben gelten für Starts mit den gespeicherten Anmeldedaten eines anderen
+Kontos. Sie ermöglichen keinen vollständig dialoglosen Kontowechsel: Ohne Erhöhung bestätigt UAC
+bei jedem Aufruf über das xucRun-Hilfsprogramm nur die Anwesenheit des Benutzers; das Zielprogramm
+läuft danach mit den nicht erhöhten Rechten des Zielkontos. Bei einer Erhöhung bestätigt UAC
+stattdessen den Start des Zielprogramms und erteilt ihm die angeforderten Administratorrechte.
 
 ![Windows-UAC-Anwesenheitsbestätigung für den xucRun Approval Helper](docs/de/images/approval-helper-uac.png)
 
@@ -179,14 +169,10 @@ separaten Windows-Desktop; das Zielprogramm läuft weiterhin unter dem gewählte
 
 Ist keine passende Freigabe aktiv, erscheint der xucRun-Freigabedialog auf einem separaten
 Windows-Desktop. Im vorgesehenen Ablauf trennt Windows diesen Desktop von normalen, nicht erhöhten
-Programmen. Kann xucRun den Dialog dort nicht öffnen, wird der Vorgang abgebrochen. Softwarefehler
-und bereits mit Administrator- oder SYSTEM-Rechten laufende Schadsoftware liegen außerhalb dieser
-Schutzgrenze.
-
-Bei einer erhöht auszuführenden Startdatei, die für den Aufrufer beschreibbar ist, verlangt xucRun
-trotz vorhandener Freigabe für jeden Start eine Risikobestätigung auf dem separaten Desktop. Diese
-Zustimmung gilt nur einmal und wird nicht gespeichert. Ist auch das Verzeichnis der Startdatei für
-den Aufrufer beschreibbar, wird der erhöhte Start blockiert.
+Programmen. Kann xucRun ihn dort nicht öffnen, wird der Vorgang abgebrochen. Für eine erhöht
+auszuführende, vom Aufrufer beschreibbare Startdatei ist bei jedem Start eine einmalige
+Risikobestätigung erforderlich; ist auch ihr Verzeichnis beschreibbar, blockiert xucRun den
+erhöhten Start.
 
 Der zentrale Anwendungsfall von xucRun ist ein angemeldeter Standardbenutzer, für den genau ein
 Administratorkonto mit xucRun-Anmeldedaten gespeichert ist und Programme bei Bedarf unter diesem
@@ -197,70 +183,27 @@ Kontonamen und Kennwort:
 xucRun.exe regedit.exe
 ```
 
-xucRun wählt das einzige Administratorkonto, für das xucRun-Anmeldedaten gespeichert sind,
-automatisch aus und fordert für den erhöhten Programmstart die UAC-Bestätigung an. Das Kennwort
-muss nicht erneut eingegeben werden. Kontoname und Kennwort müssen weder im xucRun-Aufruf noch in
-Skripten oder Verknüpfungen stehen.
+xucRun wählt dieses Konto automatisch und fordert die UAC-Bestätigung für den erhöhten Start an.
+Das Kennwort muss nicht erneut eingegeben werden und muss ebenso wenig wie der Kontoname im
+Aufruf, in Skripten oder Verknüpfungen stehen. Mehrere oder ausdrücklich angegebene Zielkonten
+sowie Starts ohne Erhöhung beschreibt der Abschnitt
+[Kontowahl und Rechte](#kontowahl-und-rechte). UAC bleibt interaktiv; **xucRun ist kein
+Mechanismus für unbeaufsichtigte Rechteerhöhung.**
 
-Allgemein unterstützt xucRun Programmstarts unter jedem Benutzerkonto, für das gültige
-xucRun-Anmeldedaten gespeichert sind, das heißt sowohl unter Konten von Mitgliedern der
-Administratorgruppe als auch unter Konten von normalen Benutzern. Die Konten können über einen
-Parameter oder einen Auswahldialog bestimmt werden. Auch aufeinanderfolgende Wechsel des
-Benutzerkontextes sind möglich, indem xucRun ausdrücklich als Zielprogramm eines weiteren
-xucRun-Aufrufs gestartet wird. Shell-interne Befehle müssen dabei über die jeweilige Shell
-aufgerufen werden.
-
-Damit eignet sich xucRun besonders für Skripte, Batchdateien und wiederkehrende Verknüpfungen. UAC
-bleibt dabei bewusst interaktiv; **xucRun ist kein Mechanismus für unbeaufsichtigte
-Rechteerhöhung.**
-
-Sind für mehrere Administratorkonten xucRun-Anmeldedaten gespeichert, lässt xucRun den Benutzer
-eines davon auswählen.
-Ein bestimmtes Konto kann auch direkt angegeben werden. Dabei lässt sich festlegen, ob das
-Zielprogramm mit oder ohne erhöhte Administratorrechte gestartet werden soll. Kann xucRun einen
-ausdrücklich erhöht angeforderten Start nicht herstellen, wird kein Programm gestartet.
-
-Sind für einen Standardbenutzer keine xucRun-Anmeldedaten eines Administratorkontos gespeichert,
-berücksichtigt xucRun stattdessen Standardkonten, für die xucRun-Anmeldedaten gespeichert sind,
-und startet das Zielprogramm ohne erhöhte Administratorrechte. Fehlen die benötigten
-Anmeldedaten vollständig, führt xucRun durch
-die Auswahl eines Kontos und die Kennworteingabe. Anschließend setzt es den ursprünglichen Aufruf
-fort.
-
-xucRun führt den Benutzer im jeweiligen Aufruf durch alle dafür erforderlichen Konto-, Anmelde-
-und Freigabeschritte. Fehlen ein Zielkonto, gespeicherte Anmeldedaten oder eine passende Freigabe,
-fordert xucRun die notwendige Auswahl, Eingabe oder Bestätigung unmittelbar im laufenden Ablauf an
-und setzt den ursprünglichen Aufruf anschließend fort. Kontoauswahl sowie Verwaltungs-,
-Informations- und Fehlerdialoge erscheinen auf dem normalen Benutzerdesktop. Kennworteingaben,
-Freigabeentscheidungen und erforderliche Risikobestätigungen zeigt xucRun dagegen auf einem
-separaten Windows-Desktop an. Die Dialoge laufen dort mit erhöhten Administratorrechten. Im
-vorgesehenen Ablauf trennt Windows diesen Desktop von normalen, nicht erhöhten Programmen.
-Softwarefehler und bereits mit Administrator- oder SYSTEM-Rechten laufende Schadsoftware liegen
-außerhalb dieser Schutzgrenze. Windows-UAC bleibt davon getrennt und verwendet den durch Windows
-konfigurierten UAC-Desktop.
+Fehlen ein Zielkonto, gespeicherte Anmeldedaten oder eine passende Freigabe, fragt xucRun die
+erforderliche Auswahl, Eingabe oder Bestätigung im laufenden Aufruf ab. Kontoauswahl sowie
+Verwaltungs-, Informations- und Fehlerdialoge erscheinen auf dem normalen Benutzerdesktop.
+Kennworteingaben, Freigabeentscheidungen und Risikobestätigungen zeigt xucRun auf einem separaten
+Windows-Desktop; Windows-UAC verwendet davon getrennt den konfigurierten UAC-Desktop.
 
 Beim ersten solchen Dialog erzeugt xucRun für das aufrufende Windows-Benutzerkonto ein
-zufälliges xucRun-Sicherheitsmerkmal im Format `XXXX-XXXX`. Kennwort-, Freigabe- und
-Risikodialoge auf dem privaten Desktop zeigen dieses Merkmal anschließend unverändert an. Der
-Benutzer sollte es nach einer anhand der Prüfsumme überprüften Installation beim bewusst
-ausgelösten ersten Dialog einprägen oder an einem nur für ihn zugänglichen Ort notieren und spätere
-xucRun-Dialoge nur bestätigen, wenn es übereinstimmt. Diese erste Anzeige ist ein Vertrauensstart
-und lässt sich noch nicht mit einem früheren Wert vergleichen. xucRun fordert nicht zur Eingabe
-dieses Merkmals auf. Das getrennte Windows-UAC-Fenster zeigt es nicht an.
-
-Wiederholte Starts ohne erneute Kennworteingabe setzen voraus, dass xucRun die Anmeldedaten des
-Zielkontos speichert. Dafür verwendet xucRun Windows-APIs. Im vorgesehenen Ablauf gelangen
-Kennwörter weder in die Kommandozeile noch an das Zielprogramm. Für einen Start unter einem anderen
-Konto muss xucRun die benötigten Anmeldedaten jedoch vorübergehend verarbeiten.
-
-Die Übereinstimmung ist ein Originalitätshinweis für den xucRun-Helperdialog, aber kein Beweis,
-dass die angezeigte Operation ungefährlich ist oder vom Benutzer selbst ausgelöst wurde. Ein
-Angreifer kann weiterhin legitime Dialoge auslösen und auf eine unaufmerksame Bestätigung hoffen.
-
-Diese Maßnahmen bieten keinen vollständigen Schutz auf einem kompromittierten System. Ein
-Angreifer kann täuschende oder legitime Dialoge auslösen und auf eine unaufmerksame Bestätigung
-hoffen. Das Sicherheitsmerkmal hilft nur, wenn der Benutzer es tatsächlich vergleicht. xucRun
-sollte deshalb nur entsprechend dem nachfolgenden Sicherheitshinweis eingesetzt werden.
+zufälliges Sicherheitsmerkmal im Format `XXXX-XXXX`. Kennwort-, Freigabe- und Risikodialoge zeigen
+es anschließend unverändert an. Nach der Prüfung der Installationsdatei sollte der Benutzer es
+beim bewusst ausgelösten ersten Dialog einprägen oder geschützt notieren und spätere Dialoge nur
+bei Übereinstimmung bestätigen. Das Merkmal weist auf den xucRun-Helperdialog hin, beweist aber
+weder die Ungefährlichkeit noch den Ursprung einer Operation. Es bietet keinen vollständigen
+Schutz auf einem kompromittierten System und hilft nur, wenn der Benutzer es tatsächlich
+vergleicht.
 
 ## Umfang von xucRun
 
@@ -279,7 +222,8 @@ xucRun ist eigenständig baubar, installierbar und nutzbar.
 ## Voraussetzungen und Einsatzbereich
 
 xucRun unterstützt Windows 10 und Windows 11 auf x64-Systemen. Es benötigt die aktuelle
-Microsoft Visual C++ Redistributable v14 für x64.
+Microsoft Visual C++ Redistributable v14 für x64. Die für eine Veröffentlichung erforderliche
+Mindestversion steht im zugehörigen Eintrag des [Änderungsprotokolls](CHANGELOG.de.md).
 
 xucRun ist für erfahrene Privatanwender und Entwickler auf selbst verwalteten Rechnern sowie in
 persönlichen Entwicklungs- und Testsystemen vorgesehen. Es ist keine Lösung für unbeaufsichtigte
@@ -433,12 +377,11 @@ passend signierten xucRun-Komponenten.
 
 Das öffentliche Paket enthält keinen gemeinsam verwendeten privaten Schlüssel und ist nicht mit
 einem kommerziell ausgestellten, öffentlich vertrauenswürdigen Herausgeberzertifikat signiert. Ein
-mit xucRun verteilter, überall wiederverwendbarer privater Schlüssel würde jedem Empfänger
-ermöglichen, Dateien mit derselben scheinbaren Identität zu erzeugen. Deshalb erstellt der
-Installer auf dem Zielrechner ein eigenes selbstsigniertes Zertifikat oder verwendet das dort
-bereits zuvor erzeugte gültige xucRun-Zertifikat erneut. Dessen privater Schlüssel ist nicht
-exportierbar. Dieses Zertifikat begründet ausschließlich lokales technisches Vertrauen; es belegt
-nicht die Herkunft des öffentlichen Pakets. Deshalb muss vor dem Start die veröffentlichte
+solcher Schlüssel würde jedem Empfänger ermöglichen, Dateien mit derselben scheinbaren Identität
+zu erzeugen. Deshalb erstellt der Installer ein eigenes selbstsigniertes Zertifikat auf dem
+Zielrechner oder verwendet dessen vorhandenes gültiges xucRun-Zertifikat. Der private Schlüssel
+ist nicht exportierbar. Dieses Zertifikat begründet nur lokales technisches Vertrauen und belegt
+nicht die Herkunft des öffentlichen Pakets; deshalb muss vor dem Start die veröffentlichte
 Prüfsumme kontrolliert werden.
 
 Das Standardzertifikat heißt `CN=xucRun Local Signing (<COMPUTERNAME>)`. Es wird einschließlich
@@ -461,64 +404,29 @@ SHA-256-Prüfsumme mit der dort veröffentlichten Prüfsumme verglichen und eine
 Authenticode-Signatur geprüft werden.
 
 Beim Start fordert die Windows-Benutzerkontensteuerung die erforderlichen Administratorrechte an.
-Danach bietet die grafische Oberfläche Programmsprache und Maschinen-PATH zur Auswahl. Der
-Installer zeigt bei einer vorhandenen Installation außerdem deren registrierte Version und den
-Zeitpunkt der Installation beziehungsweise letzten Aktualisierung an. Der
-Installer verwendet automatisch ein bereits vorhandenes gültiges lokales xucRun-
-Codesignaturzertifikat mit privatem Schlüssel oder erzeugt das zuvor beschriebene Zertifikat. Die
-Oberfläche zeigt vorab, ob ein Zertifikat wiederverwendet oder neu erstellt wird, und nennt
-Gültigkeitszeitraum sowie Fingerabdruck. Anschließend signiert der Installer damit alle
-installierbaren Dateien.
+Danach können Programmsprache und Maschinen-PATH gewählt werden. Der Installer verwendet das
+vorhandene gültige lokale xucRun-Zertifikat oder erzeugt ein neues und zeigt dessen
+Gültigkeitszeitraum und Fingerabdruck an.
 
 ![Grafischer xucRun-Installer](docs/de/images/installer.png)
 
-Die Registerkarte **Ablauf und Deinstallation** erläutert vor dem Installationsstart die temporäre
-Entpackung, die Runtime-Behandlung, die lokale Signierung, die installierten Komponenten und das
-Verhalten bei der Entfernung.
-
-![Ablauf- und Deinstallationsinformationen des xucRun-Installers](docs/de/images/installer-process-and-uninstallation.png)
-
-Der Installer zeigt die erkannte Version der Microsoft Visual C++ Runtime x64 und kennzeichnet sie
-als kompatibel oder zu alt beziehungsweise als nicht gefunden. Nur wenn eine passende Runtime
-fehlt, nennt der Aufforderungsdialog die erforderliche Mindestversion und bietet den geprüften
-Microsoft-Download oder die Auswahl einer vorhandenen `vc_redist.x64.exe` an. Eine ausgewählte
-Datei, deren Produktversion die Mindestversion unterschreitet, wird vor der Ausführung mit einer
-verständlichen Versionsangabe abgelehnt. Nach einer Runtime-Installation wird die Anzeige
-aktualisiert; die Erfolgsbestätigung nennt die installierte beziehungsweise aktualisierte Runtime
-samt Version. Installiert werden Client, Broker, Approval-Helper und Sprachdateien nach
-`%ProgramFiles%\xucRun`. Zusätzlich richtet der Installer den bedarfsgestarteten Brokerdienst und
-den Deinstallationseintrag ein. Die Erfolgsbestätigung nennt außerdem das installierte
-beziehungsweise wiederverwendete lokale Zertifikat mit Gültigkeitszeitraum und Fingerabdruck.
-
-![Erfolgreiche xucRun-Installation](docs/de/images/installation-success.png)
-
-Intern verwendet der grafische Installer dasselbe mitgelieferte PowerShell-Installationsskript wie
-der weiterhin unterstützte manuelle Installationsweg. Dieses prüft Paketdateien und Signaturen und
-konfiguriert die gewählte Sprache. Optional kann das Installationsverzeichnis dem globalen
-Maschinen-PATH hinzugefügt werden.
+Der Installer prüft die Microsoft Visual C++ Runtime x64. Fehlt eine passende Version, bietet er
+den geprüften Microsoft-Download oder eine vorhandene `vc_redist.x64.exe` an und lehnt zu alte
+Versionen ab. Anschließend installiert er Client, Broker, Approval-Helper und Sprachdateien unter
+`%ProgramFiles%\xucRun` und richtet Brokerdienst und Deinstallationseintrag ein. Der manuelle
+Installationsweg verwendet dasselbe mitgelieferte PowerShell-Skript.
 
 ### Aktualisieren und deinstallieren
 
 xucRun und das separat installierte optionale
 [xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) verwenden eine exakte vierteilige
-Versionsbindung. Bei einer erneuten Installation derselben xucRun-Version kann xucRun Tray installiert
-bleiben, wenn seine registrierte Version, Dateiversion und Signierer weiterhin exakt zum
-Core-Paket passen. Vor einem Versionswechsel oder der Deinstallation von xucRun muss das xucRun-Tray-Add-on
-über seinen eigenen Windows-Deinstallationseintrag entfernt werden. Nach einem xucRun-Update kann
-die öffentlich verfügbare Tray-Version mit derselben Versionsnummer installiert werden.
-War der Brokerdienst vor einer Reparaturinstallation aktiv, wird er nach dem Dateiaustausch
-automatisch wieder gestartet und damit sein vorheriger Laufzustand wiederhergestellt. Ein zuvor
-bewusst gestoppter oder deaktivierter Brokerdienst bleibt gestoppt beziehungsweise deaktiviert.
-Wird die xucRun-Deinstallation bei noch installiertem Tray gestartet, bleibt die Core-Installation
-unverändert und ein sichtbarer Fehlerdialog fordert dazu auf, zuerst **xucRun Tray** über
-**Installierte Apps** zu deinstallieren.
-
-![Blockierte Core-Deinstallation bei installiertem xucRun Tray](docs/de/images/uninstall-blocked-by-tray.png)
+Versionsbindung. Vor einem Versionswechsel oder der Deinstallation von xucRun muss xucRun Tray
+über seinen eigenen Windows-Deinstallationseintrag entfernt werden; anschließend kann die
+Tray-Version mit derselben neuen Versionsnummer installiert werden. Bei einer erneuten
+Installation derselben passenden Version kann Tray installiert bleiben.
 
 Für eine Aktualisierung wird der versionierte grafische Installer des neueren Pakets gestartet. Er
-verwendet das bereits vorhandene gültige lokale xucRun-Zertifikat erneut und signiert damit die
-neuen Paketdateien. Alternativ können die lokale Signierung und anschließend das PowerShell-
-Installationsskript des neuen Pakets manuell ausgeführt werden. Gespeicherte xucRun-Anmeldedaten,
+verwendet das vorhandene gültige lokale xucRun-Zertifikat erneut. Gespeicherte Anmeldedaten,
 Freigaben und nicht vom Installer verwaltete INI-Einstellungen bleiben erhalten.
 
 Die Deinstallation ist über **Installierte Apps** möglich. Alternativ wird kein separates
@@ -537,20 +445,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 > xucRun-Standardzertifikat samt privatem Schlüssel und Vertrauenseinträgen.
 
 Vor der ersten Änderung verlangt die Deinstallation eine ausdrückliche Bestätigung dieser
-unwiderruflichen Löschung. Bei Abbruch bleiben Installation und Daten unverändert. Die
-Erfolgsbestätigung führt anschließend die entfernten Programmkomponenten, alle gegebenenfalls
-vorhandenen gespeicherten Daten und das entfernte Zertifikat mit seinen Details auf.
-
-| Bestätigung der unwiderruflichen Löschung | Erfolgreiche Deinstallation |
-|:---:|:---:|
-| ![Bestätigung vor der unwiderruflichen Deinstallation von xucRun](docs/de/images/uninstall-confirmation.png) | ![Erfolgreiche xucRun-Deinstallation](docs/de/images/uninstallation-success.png) |
+unwiderruflichen Löschung. Bei Abbruch bleiben Installation und Daten unverändert.
 
 Bei einem Deinstallationsfehler schreibt xucRun ein technisches Diagnoseprotokoll nach
-`%ProgramData%\xucRun\InstallerLogs`. Der sichtbare Fehlerdialog zeigt den vollständigen Pfad der
-konkreten Logdatei in einem kopierbaren Feld und kann den Protokollordner direkt öffnen. Das
-Protokoll enthält Fehler-, Skript- und Systeminformationen, aber keine gespeicherten Kennwörter.
-Der im Dialog angezeigte Dateipfad ist maßgeblich. Eine später erfolgreiche Core-Deinstallation
-entfernt auch diese Diagnoseprotokolle.
+`%ProgramData%\xucRun\InstallerLogs`; der Fehlerdialog zeigt den konkreten Dateipfad und kann den
+Protokollordner öffnen. Das Protokoll enthält keine gespeicherten Kennwörter.
 
 Beide Installationswege und die Hinweise zur lokalen Testsignierung stehen ausführlich in der
 [Installationsanleitung](docs/de/INSTALLATION.md).
@@ -683,8 +582,9 @@ nicht die interaktive Windows-UAC-Bestätigung.
 ### In Total Commander integrieren
 
 Die folgenden Beispiele wurden mit Total Commander 11.58 (64 Bit) getestet. Sie können auch mit
-anderen Versionen funktionieren; deren Kompatibilität wurde jedoch nicht geprüft. Weitere
-Informationen bietet die [offizielle Total-Commander-Webseite](https://www.ghisler.com/deutsch.htm).
+anderen Versionen funktionieren; deren Kompatibilität wurde jedoch nicht geprüft. Allgemeine
+Informationen zu Total Commander bietet die
+[offizielle Total-Commander-Webseite](https://www.ghisler.com/deutsch.htm).
 
 xucRun kann eine neue erhöhte Total-Commander-Instanz nach seiner automatischen Kontostrategie
 starten. Mitglieder der Administratorengruppe behalten ihr Konto und werden bei Bedarf über UAC

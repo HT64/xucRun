@@ -112,10 +112,9 @@ xucRun.exe "%windir%\System32\netsh.exe" advfirewall firewall add rule name="Loc
 ```
 
 Here, `netsh.exe` receives several key-value arguments as well as a rule name and a program path
-containing spaces. In a tool chain consisting of `runas.exe` and a separate elevation tool, these
-quotation marks would also have to survive the outer command line for `runas.exe` and the
-elevation tool's parsing unchanged. The required notation again depends on the particular
-elevation tool.
+containing spaces. A toolchain consisting of `runas.exe` and a separate elevation tool would
+therefore be considerably more complex; its reliable use with special characters would also
+depend on the specific elevation tool and its quoting rules.
 
 After the password is entered once, `runas.exe /savecred /user:Administrator` can use the same
 account whose credentials were stored for other programs without requesting the password or a
@@ -142,19 +141,13 @@ differ.
 If the current Windows account is a member of the Administrators group, xucRun uses this account
 for the started program by default. If the account is not yet elevated, Windows requests consent
 through User Account Control (UAC). In this case, xucRun does not display its own approval dialog
-and does not require a stored program approval. Consent is handled exclusively by Windows UAC.
+and consent is handled exclusively by Windows UAC.
 
-xucRun program approvals are used when a program is started with the stored credentials of
-another account. Binding an xucRun approval to a specific program therefore does not apply to a
-direct launch under the current administrator account.
-
-A stored approval alone does not allow a standard user to start a program under an administrator
-account without any dialogs. If the target program is to run without elevated administrator
-privileges, Windows displays UAC once for the xucRun helper on every invocation. This prompt only
-confirms the user's presence; the target program then starts with the stored administrator
-account's non-elevated privileges. If the target program is to run with elevated administrator
-privileges, Windows displays the UAC prompt when starting the target program. Only this
-confirmation grants the requested elevated privileges to the target program.
+xucRun program approvals apply to starts using another account's stored credentials. They do not
+allow a completely unattended account switch: without elevation, UAC confirms the user's
+presence through the xucRun helper on every invocation, after which the target program runs with
+the target account's non-elevated privileges. With elevation, UAC instead confirms the target
+program start and grants it the requested administrator privileges.
 
 ![Windows UAC presence confirmation for the xucRun Approval Helper](docs/en/images/approval-helper-uac.png)
 
@@ -165,14 +158,9 @@ selected standard account.
 
 If no suitable approval is active, the xucRun approval dialog appears on a separate Windows
 desktop. In the intended workflow, Windows separates this desktop from normal, non-elevated
-programs. If xucRun cannot open the dialog there, the operation is aborted. Software defects and
-malware already running with administrator or SYSTEM privileges are outside this protection
-boundary.
-
-For an executable that is to be started elevated but is writable by the caller, xucRun requires a
-risk confirmation on the separate desktop for every start despite an existing approval. This
-consent applies once only and is not stored. If the executable's directory is also writable by the
-caller, the elevated start is blocked.
+programs. If xucRun cannot open it there, the operation is aborted. An elevated executable
+writable by the caller requires a one-time risk confirmation for every start; if its directory is
+also writable, xucRun blocks the elevated start.
 
 xucRun's central use case is a signed-in standard user for whom exactly one administrator account
 has been stored in xucRun and programs are to be started elevated under that account when needed.
@@ -182,64 +170,25 @@ After the one-time setup, an invocation without account name and password is suf
 xucRun.exe regedit.exe
 ```
 
-xucRun automatically selects the only administrator account for which xucRun credentials are
-stored and requests UAC confirmation for the elevated program start. The password does not need
-to be entered again. Neither the account name nor the password has to appear in the xucRun
-invocation, scripts, or shortcuts.
+xucRun selects this account automatically and requests UAC confirmation for the elevated start.
+The password does not need to be entered again, and neither it nor the account name has to appear
+in the invocation, scripts, or shortcuts. Multiple or explicitly specified target accounts and
+starts without elevation are described under
+[Account selection and privileges](#account-selection-and-privileges). UAC remains interactive;
+**xucRun is not a mechanism for unattended elevation.**
 
-In general, xucRun supports starting programs under any user account for which valid xucRun
-credentials are stored, including both members of the Administrators group and standard users.
-Accounts can be selected through a parameter or a dialog. Consecutive user-context switches are
-also possible by explicitly starting xucRun as the target program of another xucRun invocation.
-Shell-internal commands must be invoked through the corresponding shell.
+If a target account, stored credentials, or a suitable approval is missing, xucRun requests the
+required selection, input, or confirmation during the current invocation. Account selection,
+management, information, and error dialogs appear on the normal user desktop. Password entry,
+approval decisions, and risk confirmations appear on a separate Windows desktop; Windows UAC
+separately uses the configured UAC desktop.
 
-This makes xucRun particularly suitable for scripts, batch files, and recurring shortcuts. UAC
-deliberately remains interactive; **xucRun is not a mechanism for unattended elevation.**
-
-If xucRun credentials are stored for several administrator accounts, xucRun lets the user select
-one. A particular account can also be specified directly. The user can choose whether the target
-program is to start with or without elevated administrator privileges. If xucRun cannot establish
-an explicitly requested elevated start, no program is started.
-
-If a standard user has no administrator-account credentials stored by xucRun, xucRun instead
-considers standard accounts for which xucRun credentials are stored and starts the target program
-without elevated administrator privileges. If the required credentials are completely missing,
-xucRun guides the user through account selection and password entry and then continues the
-original invocation.
-
-For each invocation, xucRun guides the user through all required account, credential, and approval
-steps. If a target account, stored credentials, or a suitable approval is missing, xucRun requests
-the required selection, input, or confirmation directly in the current workflow and then
-continues the original invocation. Account selection, management, information, and error dialogs
-appear on the normal user desktop. Password entry, approval decisions, and required risk
-confirmations instead appear on a separate Windows desktop. These dialogs run with elevated
-administrator privileges. In the intended workflow, Windows separates this desktop from normal,
-non-elevated programs. Software defects and malware already running with administrator or SYSTEM
-privileges are outside this protection boundary. Windows UAC remains separate and uses the UAC
-desktop configured by Windows.
-
-For the first such dialog, xucRun creates a random xucRun security identifier in the format
-`XXXX-XXXX` for the calling Windows user account. Password, approval, and risk dialogs on the
-private desktop then display this identifier unchanged. After verifying the installation against
-the published checksum, the user should remember or record the identifier in a location accessible
-only to that user during the first deliberately initiated dialog and confirm later xucRun dialogs
-only when it matches. This initial display establishes trust and cannot yet be compared with an
-earlier value. xucRun does not ask the user to enter this identifier. The separate Windows UAC
-window does not display it.
-
-Repeated starts without entering the password again require xucRun to store the target account
-credentials. xucRun uses Windows APIs for this storage. In the intended workflow, passwords are
-not passed through the command line or to the target program. Starting a program under another
-account nevertheless requires xucRun to process the credentials temporarily.
-
-A matching identifier indicates that the dialog originates from the xucRun helper, but it does
-not prove that the displayed operation is safe or was initiated by the user. An attacker can still
-trigger legitimate dialogs and hope that the user confirms them without sufficient attention.
-
-These measures do not provide complete protection on a compromised system. An attacker can
-trigger deceptive or legitimate dialogs and hope that the user confirms them without sufficient
-attention. The security identifier helps only if the user actually compares it. xucRun should
-therefore be used only as described in the security notice below.
+For the first such dialog, xucRun creates a random security identifier in the format `XXXX-XXXX`.
+Password, approval, and risk dialogs then display it unchanged. After verifying the installation,
+the user should remember or securely record it during the first deliberately initiated dialog and
+confirm later dialogs only when it matches. The identifier indicates an xucRun helper dialog but
+does not prove that an operation is safe or user-initiated. It does not provide complete
+protection on a compromised system and helps only when the user actually compares it.
 
 ## xucRun scope
 
@@ -258,7 +207,8 @@ xucRun can be built, installed, and used independently.
 ## Requirements and intended use
 
 xucRun supports Windows 10 and Windows 11 on x64 systems. It requires the current Microsoft
-Visual C++ Redistributable v14 for x64.
+Visual C++ Redistributable v14 for x64. The minimum version required for a release is listed in
+the corresponding [changelog](CHANGELOG.md) entry.
 
 xucRun is intended for experienced private users and developers on self-managed computers and in
 personal development and test systems. It is not a solution for unattended elevation, centralized
@@ -396,12 +346,11 @@ signed files. The broker accepts security-sensitive requests only from matching 
 components.
 
 The public package does not contain a shared private key and is not signed with a commercially
-issued, publicly trusted publisher certificate. Shipping one reusable private key with xucRun
-would allow every recipient to create files that appear to have the same identity. Instead, the
-installer creates a unique self-signed certificate on the target computer, or reuses the valid
-xucRun certificate previously created there. Its private key is non-exportable. This establishes a
-local technical trust relationship; it does not prove the public package's origin. Therefore,
-verify the release checksum before starting the installer.
+issued, publicly trusted publisher certificate. Such a key would allow every recipient to create
+files that appear to have the same identity. Instead, the installer creates a unique self-signed
+certificate on the target computer or reuses its existing valid xucRun certificate. The private
+key is non-exportable. This establishes only local technical trust and does not prove the public
+package's origin; therefore, verify the release checksum before starting the installer.
 
 The standard certificate is named `CN=xucRun Local Signing (<COMPUTERNAME>)`. It is stored in
 `LocalMachine\My` with its private key and added to `LocalMachine\Root` and
@@ -422,59 +371,28 @@ with the checksum published there, and verify any available Authenticode signatu
 
 When started, Windows User Account Control requests the required administrator rights. The
 graphical interface then offers a choice of application language and machine PATH behavior. The
-installer also shows the registered version and installation or last-update time for an existing
-installation. The
-installer automatically reuses an existing valid local xucRun code-signing certificate with its
-private key or creates the certificate described above. The interface shows in advance whether a
-certificate will be reused or created and displays its validity period and fingerprint. It then
-signs all installable files with that certificate.
+installer reuses the existing valid local xucRun certificate or creates a new one and displays its
+validity period and fingerprint.
 
 ![xucRun graphical installer](docs/en/images/installer.png)
 
-The **Process and uninstallation** tab explains temporary extraction, runtime handling, local
-signing, installed components, and removal behavior before installation begins.
-
-![xucRun installer process and uninstallation information](docs/en/images/installer-process-and-uninstallation.png)
-
-The installer displays the detected Microsoft Visual C++ Runtime x64 version and identifies it as
-compatible or too old, or reports that it was not found. Only when a compatible runtime is
-missing does the prompt state the required minimum version and offer either a verified Microsoft
-download or an existing `vc_redist.x64.exe`. A selected file whose product version is below the
-minimum is rejected with a clear version message before it is executed. The display is updated
-after runtime installation. The success confirmation also reports the installed or updated runtime
-and its version. It installs the client, broker, approval helper, and language files under
-`%ProgramFiles%\xucRun`. It also configures the demand-start broker service and uninstall entry.
-The success confirmation identifies the installed or reused local certificate with its validity
-period and thumbprint.
-
-![Successful xucRun installation](docs/en/images/installation-success.png)
-
-Internally, the graphical installer uses the same included PowerShell installation script as the
-supported manual installation method. The script verifies the package files and signatures and
-sets the selected language. The installation directory can optionally be added to the global
-machine PATH.
+The installer checks the Microsoft Visual C++ Runtime x64. If no compatible version is present,
+it offers a verified Microsoft download or an existing `vc_redist.x64.exe` and rejects versions
+that are too old. It then installs the client, broker, approval helper, and language files under
+`%ProgramFiles%\xucRun` and configures the broker service and uninstall entry. The manual
+installation method uses the same included PowerShell script.
 
 ### Update and uninstall
 
 xucRun and the separately installed optional
 [xucRun Tray add-on](https://github.com/HT64/xucRun-Tray) use an exact four-part version match.
-When reinstalling the same xucRun version, Tray can remain installed if its registered version,
-file version, and signer still match the Core package exactly. Before changing versions or
-removing xucRun, remove xucRun Tray add-on through its separate Windows uninstall entry. After an
-xucRun update, install the publicly available Tray release with the same version.
-If the broker service was running before a repair installation, it is restarted automatically
-after the files have been replaced, restoring its previous running state. A broker service that
-was deliberately stopped or disabled remains stopped or disabled.
-If xucRun uninstall is started while Tray is still installed, the Core installation remains
-unchanged and a visible error dialog instructs the user to uninstall **xucRun Tray** through
-**Installed apps** first.
-
-![Core uninstallation blocked while xucRun Tray is installed](docs/en/images/uninstall-blocked-by-tray.png)
+Before changing xucRun versions or uninstalling it, remove xucRun Tray through its own Windows
+uninstall entry; afterward, install the Tray release with the same new version. Tray can remain
+installed when reinstalling the same matching version.
 
 To update xucRun, start the versioned graphical installer from the newer package. It reuses the
-existing valid local xucRun certificate and signs the new package files with it. Alternatively,
-run the local signing workflow and then the PowerShell installation script from the new package.
-Stored xucRun credentials, approvals, and INI settings not managed by the installer are preserved.
+existing valid local xucRun certificate. Stored credentials, approvals, and INI settings not
+managed by the installer are preserved.
 
 Uninstall through **Installed apps**. Alternatively, no separate uninstallation script is needed:
 run the installed `Install-xucRun.ps1` under `%ProgramFiles%\xucRun` with `-Uninstall`:
@@ -491,19 +409,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 > trust entries.
 
 Before making the first change, uninstall requires explicit confirmation of this permanent
-deletion. Cancelling leaves the installation and its data unchanged. The success confirmation
-then lists the removed program components, all stored data that may have been present, and the
-removed certificate with its details.
-
-| Permanent-deletion confirmation | Successful uninstallation |
-|:---:|:---:|
-| ![Confirmation before permanently uninstalling xucRun](docs/en/images/uninstall-confirmation.png) | ![Successful xucRun uninstallation](docs/en/images/uninstallation-success.png) |
+deletion. Cancelling leaves the installation and its data unchanged.
 
 If uninstall fails, xucRun writes a technical diagnostic log under
-`%ProgramData%\xucRun\InstallerLogs`. The visible error dialog shows the full path of the specific
-log file in a copyable field and can open the log folder directly. The log contains error, script,
-and system information, but no stored passwords. The file path shown in the dialog is
-authoritative. A later successful Core uninstall also removes these diagnostic logs.
+`%ProgramData%\xucRun\InstallerLogs`; the error dialog shows the specific file path and can open
+the log folder. The log contains no stored passwords.
 
 Both installation methods and the local test-signing instructions are described in detail in the
 [installation guide](docs/en/INSTALLATION.md).
@@ -630,8 +540,8 @@ not replace the interactive Windows UAC confirmation.
 ### Integrate with Total Commander
 
 The following examples were tested with Total Commander 11.58 (64-bit). They may also work with
-other versions, but their compatibility has not been verified. For more information, visit the
-[official Total Commander website](https://www.ghisler.com/).
+other versions, but their compatibility has not been verified. For general information about
+Total Commander, visit the [official Total Commander website](https://www.ghisler.com/).
 
 xucRun can start a new elevated Total Commander instance according to its automatic account
 strategy. Members of the Administrators group retain their account and are elevated through UAC
