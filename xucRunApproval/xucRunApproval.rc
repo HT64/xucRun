@@ -28,7 +28,7 @@ BEGIN
             VALUE "FileDescription", "xucRun Approval Helper"
             VALUE "FileVersion", VERSION_STRING
             VALUE "InternalName", "xucRunApproval"
-            VALUE "LegalCopyright", "Copyright (C) 2024-2026"
+            VALUE "LegalCopyright", "Copyright (C) 2024-2026 Günther Thrum"
             VALUE "OriginalFilename", "xucRunApproval.exe"
             VALUE "ProductName", "xucRun"
             VALUE "ProductVersion", VERSION_STRING

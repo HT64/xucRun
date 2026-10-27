@@ -28,7 +28,7 @@ BEGIN
             VALUE "FileDescription", "xucRun Broker Service"
             VALUE "FileVersion", VERSION_STRING
             VALUE "InternalName", "xucRunBroker"
-            VALUE "LegalCopyright", "Copyright (C) 2024-2026"
+            VALUE "LegalCopyright", "Copyright (C) 2024-2026 Günther Thrum"
             VALUE "OriginalFilename", "xucRunBroker.exe"
             VALUE "ProductName", "xucRun"
             VALUE "ProductVersion", VERSION_STRING

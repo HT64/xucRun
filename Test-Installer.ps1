@@ -6,6 +6,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$expectedCopyright =
+    'Copyright (C) 2024-2026 G' + [char]0x00FC + 'nther Thrum'
 $serviceName = 'xucRunBroker'
 $programFilesDirectory = [Environment]::GetFolderPath(
     [Environment+SpecialFolder]::ProgramFiles)
@@ -153,6 +155,7 @@ function Assert-InstalledState {
         $versionInfo = (Get-Item -LiteralPath $entry.Path).VersionInfo
         Assert-Condition (
             $versionInfo.CompanyName -eq 'HT64' -and
+            $versionInfo.LegalCopyright -eq $expectedCopyright -and
             $versionInfo.FileVersion -eq '0.9.0.2' -and
             $versionInfo.ProductVersion -eq '0.9.0.2' -and
             -not [string]::IsNullOrWhiteSpace($versionInfo.FileDescription) -and

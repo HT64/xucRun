@@ -671,7 +671,7 @@ BEGIN
 			VALUE "OriginalFilename", "xucRun.exe"
 #endif
 			VALUE "FileVersion", VERSION_STRING
-			VALUE "LegalCopyright", "Copyright (C) 2024-2026"
+			VALUE "LegalCopyright", "Copyright (C) 2024-2026 Günther Thrum"
 			VALUE "ProductName", "xucRun"
 			VALUE "ProductVersion", VERSION_STRING
 		END
@@ -728,7 +728,7 @@ BEGIN
 			VALUE "ProductName", "xucRun"
 #endif
 			VALUE "FileVersion", VERSION_STRING
-			VALUE "LegalCopyright", "Copyright (C) 2024-2026"
+			VALUE "LegalCopyright", "Copyright (C) 2024-2026 Günther Thrum"
 			VALUE "ProductVersion", VERSION_STRING
 		END
 	END
