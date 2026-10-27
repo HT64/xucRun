@@ -579,6 +579,32 @@ setzt dieses Verzeichnis als Wurzel des neuen Explorer-Fensters. Die verschachte
 Anführungszeichen müssen unverändert erhalten bleiben. Die gespeicherten Anmeldedaten ersetzen
 nicht die interaktive Windows-UAC-Bestätigung.
 
+### Beispiele für das Explorer-Kontextmenü
+
+Die optionale Datei [ExplorerKontextMenue.reg](ExplorerKontextMenue.reg) enthält ein vollständiges
+Beispiel, das xucRun-Befehle für unterstützte Dateien, Ordner, Ordnerhintergründe und Laufwerke
+ergänzt. Die Befehlseinträge für ausführbare Dateien und Ordnerhintergründe folgen beispielsweise
+diesen Mustern:
+
+```reg
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\xucRun\command]
+@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"%1\""
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\xucRunAdmin\command]
+@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"C:\\Windows\\explorer.exe\" \"/root,\"%V\"\""
+```
+
+Die Datei ist ein Beispiel und kein Bestandteil des Installers. Sie entfernt zuerst die neun von
+ihr verwalteten Einträge und erstellt sie anschließend unter `HKEY_LOCAL_MACHINE` neu, sodass sie
+für alle Benutzer gelten. Der Import erfordert Administratorrechte, setzt eine xucRun-Installation
+unter `C:\Program Files\xucRun` voraus und erzwingt für jeden enthaltenen xucRun-Befehl mit
+`/user-elevated` ausdrücklich ein erhöhtes Administratorkonto.
+
+Diese Einträge verwenden die klassische Win32-Registrierung für Explorer-Kontextmenüs unter
+`Software\Classes\...\shell`. Im standardmäßigen kompakten Kontextmenü von Windows 11 stehen sie
+normalerweise erst unter **Weitere Optionen anzeigen**. Wird stattdessen das klassische
+Kontextmenü verwendet, erscheinen sie unmittelbar.
+
 ### In Total Commander integrieren
 
 Die folgenden Beispiele wurden mit Total Commander 11.58 (64 Bit) getestet. Sie können auch mit

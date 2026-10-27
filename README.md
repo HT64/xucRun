@@ -537,6 +537,31 @@ stored and the example path with the directory to open. `/root` makes this direc
 the new Explorer window. The nested quotation marks must remain unchanged. Stored credentials do
 not replace the interactive Windows UAC confirmation.
 
+### Explorer context-menu examples
+
+The optional [ExplorerKontextMenue.reg](ExplorerKontextMenue.reg) file contains a complete example
+that adds xucRun commands for supported files, folders, folder backgrounds, and drives. For
+example, its command entries for executable files and folder backgrounds follow these patterns:
+
+```reg
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\xucRun\command]
+@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"%1\""
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\xucRunAdmin\command]
+@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"C:\\Windows\\explorer.exe\" \"/root,\"%V\"\""
+```
+
+The file is an example rather than part of the installer. It first removes the nine entries it
+manages and then recreates them under `HKEY_LOCAL_MACHINE`, so they apply to all users. Importing
+it requires administrator rights, assumes that xucRun is installed under
+`C:\Program Files\xucRun`, and makes every included xucRun command explicitly require an elevated
+administrator account through `/user-elevated`.
+
+These entries use the classic Win32 Explorer context-menu registration under
+`Software\Classes\...\shell`. In the standard compact context menu on Windows 11, they normally
+appear under **Show more options**. When the classic context menu is used instead, they appear
+directly.
+
 ### Integrate with Total Commander
 
 The following examples were tested with Total Commander 11.58 (64-bit). They may also work with
