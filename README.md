@@ -630,7 +630,8 @@ not replace the interactive Windows UAC confirmation.
 ### Integrate with Total Commander
 
 The following examples were tested with Total Commander 11.58 (64-bit). They may also work with
-other versions, but their compatibility has not been verified.
+other versions, but their compatibility has not been verified. For more information, visit the
+[official Total Commander website](https://www.ghisler.com/).
 
 xucRun can start a new elevated Total Commander instance according to its automatic account
 strategy. Members of the Administrators group retain their account and are elevated through UAC

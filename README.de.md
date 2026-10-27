@@ -683,7 +683,8 @@ nicht die interaktive Windows-UAC-Bestätigung.
 ### In Total Commander integrieren
 
 Die folgenden Beispiele wurden mit Total Commander 11.58 (64 Bit) getestet. Sie können auch mit
-anderen Versionen funktionieren; deren Kompatibilität wurde jedoch nicht geprüft.
+anderen Versionen funktionieren; deren Kompatibilität wurde jedoch nicht geprüft. Weitere
+Informationen bietet die [offizielle Total-Commander-Webseite](https://www.ghisler.com/deutsch.htm).
 
 xucRun kann eine neue erhöhte Total-Commander-Instanz nach seiner automatischen Kontostrategie
 starten. Mitglieder der Administratorengruppe behalten ihr Konto und werden bei Bedarf über UAC
