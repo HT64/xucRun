@@ -33,7 +33,7 @@ namespace
 	SERVICE_STATUS_HANDLE serviceStatusHandle = nullptr;
 	HANDLE stopEvent = nullptr;
 	std::atomic_bool purgeStoredProductData = false;
-	std::vector<std::wstring> processHardeningWarnings;
+	std::vector<std::wstring> processHardeningFailures;
 
 	bool IsUninstallPurgeInvocation(DWORD argumentCount, wchar_t** arguments)
 	{
@@ -132,13 +132,13 @@ namespace
 	}
 	bool verboseBrokerLoggingEnabled = false;
 
-	// Enables process mitigations before any further broker work and collects failed hardening measures.
+	// Enables required process mitigations before any further broker work.
 	std::vector<std::wstring> ApplyEarlyProcessHardening()
 	{
-		std::vector<std::wstring> warnings;
-		auto recordFailure = [&warnings](const wchar_t* mitigation, DWORD error)
+		std::vector<std::wstring> failures;
+		auto recordFailure = [&failures](const wchar_t* mitigation, DWORD error)
 		{
-			warnings.push_back(std::wstring(mitigation) + L" could not be enabled (error " +
+			failures.push_back(std::wstring(mitigation) + L" could not be enabled (error " +
 				std::to_wstring(error) + L")");
 		};
 
@@ -175,31 +175,153 @@ namespace
 		{
 			recordFailure(L"Restricted image loading", GetLastError());
 		}
-		return warnings;
+
+		PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY strictHandlePolicy = {};
+		strictHandlePolicy.RaiseExceptionOnInvalidHandleReference = 1;
+		strictHandlePolicy.HandleExceptionsPermanentlyEnabled = 1;
+		if (!SetProcessMitigationPolicy(ProcessStrictHandleCheckPolicy,
+			&strictHandlePolicy, sizeof(strictHandlePolicy)))
+		{
+			recordFailure(L"Strict handle checking", GetLastError());
+		}
+
+		PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY controlFlowGuardPolicy = {};
+		controlFlowGuardPolicy.StrictMode = 1;
+		if (!SetProcessMitigationPolicy(ProcessControlFlowGuardPolicy,
+			&controlFlowGuardPolicy, sizeof(controlFlowGuardPolicy)))
+		{
+			recordFailure(L"Strict control-flow guard", GetLastError());
+		}
+
+		PROCESS_MITIGATION_FONT_DISABLE_POLICY fontDisablePolicy = {};
+		fontDisablePolicy.DisableNonSystemFonts = 1;
+		if (!SetProcessMitigationPolicy(ProcessFontDisablePolicy,
+			&fontDisablePolicy, sizeof(fontDisablePolicy)))
+		{
+			recordFailure(L"Non-system font blocking", GetLastError());
+		}
+		return failures;
 	}
 
 	// Verifies that all required process mitigations are effective in the running broker.
-	bool RunProcessMitigationSelfTest()
+	bool VerifyRequiredProcessHardening(
+		const std::vector<std::wstring>& activationFailures,
+		std::wstring& failure)
 	{
+		if (!activationFailures.empty())
+		{
+			failure = activationFailures.front();
+			return false;
+		}
+
 		PROCESS_MITIGATION_DYNAMIC_CODE_POLICY dynamicCodePolicy = {};
 		PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY extensionPointPolicy = {};
 		PROCESS_MITIGATION_IMAGE_LOAD_POLICY imageLoadPolicy = {};
+		PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY strictHandlePolicy = {};
+		PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY controlFlowGuardPolicy = {};
+		PROCESS_MITIGATION_FONT_DISABLE_POLICY fontDisablePolicy = {};
 		DWORD werFlags = 0;
-		return processHardeningWarnings.empty() &&
-			GetProcessMitigationPolicy(GetCurrentProcess(), ProcessDynamicCodePolicy,
-				&dynamicCodePolicy, sizeof(dynamicCodePolicy)) &&
-			GetProcessMitigationPolicy(GetCurrentProcess(), ProcessExtensionPointDisablePolicy,
-				&extensionPointPolicy, sizeof(extensionPointPolicy)) &&
-			GetProcessMitigationPolicy(GetCurrentProcess(), ProcessImageLoadPolicy,
-				&imageLoadPolicy, sizeof(imageLoadPolicy)) &&
-			SUCCEEDED(WerGetFlags(GetCurrentProcess(), &werFlags)) &&
-			dynamicCodePolicy.ProhibitDynamicCode &&
-			extensionPointPolicy.DisableExtensionPoints &&
-			imageLoadPolicy.NoRemoteImages &&
-			imageLoadPolicy.NoLowMandatoryLabelImages &&
-			imageLoadPolicy.PreferSystem32Images &&
-			(werFlags & WER_FAULT_REPORTING_FLAG_NOHEAP) != 0;
+		if (!GetProcessMitigationPolicy(GetCurrentProcess(), ProcessDynamicCodePolicy,
+			&dynamicCodePolicy, sizeof(dynamicCodePolicy)))
+		{
+			failure = L"Dynamic code policy could not be read (error " +
+				std::to_wstring(GetLastError()) + L")";
+			return false;
+		}
+		if (!GetProcessMitigationPolicy(GetCurrentProcess(),
+			ProcessExtensionPointDisablePolicy, &extensionPointPolicy,
+			sizeof(extensionPointPolicy)))
+		{
+			failure = L"Extension point policy could not be read (error " +
+				std::to_wstring(GetLastError()) + L")";
+			return false;
+		}
+		if (!GetProcessMitigationPolicy(GetCurrentProcess(), ProcessImageLoadPolicy,
+			&imageLoadPolicy, sizeof(imageLoadPolicy)))
+		{
+			failure = L"Image load policy could not be read (error " +
+				std::to_wstring(GetLastError()) + L")";
+			return false;
+		}
+		if (!GetProcessMitigationPolicy(GetCurrentProcess(),
+			ProcessStrictHandleCheckPolicy, &strictHandlePolicy,
+			sizeof(strictHandlePolicy)))
+		{
+			failure = L"Strict handle policy could not be read (error " +
+				std::to_wstring(GetLastError()) + L")";
+			return false;
+		}
+		if (!GetProcessMitigationPolicy(GetCurrentProcess(),
+			ProcessControlFlowGuardPolicy, &controlFlowGuardPolicy,
+			sizeof(controlFlowGuardPolicy)))
+		{
+			failure = L"Control-flow guard policy could not be read (error " +
+				std::to_wstring(GetLastError()) + L")";
+			return false;
+		}
+		if (!GetProcessMitigationPolicy(GetCurrentProcess(),
+			ProcessFontDisablePolicy, &fontDisablePolicy, sizeof(fontDisablePolicy)))
+		{
+			failure = L"Font policy could not be read (error " +
+				std::to_wstring(GetLastError()) + L")";
+			return false;
+		}
+		const HRESULT werStatus = WerGetFlags(GetCurrentProcess(), &werFlags);
+		if (FAILED(werStatus))
+		{
+			failure = L"WER hardening state could not be read (HRESULT " +
+				std::to_wstring(static_cast<DWORD>(werStatus)) + L")";
+			return false;
+		}
+		if (!dynamicCodePolicy.ProhibitDynamicCode)
+			failure = L"Dynamic code is not prohibited";
+		else if (!extensionPointPolicy.DisableExtensionPoints)
+			failure = L"Legacy extension points are not disabled";
+		else if (!imageLoadPolicy.NoRemoteImages)
+			failure = L"Remote images are not blocked";
+		else if (!imageLoadPolicy.NoLowMandatoryLabelImages)
+			failure = L"Low-integrity images are not blocked";
+		else if (!imageLoadPolicy.PreferSystem32Images)
+			failure = L"System32 images are not preferred";
+		else if (!strictHandlePolicy.RaiseExceptionOnInvalidHandleReference ||
+			!strictHandlePolicy.HandleExceptionsPermanentlyEnabled)
+		{
+			failure = L"Strict handle checking is not active";
+		}
+		else if (!controlFlowGuardPolicy.EnableControlFlowGuard ||
+			!controlFlowGuardPolicy.StrictMode)
+		{
+			failure = L"Strict control-flow guard is not active";
+		}
+		else if (!fontDisablePolicy.DisableNonSystemFonts)
+			failure = L"Non-system fonts are not blocked";
+		else if ((werFlags & WER_FAULT_REPORTING_FLAG_NOHEAP) == 0)
+			failure = L"WER heap dumps are not disabled";
+		else
+			return true;
+		return false;
 	}
+
+#ifdef _DEBUG
+	bool RunProcessMitigationSelfTest(std::wstring& failure)
+	{
+		if (!VerifyRequiredProcessHardening(processHardeningFailures, failure))
+			return false;
+
+		const std::vector<std::wstring> injectedFailures =
+		{
+			L"Injected required process hardening failure"
+		};
+		std::wstring injectedFailure;
+		if (VerifyRequiredProcessHardening(injectedFailures, injectedFailure) ||
+			injectedFailure != injectedFailures.front())
+		{
+			failure = L"Required process hardening failures are not rejected";
+			return false;
+		}
+		return true;
+	}
+#endif
 
 	// Writes a technical English message to debug output and the Windows event log.
 	void LogEvent(WORD eventType, const std::wstring& message)
@@ -301,8 +423,21 @@ namespace
 
 		verboseBrokerLoggingEnabled = IsVerboseBrokerLoggingEnabled();
 		SetServiceState(SERVICE_START_PENDING, NO_ERROR, 3000);
-		for (const std::wstring& warning : processHardeningWarnings)
-			LogEvent(EVENTLOG_WARNING_TYPE, warning);
+		std::wstring processHardeningFailure;
+		if (!VerifyRequiredProcessHardening(
+			processHardeningFailures, processHardeningFailure))
+		{
+			for (const std::wstring& failure : processHardeningFailures)
+				LogEvent(EVENTLOG_ERROR_TYPE, failure);
+			const std::wstring detail = processHardeningFailures.empty()
+				? L" " + processHardeningFailure + L"."
+				: L"";
+			LogEvent(EVENTLOG_ERROR_TYPE,
+				L"Required process hardening is incomplete; service remains stopped." +
+				detail);
+			SetServiceState(SERVICE_STOPPED, ERROR_ACCESS_DISABLED_BY_POLICY);
+			return;
+		}
 		const std::vector<SecurityAclFinding> aclFindings =
 			AuditBrokerSecurityAcls(false, nullptr, true);
 		if (aclFindings.empty())
@@ -882,7 +1017,7 @@ namespace
 // Applies early hardening and dispatches service operation and explicit diagnostic commands.
 int wmain(int argc, wchar_t* argv[])
 {
-	processHardeningWarnings = ApplyEarlyProcessHardening();
+	processHardeningFailures = ApplyEarlyProcessHardening();
 	if (argc == 7 && _wcsicmp(argv[1], L"/secure-desktop-host") == 0)
 	{
 		wchar_t* end = nullptr;
@@ -969,13 +1104,16 @@ int wmain(int argc, wchar_t* argv[])
 		}
 		if (_wcsicmp(command.c_str(), L"/mitigation-test") == 0)
 		{
-			if (RunProcessMitigationSelfTest())
+			std::wstring failure;
+			if (RunProcessMitigationSelfTest(failure))
 			{
 				std::wcout << L"xucRunBroker process mitigations: tests passed\n";
 				return 0;
 			}
-			for (const std::wstring& warning : processHardeningWarnings)
-				std::wcerr << warning << L'\n';
+			for (const std::wstring& hardeningFailure : processHardeningFailures)
+				std::wcerr << hardeningFailure << L'\n';
+			if (processHardeningFailures.empty())
+				std::wcerr << failure << L'\n';
 			std::wcerr << L"xucRunBroker process mitigations: tests failed\n";
 			return 32;
 		}

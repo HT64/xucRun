@@ -345,8 +345,11 @@ built-in Windows protections that make exploitation of programming errors more d
 other measures, they prevent data from being executed as program code without further checks,
 make the arrangement of process memory less predictable, and make manipulation of the intended
 program flow more difficult. Program components from network locations and less trusted security
-contexts are blocked. Invalid, incomplete, oversized, or unauthorized requests from an xucRun
-component are rejected without continuing the operation.
+contexts are blocked. If a programming error causes the broker to access a closed or invalid
+Windows object, Windows terminates it immediately instead of allowing it to continue in a
+potentially unsafe state. Invalid, incomplete, oversized, or unauthorized requests from an xucRun
+component are rejected without continuing the operation. If the broker cannot enable and then
+verify one of its required Windows protections, it does not enter service operation.
 
 The broker does not keep stored passwords permanently in clear text. It decrypts a password only
 after the checks and required approvals for a specific operation and uses it immediately for the

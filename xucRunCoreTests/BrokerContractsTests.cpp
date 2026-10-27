@@ -3057,6 +3057,110 @@ namespace
 			failures++;
 		}
 	}
+
+	void ExpectMalformedBrokerPayloadRobustness()
+	{
+		constexpr std::uint64_t seed = 0x8B5AD4CEF1932761ULL;
+		std::uint64_t state = seed;
+		auto nextRandom = [&state]()
+		{
+			state ^= state << 13;
+			state ^= state >> 7;
+			state ^= state << 17;
+			return state;
+		};
+		const std::vector<std::size_t> edgeSizes =
+		{
+			0, 1, 2, 3, 7, 8, 15, 16, 19, 20, 23, 24, 27, 28, 31, 32,
+			35, 36, 39, 40, 63, 64, 127, 128, 255, 256, 511, 512, 1023,
+			1024, 2047, 2048, 4095, 4096, 8191, 8192
+		};
+		volatile std::size_t acceptedFrames = 0;
+
+		for (std::size_t iteration = 0; iteration < 4096; iteration++)
+		{
+			const std::size_t size = iteration < edgeSizes.size()
+				? edgeSizes[iteration]
+				: static_cast<std::size_t>(nextRandom() % 8193);
+			std::vector<std::uint8_t> frame(size);
+			for (std::uint8_t& value : frame)
+				value = static_cast<std::uint8_t>(nextRandom());
+
+			try
+			{
+#define FUZZ_REQUEST(Type, Function) \
+				{ xucrun::broker::Type value; acceptedFrames += \
+					xucrun::broker::Function(frame, value) ? 1 : 0; }
+				FUZZ_REQUEST(LaunchRequest, DeserializeLaunchRequest);
+				FUZZ_REQUEST(HealthRequest, DeserializeHealthRequest);
+				FUZZ_REQUEST(CredentialMetadataRequest,
+					DeserializeCredentialMetadataRequest);
+				FUZZ_REQUEST(SessionTestRequest, DeserializeSessionTestRequest);
+				FUZZ_REQUEST(CredentialStoreTestRequest,
+					DeserializeCredentialStoreTestRequest);
+				FUZZ_REQUEST(CredentialSaveRequest, DeserializeCredentialSaveRequest);
+				FUZZ_REQUEST(CredentialCaptureChallengeRequest,
+					DeserializeCredentialCaptureChallengeRequest);
+				FUZZ_REQUEST(CredentialCaptureHelperRequest,
+					DeserializeCredentialCaptureHelperRequest);
+				FUZZ_REQUEST(CredentialCaptureSubmitRequest,
+					DeserializeCredentialCaptureSubmitRequest);
+				FUZZ_REQUEST(CredentialCaptureCommitRequest,
+					DeserializeCredentialCaptureCommitRequest);
+				FUZZ_REQUEST(CredentialDeleteRequest,
+					DeserializeCredentialDeleteRequest);
+				FUZZ_REQUEST(CredentialListRequest, DeserializeCredentialListRequest);
+				FUZZ_REQUEST(AdministrativeInventoryRequest,
+					DeserializeAdministrativeInventoryRequest);
+				FUZZ_REQUEST(AdministrativeDeleteRequest,
+					DeserializeAdministrativeDeleteRequest);
+				FUZZ_REQUEST(BackupRequest, DeserializeBackupRequest);
+				FUZZ_REQUEST(TrackedProcessListRequest,
+					DeserializeTrackedProcessListRequest);
+				FUZZ_REQUEST(StatusIconListRequest, DeserializeStatusIconListRequest);
+				FUZZ_REQUEST(TrackedProcessRegistrationRequest,
+					DeserializeTrackedProcessRegistrationRequest);
+				FUZZ_REQUEST(SecurityAuditRequest, DeserializeSecurityAuditRequest);
+				FUZZ_REQUEST(BrokerStopRequest, DeserializeBrokerStopRequest);
+				FUZZ_REQUEST(CredentialUseTestRequest,
+					DeserializeCredentialUseTestRequest);
+				FUZZ_REQUEST(ApprovalChallengeRequest,
+					DeserializeApprovalChallengeRequest);
+				FUZZ_REQUEST(ApprovalConfirmationRequest,
+					DeserializeApprovalConfirmationRequest);
+				FUZZ_REQUEST(ApprovalHelperRequest, DeserializeApprovalHelperRequest);
+				FUZZ_REQUEST(ApprovalHelperRequest,
+					DeserializeApprovalHelperLeaseRequest);
+				FUZZ_REQUEST(ApprovalHelperDecisionRequest,
+					DeserializeApprovalHelperDecisionRequest);
+				FUZZ_REQUEST(ApprovalListRequest, DeserializeApprovalListRequest);
+				FUZZ_REQUEST(ApprovalResetRequest, DeserializeApprovalResetRequest);
+#undef FUZZ_REQUEST
+
+				xucrun::backup::Archive archive;
+				acceptedFrames += xucrun::backup::Deserialize(frame, archive) ? 1 : 0;
+				xucrun::approval::ApprovalMode mode =
+					xucrun::approval::ApprovalMode::AskAt;
+				std::uint64_t approvalTime = 0;
+				acceptedFrames += xucrun::approval::DeserializeGeneralApproval(
+					frame, mode, approvalTime) ? 1 : 0;
+				xucrun::approval::ScopedApprovalValue scopedApproval;
+				acceptedFrames += xucrun::approval::DeserializeScopedApproval(
+					frame, scopedApproval) ? 1 : 0;
+				xucrun::approval::BrokerApprovalValue brokerApproval;
+				acceptedFrames += xucrun::approval::DeserializeBrokerApproval(
+					frame, brokerApproval) ? 1 : 0;
+			}
+			catch (...)
+			{
+				std::cerr << "malformed broker payload raised an exception at seed " <<
+					seed << ", iteration " << iteration << ", size " << size << '\n';
+				failures++;
+				return;
+			}
+		}
+		(void)acceptedFrames;
+	}
 }
 
 // Runs all core contract tests and reports their overall result.
@@ -3120,6 +3224,7 @@ int main()
 	ExpectFileIdentity();
 	ExpectApprovalSerialization();
 	ExpectTargetNaming();
+	ExpectMalformedBrokerPayloadRobustness();
 	ExpectLaunchRequestConstruction();
 	ExpectLaunchRequestSerialization();
 	ExpectLaunchResultSerialization();

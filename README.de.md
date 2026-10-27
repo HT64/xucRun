@@ -376,8 +376,12 @@ Ausnutzen von Programmfehlern erschweren. Sie verhindern unter anderem, dass rei
 Weiteres als Programmcode ausgeführt werden, machen die Anordnung im Arbeitsspeicher weniger
 vorhersehbar und erschweren die Manipulation des vorgesehenen Programmablaufs.
 Programmbestandteile von Netzwerkpfaden und aus weniger vertrauenswürdigen Sicherheitskontexten
-werden blockiert. Ungültige, unvollständige, zu große oder für die jeweilige xucRun-Komponente
-nicht erlaubte Anfragen werden abgelehnt, ohne den Vorgang fortzusetzen.
+werden blockiert. Greift der Broker aufgrund eines Programmfehlers auf ein bereits geschlossenes
+oder ungültiges Windows-Objekt zu, beendet Windows ihn sofort, statt ihn in einem möglicherweise
+unsicheren Zustand weiterlaufen zu lassen. Ungültige, unvollständige, zu große oder für die
+jeweilige xucRun-Komponente nicht erlaubte Anfragen werden abgelehnt, ohne den Vorgang
+fortzusetzen. Kann der Broker eine der für ihn vorausgesetzten Windows-Schutzfunktionen nicht
+aktivieren und anschließend bestätigen, nimmt er den Dienstbetrieb nicht auf.
 
 Der Broker hält gespeicherte Kennwörter nicht dauerhaft im Klartext. Er entschlüsselt ein Kennwort
 erst nach den Prüfungen und erforderlichen Freigaben für einen konkreten Vorgang und verwendet es
