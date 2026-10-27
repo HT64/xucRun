@@ -537,7 +537,7 @@ stored and the example path with the directory to open. `/root` makes this direc
 the new Explorer window. The nested quotation marks must remain unchanged. Stored credentials do
 not replace the interactive Windows UAC confirmation.
 
-### Explorer context-menu examples
+### Explorer context-menu integration
 
 The optional [ExplorerKontextMenue.reg](ExplorerKontextMenue.reg) file contains a complete example
 that adds xucRun commands for supported files, folders, folder backgrounds, and drives. For

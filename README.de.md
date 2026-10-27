@@ -579,7 +579,7 @@ setzt dieses Verzeichnis als Wurzel des neuen Explorer-Fensters. Die verschachte
 Anführungszeichen müssen unverändert erhalten bleiben. Die gespeicherten Anmeldedaten ersetzen
 nicht die interaktive Windows-UAC-Bestätigung.
 
-### Beispiele für das Explorer-Kontextmenü
+### Integration in das Explorer-Kontextmenü
 
 Die optionale Datei [ExplorerKontextMenue.reg](ExplorerKontextMenue.reg) enthält ein vollständiges
 Beispiel, das xucRun-Befehle für unterstützte Dateien, Ordner, Ordnerhintergründe und Laufwerke
