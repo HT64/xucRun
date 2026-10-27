@@ -280,6 +280,106 @@ privilege management, or systems requiring an elevated level of protection.
 > includes, in particular, the loss, disclosure, or misuse of credentials. The disclaimer of
 > warranty and limitation of liability in the [Apache License 2.0](LICENSE) govern.
 
+## Broker service security model
+
+One possible alternative to a broker service would be for the normal client alone to store the
+credentials under cryptographic protection. Without a separate privileged component, decryption
+and use would then have to take place in the process and security context of the currently signed-
+in user. This could protect the stored data against direct extraction. However, the ability to
+decrypt it, the temporarily required clear-text password, and the permission Windows creates
+after logon to start processes would be in the same security context as the normal client.
+
+A compromise of that process or its user context could then attempt to misuse the legitimate
+decryption function, manipulate the program flow, or read the password or logon permission from
+process memory. Cryptographic storage alone does not solve this problem: if the normal client can
+decrypt the data, the capability required to do so must be available in its security context. The
+responsible component must also reliably decide which user may start which program under which
+account, with which arguments, and with which privileges.
+
+xucRun therefore separates this security-sensitive capability into a privileged broker service.
+Only the broker stores, decrypts, and uses credentials. It verifies the actual caller and binds
+credential use to the user, Windows session, target account, target program and its file hash,
+arguments, working directory, and whether the program is to start with or without elevated
+administrator privileges. The encrypted stored credentials and their internal associations are
+also not provided to the normal client. They reside in storage protected by Windows for the
+system account and are additionally bound to that account on the local computer. A normal user
+process therefore cannot decrypt them in its own security context.
+
+The broker then performs the Windows logon and permitted program start itself. The normal client
+receives neither the stored password nor a permission with which it could start programs under
+the target account itself. If a required check fails, no program is started with the stored
+credentials; there is no fallback to client-side decryption.
+
+A service running under the Windows `LocalSystem` account has extensive privileges and therefore
+itself increases the security-relevant attack surface. xucRun does not use this architecture
+because a background service is secure by itself, but to separate use of stored credentials and
+decisions about permitted program starts from the normal user process. This additional security
+boundary in turn requires systematic protection of the broker.
+
+The broker does not trust identity, path, or approval information merely asserted by a client. It
+derives the calling process, user, Windows session, and privilege level from the actual local
+connection and from Windows itself. For security-sensitive requests, it checks, among other
+properties, the protected installation location, actual program path, file hash, and Windows
+digital signature. It also restricts which functions each xucRun component may use. The client in
+turn verifies that the other end of its local connection belongs to the registered xucRun
+service. Immediately before starting the program, the broker checks the target program and working
+directory again. It determines the actual program path and its file hash as well as the actual
+working directory itself and keeps the verified Windows objects open until the start. This is
+intended to prevent a previously checked target from being replaced unnoticed between approval
+and program start.
+
+For each sensitive operation, the broker creates a short-lived security proof that can be used
+only once. It applies only to the specific calling process, user, Windows session, target account,
+target program and its hash, arguments, working directory, and the requested start with or without
+elevated administrator privileges. A copied identifier or a process identity merely asserted by
+the client is not sufficient. Different xucRun components also receive only the functions they
+require. For example, the optional Tray can retrieve status and list data, but it cannot start
+programs, change credentials, or make approval decisions.
+
+The broker and its installed files are additionally hardened against replacement and unintended
+extension. Before entering productive operation, the broker checks, among other properties, its
+own signature, the authorized client, protected installation paths, and security-relevant file
+and directory permissions. It restricts the directories from which additional program components
+may be loaded and prohibits certain ways of introducing foreign code at runtime. It also uses
+built-in Windows protections that make exploitation of programming errors more difficult. Among
+other measures, they prevent data from being executed as program code without further checks,
+make the arrangement of process memory less predictable, and make manipulation of the intended
+program flow more difficult. Program components from network locations and less trusted security
+contexts are blocked. Invalid, incomplete, oversized, or unauthorized requests from an xucRun
+component are rejected without continuing the operation.
+
+The broker does not keep stored passwords permanently in clear text. It decrypts a password only
+after the checks and required approvals for a specific operation and uses it immediately for the
+Windows logon. Memory areas containing the clear-text password and controlled by xucRun are locked
+against paging to disk, are not copied unnecessarily, and are overwritten after use. Other memory
+areas used by xucRun for sensitive contents are also cleared afterward. If xucRun cannot establish
+the required memory protection, the operation is aborted. Automatic Windows Error Reporting
+memory dumps are disabled for the broker so that a crash does not unnecessarily place sensitive
+memory contents in such a diagnostic file.
+
+When a password is entered for the first time, it must necessarily be present briefly in the
+memory of the Windows credential dialog and the verified xucRun helper. The helper runs separately
+from the normal client with elevated privileges on its own Windows desktop. In the intended
+workflow, Windows separates this desktop from ordinary, non-elevated programs. The helper sends
+the password directly to the broker over the authenticated local connection and then overwrites
+its own memory areas containing the password. The normal xucRun client does not receive the
+password in this workflow either.
+
+The broker is configured as a demand-start Windows service and is not started for status queries
+alone. After actual use, it remains active until it is explicitly stopped, Windows shuts down, or
+the service fails. While idle, it keeps no stored passwords in clear text and uses practically no
+CPU time. An automatic idle stop would not further protect the encrypted stored credentials but
+would create additional synchronization and restart paths. The broker can be explicitly stopped
+or disabled; re-enabling it requires Windows UAC.
+
+Taken together, these measures reduce the attack surface, make manipulation of the service more
+difficult, and limit the consequences of a compromised normal user process. They cannot
+completely exclude software defects, unknown vulnerabilities, or system compromise. In
+particular, they do not provide a reliable security boundary against local administrators, other
+compromised processes already running with system privileges, attacks on the Windows kernel, or
+compromised infrastructure used to digitally sign the programs. xucRun therefore uses the broker
+as a deliberately chosen and hardened security boundary, not as an absolute security guarantee.
+
 ## Installation overview
 
 Installation requires a complete xucRun package. The graphical installer signs all installable
@@ -487,10 +587,10 @@ in `D:\Example\Project`. This is the typical primary use case for shell replacem
 
 If xucRun credentials are stored for several administrator accounts, an account selection dialog
 appears instead. If the current account is itself an administrator, xucRun uses that account and
-either reuses an already elevated token or requests UAC. Only when no administrator-account
-credentials are stored by xucRun for a standard account does xucRun consider standard accounts
-for which xucRun credentials are stored and start the replacement shell without elevation. The
-working directory is preserved in every case.
+either uses its existing elevated privileges directly or requests UAC. Only when no
+administrator-account credentials are stored by xucRun for a standard account does xucRun
+consider standard accounts for which xucRun credentials are stored and start the replacement
+shell without elevation. The working directory is preserved in every case.
 
 The invocations shown above that specify a target program can also be used in scripts and desktop
 shortcuts. If xucRun can determine the target account unambiguously and automatically, the

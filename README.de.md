@@ -304,6 +304,116 @@ Rechteerhöhung, zentrale Rechteverwaltung oder Systeme mit erhöhtem Schutzbeda
 > Anmeldedaten. Maßgeblich sind der Gewährleistungsausschluss und die Haftungsbegrenzung der
 > [Apache License 2.0](LICENSE).
 
+## Sicherheitskonzept des Brokerdienstes
+
+Eine mögliche Alternative zu einem Brokerdienst wäre, die Anmeldedaten ausschließlich durch das
+normale Clientprogramm kryptografisch geschützt zu speichern. Ohne eine getrennte privilegierte
+Komponente müssten ihre Entschlüsselung und Verwendung dann im Prozess und Sicherheitskontext des
+aktuell angemeldeten Benutzers stattfinden. Das könnte die gespeicherten Daten gegen unmittelbares
+Auslesen schützen. Die Fähigkeit zum Entschlüsseln, das vorübergehend benötigte Klartextkennwort
+und die von Windows nach der Anmeldung erzeugte Berechtigung zum Starten von Prozessen lägen jedoch
+im selben Sicherheitskontext wie der normale Client.
+
+Eine Kompromittierung dieses Prozesses oder seines Benutzerkontexts könnte dann versuchen, die
+legitime Entschlüsselungsfunktion zu missbrauchen, den Programmablauf zu manipulieren oder
+Kennwort oder Anmeldeberechtigung aus dem Prozessspeicher auszulesen. Eine kryptografische
+Speicherung allein löst dieses Problem nicht: Kann der normale Client die Daten entschlüsseln,
+muss die dafür erforderliche Fähigkeit in seinem Sicherheitskontext verfügbar sein. Die
+zuständige Komponente muss außerdem zuverlässig entscheiden, welcher Benutzer welches Programm
+unter welchem Konto, mit welchen Argumenten und mit welchen Rechten starten darf.
+
+xucRun trennt diese sicherheitskritische Fähigkeit deshalb in einen privilegierten Brokerdienst.
+Nur der Broker speichert, entschlüsselt und verwendet die Anmeldedaten. Er prüft den tatsächlichen
+Aufrufer und bindet ihre Verwendung an den Benutzer, die Windows-Sitzung, das Zielkonto, das
+Zielprogramm und dessen Dateihash, die Argumente, das Arbeitsverzeichnis sowie den angeforderten
+Start mit oder ohne erhöhte Administratorrechte. Auch die verschlüsselt gespeicherten
+Anmeldedaten und ihre internen Zuordnungen werden nicht an den normalen Client ausgegeben. Sie
+liegen in einem durch Windows geschützten Speicher des Systemkontos und sind zusätzlich an dieses
+Konto auf dem lokalen Computer gebunden. Ein normaler Benutzerprozess kann sie deshalb nicht in
+seinem eigenen Sicherheitskontext entschlüsseln.
+
+Anschließend führt der Broker die Windows-Anmeldung und den erlaubten Programmstart selbst aus.
+Der normale Client erhält weder das gespeicherte Kennwort noch eine Berechtigung, mit der er
+selbst Programme unter dem Zielkonto starten könnte. Schlägt eine erforderliche Prüfung fehl,
+wird kein Programm mit den gespeicherten Anmeldedaten gestartet; es gibt keinen Rückfall auf eine
+clientseitige Entschlüsselung.
+
+Ein unter dem Windows-Systemkonto `LocalSystem` laufender Dienst besitzt jedoch weitreichende
+Rechte und vergrößert damit selbst die sicherheitsrelevante Angriffsfläche. xucRun verwendet diese
+Architektur nicht, weil ein Hintergrunddienst an sich sicherer wäre, sondern um die Verwendung
+gespeicherter Anmeldedaten und die Entscheidung über erlaubte Programmstarts vom normalen
+Benutzerprozess zu trennen. Diese zusätzliche Sicherheitsgrenze erfordert ihrerseits eine
+konsequente Absicherung des Brokers.
+
+Der Broker vertraut Identitäts-, Pfad- oder Freigabeangaben eines Clients nicht ungeprüft. Er
+ermittelt den aufrufenden Prozess, den Benutzer, die Windows-Sitzung und dessen Berechtigungsstufe
+über die tatsächliche lokale Verbindung und über Windows selbst. Für sicherheitsrelevante
+Anfragen prüft er unter anderem den geschützten Installationsort, den tatsächlichen Programmpfad,
+den Dateihash und die digitale Windows-Signatur. Er beschränkt außerdem, welche Funktionen die
+jeweilige xucRun-Komponente verwenden darf. Der Client prüft umgekehrt, ob die Gegenstelle seiner
+lokalen Verbindung tatsächlich zum registrierten xucRun-Dienst gehört. Unmittelbar vor dem
+Programmstart prüft der Broker das Zielprogramm und das Arbeitsverzeichnis erneut. Er ermittelt den
+tatsächlichen Programmpfad und dessen Dateihash sowie das tatsächliche Arbeitsverzeichnis selbst
+und hält die geprüften Windows-Objekte bis zum Start fest. Dadurch soll verhindert werden, dass ein
+bereits geprüftes Ziel zwischen Freigabe und Programmstart unbemerkt ausgetauscht wird.
+
+Für jeden sensiblen Vorgang erzeugt der Broker einen kurzlebigen, nur einmal verwendbaren
+Sicherheitsnachweis. Dieser gilt ausschließlich für den konkreten aufrufenden Prozess, Benutzer,
+die Windows-Sitzung, das Zielkonto, das Zielprogramm und dessen Hash, die Argumente, das
+Arbeitsverzeichnis sowie den gewünschten Start mit oder ohne erhöhte Administratorrechte. Eine
+kopierte Kennung oder eine lediglich vom Client behauptete Prozessidentität genügt nicht.
+Unterschiedliche xucRun-Komponenten erhalten außerdem nur die Funktionen, die sie benötigen. Das
+optionale Tray kann beispielsweise Status- und Listendaten abrufen, aber keine Programme starten,
+Anmeldedaten verändern oder Freigabeentscheidungen treffen.
+
+Der Broker und seine installierten Dateien werden zusätzlich gegen Austausch und unbeabsichtigte
+Erweiterung gehärtet. Vor dem produktiven Betrieb prüft der Broker unter anderem seine eigene
+Signatur, den autorisierten Client, die geschützten Installationspfade sowie sicherheitsrelevante
+Datei- und Verzeichnisberechtigungen. Er beschränkt, aus welchen Verzeichnissen zusätzliche
+Programmbestandteile geladen werden dürfen, und verbietet bestimmte Möglichkeiten, zur Laufzeit
+fremden Code einzubinden. Außerdem verwendet er in Windows integrierte Schutzmechanismen, die das
+Ausnutzen von Programmfehlern erschweren. Sie verhindern unter anderem, dass reine Daten ohne
+Weiteres als Programmcode ausgeführt werden, machen die Anordnung im Arbeitsspeicher weniger
+vorhersehbar und erschweren die Manipulation des vorgesehenen Programmablaufs.
+Programmbestandteile von Netzwerkpfaden und aus weniger vertrauenswürdigen Sicherheitskontexten
+werden blockiert. Ungültige, unvollständige, zu große oder für die jeweilige xucRun-Komponente
+nicht erlaubte Anfragen werden abgelehnt, ohne den Vorgang fortzusetzen.
+
+Der Broker hält gespeicherte Kennwörter nicht dauerhaft im Klartext. Er entschlüsselt ein Kennwort
+erst nach den Prüfungen und erforderlichen Freigaben für einen konkreten Vorgang und verwendet es
+unmittelbar für die Windows-Anmeldung. Von xucRun kontrollierte Speicherbereiche mit dem
+Klartextkennwort werden gegen Auslagerung auf den Datenträger gesperrt, nicht unnötig kopiert und
+nach ihrer Verwendung überschrieben. Auch andere von xucRun verwendete Speicherbereiche mit
+sensiblen Inhalten werden danach bereinigt. Kann xucRun den vorgesehenen Speicherschutz nicht
+herstellen, wird der Vorgang abgebrochen. Automatische Speicherabbilder der
+Windows-Fehlerberichterstattung sind für den Broker deaktiviert, damit ein Absturz nicht unnötig
+sensible Speicherinhalte in einer solchen Diagnosedatei hinterlässt.
+
+Bei der erstmaligen Eingabe eines Kennworts muss dieses zwangsläufig kurzzeitig im Speicher des
+Windows-Anmeldedialogs und des geprüften xucRun-Hilfsprogramms vorliegen. Das Hilfsprogramm läuft
+dabei getrennt vom normalen Client mit erhöhten Rechten auf einem eigenen Windows-Desktop. Im
+vorgesehenen Ablauf trennt Windows diesen Desktop von gewöhnlichen, nicht erhöhten Programmen. Das
+Hilfsprogramm sendet das Kennwort über die authentisierte lokale Verbindung unmittelbar an den
+Broker und überschreibt anschließend seine eigenen Speicherbereiche mit dem Kennwort. Der normale
+xucRun-Client erhält das Kennwort auch in diesem Ablauf nicht.
+
+Der Broker ist als bedarfsgestarteter Windows-Dienst konfiguriert und wird nicht allein für
+Statusabfragen gestartet. Nach einer tatsächlichen Verwendung bleibt er bis zu einem
+ausdrücklichen Stopp, dem Herunterfahren von Windows oder einem Dienstfehler aktiv. Im Leerlauf
+hält er keine gespeicherten Kennwörter im Klartext und verursacht praktisch keine CPU-Last. Ein
+automatischer Leerlauf-Stopp würde die verschlüsselt gespeicherten Anmeldedaten nicht zusätzlich
+schützen, aber weitere Synchronisations- und Wiederanlaufpfade schaffen. Der Broker kann
+ausdrücklich gestoppt oder deaktiviert werden; seine erneute Aktivierung erfordert Windows-UAC.
+
+Zusammengenommen verkleinern diese Maßnahmen die Angriffsfläche, erschweren die Manipulation des
+Dienstes und begrenzen die Auswirkungen eines kompromittierten normalen Benutzerprozesses. Sie
+können Programmfehler, unbekannte Schwachstellen oder eine Kompromittierung des Systems jedoch
+nicht vollständig ausschließen. Insbesondere bilden sie keine belastbare Schutzgrenze gegen
+lokale Administratoren, andere bereits mit Systemrechten laufende und kompromittierte Prozesse,
+Angriffe auf den Windows-Kernel oder eine kompromittierte Infrastruktur zum digitalen Signieren
+der Programme. xucRun verwendet den Broker daher als bewusst gewählte und gehärtete
+Sicherheitsgrenze, nicht als absolute Sicherheitsgarantie.
+
 ## Installation in Kürze
 
 Für die Installation wird ein vollständiges xucRun-Paket benötigt. Der grafische Installer
@@ -526,11 +636,11 @@ wieder in `D:\Beispiel\Projekt`. Das ist der typische Hauptanwendungsfall der Sh
 
 Sind für mehrere Administratorkonten xucRun-Anmeldedaten gespeichert, erscheint stattdessen die
 Kontoauswahl. Ist das
-aktuelle Konto selbst ein Administrator, verwendet xucRun dieses Konto und übernimmt einen
-bereits erhöhten Token direkt oder fordert andernfalls UAC an. Nur wenn für ein Standardkonto
-keine xucRun-Anmeldedaten eines Administratorkontos gespeichert sind, berücksichtigt xucRun
-Standardkonten, für die xucRun-Anmeldedaten gespeichert sind, und startet die Ersatz-Shell ohne
-Erhöhung. Das Arbeitsverzeichnis bleibt in allen Fällen erhalten.
+aktuelle Konto selbst ein Administrator, verwendet xucRun dieses Konto und nutzt bereits erteilte
+erhöhte Rechte direkt oder fordert andernfalls UAC an. Nur wenn für ein
+Standardkonto keine xucRun-Anmeldedaten eines Administratorkontos gespeichert sind,
+berücksichtigt xucRun Standardkonten, für die xucRun-Anmeldedaten gespeichert sind, und startet
+die Ersatz-Shell ohne Erhöhung. Das Arbeitsverzeichnis bleibt in allen Fällen erhalten.
 
 Die oben gezeigten Aufrufe mit einem Zielprogramm können auch in Skripten und
 Desktop-Verknüpfungen verwendet werden. Kann xucRun das Zielkonto eindeutig automatisch bestimmen,
