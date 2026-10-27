@@ -429,6 +429,17 @@ function Assert-MicrosoftRedistributable {
     return $resolvedPath
 }
 
+function Assert-NotReparsePoint {
+    param([Parameter(Mandatory)][string]$Path)
+
+    if (Test-Path -LiteralPath $Path) {
+        $item = Get-Item -LiteralPath $Path -Force
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Installer paths must not be reparse points: $Path"
+        }
+    }
+}
+
 function Confirm-VcRuntime {
     Set-Status -Key StatusCheckingRuntime
     $script:vcRuntimeState = Get-VcRuntimeState
@@ -455,54 +466,76 @@ function Confirm-VcRuntime {
     if ($choice -eq 'Cancel') {
         throw (Get-Text -Key RuntimeMissingTitle)
     }
-    if ($choice -eq 'Yes') {
-        $redistributablePath = Join-Path $PackageDirectory 'vc_redist.x64.exe'
-        try {
-            Invoke-WebRequest -Uri $vcRuntimeDownloadUri -OutFile $redistributablePath `
-                -UseBasicParsing
+    $redistributableStaging = $null
+    try {
+        if ($choice -eq 'Yes') {
+            $redistributablePath = Join-Path $PackageDirectory 'vc_redist.x64.exe'
+            try {
+                Invoke-WebRequest -Uri $vcRuntimeDownloadUri `
+                    -OutFile $redistributablePath -UseBasicParsing
+            }
+            catch {
+                throw (Get-Text -Key RuntimeDownloadFailed `
+                    -Arguments $_.Exception.Message)
+            }
         }
-        catch {
-            throw (Get-Text -Key RuntimeDownloadFailed -Arguments $_.Exception.Message)
+        else {
+            $dialog = [Windows.Forms.OpenFileDialog]::new()
+            $dialog.Title = Get-Text -Key RuntimeDialogTitle
+            $dialog.Filter = Get-Text -Key RuntimeDialogFilter
+            $dialog.FileName = 'vc_redist.x64.exe'
+            if ($dialog.ShowDialog() -ne 'OK') {
+                throw (Get-Text -Key RuntimeNotSelected)
+            }
+            Assert-NotReparsePoint -Path $dialog.FileName
+            Assert-NotReparsePoint -Path $PackageDirectory
+            $redistributableStaging = Join-Path $PackageDirectory (
+                '.vc-runtime-' + [Guid]::NewGuid().ToString('N'))
+            New-Item -ItemType Directory -Path $redistributableStaging |
+                Out-Null
+            Assert-NotReparsePoint -Path $redistributableStaging
+            $redistributablePath =
+                Join-Path $redistributableStaging 'vc_redist.x64.exe'
+            Copy-Item -LiteralPath $dialog.FileName `
+                -Destination $redistributablePath
+            Assert-NotReparsePoint -Path $redistributablePath
+        }
+        $redistributablePath =
+            Assert-MicrosoftRedistributable -Path $redistributablePath
+        Set-Status -Key StatusInstallingRuntime
+        $process = Start-Process -FilePath $redistributablePath `
+            -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
+        $script:vcRuntimeState = Get-VcRuntimeState
+        Update-VcRuntimeDisplay
+        if ($process.ExitCode -notin @(0, 3010) -and
+            -not $script:vcRuntimeState.MeetsMinimum) {
+            throw (Get-Text -Key RuntimeInstallFailed -Arguments $process.ExitCode)
+        }
+        if (-not $script:vcRuntimeState.MeetsMinimum) {
+            if ($script:vcRuntimeState.Installed) {
+                throw (Get-Text -Key RuntimeTooOldAfterInstall -Arguments @(
+                    $script:vcRuntimeState.Version,
+                    $minimumVcRuntimeVersion))
+            }
+            throw (Get-Text -Key RuntimeMissingAfterInstall)
+        }
+        $script:vcRuntimeAction = if ($runtimeWasInstalled) {
+            'Updated'
+        }
+        else {
+            'Installed'
+        }
+        if ($process.ExitCode -eq 3010) {
+            [Windows.Forms.MessageBox]::Show(
+                (Get-Text -Key RuntimeRestartMessage),
+                (Get-Text -Key RuntimeRestartTitle), 'OK', 'Warning') | Out-Null
         }
     }
-    else {
-        $dialog = [Windows.Forms.OpenFileDialog]::new()
-        $dialog.Title = Get-Text -Key RuntimeDialogTitle
-        $dialog.Filter = Get-Text -Key RuntimeDialogFilter
-        $dialog.FileName = 'vc_redist.x64.exe'
-        if ($dialog.ShowDialog() -ne 'OK') {
-            throw (Get-Text -Key RuntimeNotSelected)
+    finally {
+        if ($redistributableStaging) {
+            Remove-Item -LiteralPath $redistributableStaging -Recurse -Force `
+                -ErrorAction SilentlyContinue
         }
-        $redistributablePath = $dialog.FileName
-    }
-    $redistributablePath = Assert-MicrosoftRedistributable -Path $redistributablePath
-    Set-Status -Key StatusInstallingRuntime
-    $process = Start-Process -FilePath $redistributablePath `
-        -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
-    $script:vcRuntimeState = Get-VcRuntimeState
-    Update-VcRuntimeDisplay
-    if ($process.ExitCode -notin @(0, 3010) -and
-        -not $script:vcRuntimeState.MeetsMinimum) {
-        throw (Get-Text -Key RuntimeInstallFailed -Arguments $process.ExitCode)
-    }
-    if (-not $script:vcRuntimeState.MeetsMinimum) {
-        if ($script:vcRuntimeState.Installed) {
-            throw (Get-Text -Key RuntimeTooOldAfterInstall -Arguments @(
-                $script:vcRuntimeState.Version,
-                $minimumVcRuntimeVersion))
-        }
-        throw (Get-Text -Key RuntimeMissingAfterInstall)
-    }
-    $script:vcRuntimeAction = if ($runtimeWasInstalled) {
-        'Updated'
-    }
-    else {
-        'Installed'
-    }
-    if ($process.ExitCode -eq 3010) {
-        [Windows.Forms.MessageBox]::Show(
-            (Get-Text -Key RuntimeRestartMessage),
-            (Get-Text -Key RuntimeRestartTitle), 'OK', 'Warning') | Out-Null
     }
 }
 
