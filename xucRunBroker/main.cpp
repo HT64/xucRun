@@ -515,6 +515,21 @@ namespace
 			LogEvent(EVENTLOG_INFORMATION_TYPE,
 				L"Pending backup restore recovery completed before service startup.");
 		}
+		std::uint32_t deletedObsoleteApprovalCount = 0;
+		DWORD obsoleteApprovalCleanupError = NO_ERROR;
+		if (!xucrun::approval_store::DeleteObsoleteApprovals(
+			deletedObsoleteApprovalCount, obsoleteApprovalCleanupError))
+		{
+			LogEvent(EVENTLOG_WARNING_TYPE,
+				L"Obsolete approval cleanup failed. Error " +
+				std::to_wstring(obsoleteApprovalCleanupError) + L".");
+		}
+		else if (deletedObsoleteApprovalCount != 0)
+		{
+			LogEvent(EVENTLOG_INFORMATION_TYPE,
+				L"Removed " + std::to_wstring(deletedObsoleteApprovalCount) +
+				L" obsolete version-8 approval entries during service startup.");
+		}
 		std::uint32_t deletedMetadataCount = 0;
 		DWORD metadataCleanupError = NO_ERROR;
 		if (!DeleteOrphanedCredentialMetadata(

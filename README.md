@@ -688,10 +688,18 @@ The available durations are:
 - until sign-out,
 - permanently.
 
-An approval can be bound to one program or all programs and to one target account or all stored
-accounts of the current Windows user. Program-specific approvals include the SHA-256 hash of the
-executable. If the file changes, transferring the approval to the new version requires explicit
-confirmation.
+For "This start only," scope and account scope do not apply: that single launch is already fully
+bound to the current challenge, and the corresponding controls are disabled. A reusable approval
+can be bound to one program or all programs and to one target account or all stored accounts of the
+current Windows user. Program-specific approvals include the SHA-256 hash of the executable. If the
+file changes, transferring the approval to the new version requires explicit confirmation. On the
+right, the dialog explains the effect of the current selection separately for approval duration,
+scope, and account scope.
+
+With **"Exactly this invocation,"** a reusable approval can additionally be bound to the exact
+arguments, the canonical working directory, and the launch visibility. Any change to these values
+then requires a new approval. The arguments are not stored in clear text; only their SHA-256 hash
+is retained as the binding.
 
 ![Approval after a program hash has changed](docs/en/images/program-hash-change-approval.png)
 
@@ -700,17 +708,21 @@ universal interpreters such as `cmd.exe`, PowerShell, or `wscript.exe` are there
 powerful.
 
 For `cmd.exe`, `powershell.exe`, `pwsh.exe`, TCC, and Windows Script Host, the approval dialog
-therefore explains that a reusable approval is not bound to the displayed arguments. Carefully
-verify the target, arguments, and working directory, and use a one-time approval whenever
-possible. For PowerShell, an administratively enforced `AllSigned` policy can additionally protect
-script files, but does not protect against direct or interactive commands.
+therefore warns about the interpreter's broader capabilities. A normal program approval does not
+bind the displayed arguments. Therefore, "Exactly this invocation" is preselected for reusable
+approvals involving these shells and interpreters. If xucRun recognizes a directly specified
+PowerShell, batch, TCC, or Windows Script Host script, it additionally binds the script's final path
+and SHA-256 hash when the calling account cannot change the script or any path component relevant
+to replacing it. Otherwise, the dialog explicitly says that the script contents are not bound. For
+PowerShell, an administratively enforced `AllSigned` policy can additionally protect script files,
+but does not protect against direct or interactive commands.
 
-Calling scripts and configuration files are not part of a reusable approval and are not hashed for
-that purpose. xucRun verifies the hash of the target program; if that program remains unchanged,
-modifications to the calling file can still cause different arguments, working directories,
-script contents, or program inputs without being detected by the target-program hash. The other
-broker checks, particularly the binding to the account, token mode, target path, and target-program
-hash, remain effective.
+Calling scripts, shortcuts, and configuration files from which the xucRun invocation is first
+generated are still not generally hashed. "Exactly this invocation" binds their effective output,
+not its provenance. Dynamically loaded scripts, modules, configuration files, plugins, and program
+inputs are likewise not automatically included. Continue to protect such files against untrusted
+modification. The other broker checks, particularly the binding to the account, token mode, target
+path, and target-program hash, remain effective.
 
 ![xucRun approval dialog on separate desktop](docs/en/images/approval-dialog.png)
 
@@ -766,9 +778,10 @@ these options.
 
 ## Managing credentials and approvals
 
-`/showcred` lists target accounts for which xucRun credentials are stored, and `/showapprovals`
-lists active general and program-specific approvals. Stored passwords are neither displayed nor
-returned to the client.
+`/showcred` lists target accounts for which xucRun credentials are stored. `/showapprovals` lists
+active general, target-program, and exact-invocation approvals, with separate columns for scope,
+target, invocation binding, and target hash. Stored passwords are neither displayed nor returned
+to the client.
 
 | Stored credentials | Active approvals |
 |:---:|:---:|

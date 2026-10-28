@@ -450,6 +450,7 @@
 							   pending.executablePath,
 							   confirmationResult.failureReason,
 							   confirmationError)))) ||
+						!ValidateBoundDirectScript(clientProcess, pending, confirmationError) ||
 						!LockAndValidateLaunchObjects(
 							pending, launchObjectLocks, confirmationResult.failureReason,
 							confirmationError))
@@ -663,6 +664,9 @@
 		TargetImageIdentity targetIdentity;
 		ClientImageIdentity targetImageIdentity;
 		std::wstring finalWorkingDirectory;
+		std::wstring displayedScriptPath;
+		std::wstring boundScriptPath;
+		std::array<std::uint8_t, 32> boundScriptHash = {};
 		bool diagnosticProfile = false;
 		bool trustedAdministrativeClientLaunch = false;
 		bool clientIsAdministrator = false;
@@ -744,6 +748,9 @@
 		}
 		else
 		{
+			ResolveDirectScriptBinding(clientProcess, targetIdentity.path,
+				request.argumentTail, finalWorkingDirectory, displayedScriptPath,
+				boundScriptPath, boundScriptHash);
 			result.status = xucrun::broker::ApprovalChallengeStatus::Issued;
 			result.canonicalClientName = clientAccountIdentity.canonicalName;
 			result.canonicalAccountName = accountIdentity.canonicalName;
@@ -759,6 +766,8 @@
 			result.executableSignatureTrusted = targetImageIdentity.signatureTrusted;
 			result.argumentTail = request.argumentTail;
 			result.workingDirectory = finalWorkingDirectory;
+			result.directScriptPath = displayedScriptPath;
+			result.directScriptSha256 = boundScriptHash;
 			result.writableElevatedTargetReason = writableElevatedTargetReason;
 
 			PendingApprovalChallenge pending;
@@ -781,6 +790,8 @@
 			pending.executableSignatureTrusted = targetImageIdentity.signatureTrusted;
 			pending.argumentTail = result.argumentTail;
 			pending.workingDirectory = result.workingDirectory;
+			pending.scriptPath = boundScriptPath;
+			pending.scriptSha256 = boundScriptHash;
 			pending.elevationMode = result.elevationMode;
 			pending.visibility = result.visibility;
 			pending.writableElevatedTargetReason = writableElevatedTargetReason;
@@ -788,7 +799,14 @@
 			pending.trustedAdministrativeClientLaunch =
 				trustedAdministrativeClientLaunch;
 			bool storedApprovalMatches = false;
-			if (!HasStoredApproval(pending, storedApprovalMatches, challengeError))
+			if (!ComputeUtf16Sha256(pending.argumentTail, pending.argumentHash))
+			{
+				result = {};
+				result.requestId = request.requestId;
+				result.status = xucrun::broker::ApprovalChallengeStatus::Failed;
+				result.windowsError = ERROR_GEN_FAILURE;
+			}
+			else if (!HasStoredApproval(pending, storedApprovalMatches, challengeError))
 			{
 				result = {};
 				result.requestId = request.requestId;

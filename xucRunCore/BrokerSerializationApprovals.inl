@@ -111,6 +111,7 @@
 			HasEmbeddedNull(result.clientPath) ||
 			HasEmbeddedNull(result.finalExecutablePath) ||
 			HasEmbeddedNull(result.argumentTail) || HasEmbeddedNull(result.workingDirectory) ||
+			HasEmbeddedNull(result.directScriptPath) ||
 			HasEmbeddedNull(result.changedProgramPath) ||
 			HasEmbeddedNull(result.authenticityMarker))
 		{
@@ -119,7 +120,8 @@
 		const std::size_t characterCount = result.canonicalClientName.size() +
 			result.canonicalAccountName.size() + result.clientPath.size() +
 			result.finalExecutablePath.size() + result.argumentTail.size() +
-			result.workingDirectory.size() + result.changedProgramPath.size() +
+			result.workingDirectory.size() + result.directScriptPath.size() +
+			result.changedProgramPath.size() +
 			result.authenticityMarker.size();
 		std::vector<std::uint8_t> frame;
 		frame.reserve(ApprovalChallengeResultHeaderSize + 2 * characterCount);
@@ -159,12 +161,16 @@
 		frame.push_back(static_cast<std::uint8_t>(
 			result.writableElevatedTargetReason));
 		WriteUint32(frame, static_cast<std::uint32_t>(result.authenticityMarker.size()));
+		frame.insert(frame.end(), result.directScriptSha256.begin(),
+			result.directScriptSha256.end());
+		WriteUint32(frame, static_cast<std::uint32_t>(result.directScriptPath.size()));
 		WriteString(frame, result.canonicalClientName);
 		WriteString(frame, result.canonicalAccountName);
 		WriteString(frame, result.clientPath);
 		WriteString(frame, result.finalExecutablePath);
 		WriteString(frame, result.argumentTail);
 		WriteString(frame, result.workingDirectory);
+		WriteString(frame, result.directScriptPath);
 		WriteString(frame, result.changedProgramPath);
 		WriteString(frame, result.authenticityMarker);
 		return frame;
@@ -198,11 +204,13 @@
 		const std::size_t workingDirectoryLength = ReadUint32(frame, 212);
 		const std::size_t changedProgramPathLength = ReadUint32(frame, 216);
 		const std::size_t authenticityMarkerLength = ReadUint32(frame, 224);
+		const std::size_t directScriptPathLength = ReadUint32(frame, 260);
 		if (clientNameLength > MaximumCanonicalAccountNameLength ||
 			accountLength > MaximumCanonicalAccountNameLength ||
 			clientPathLength > MaximumPathLength ||
 			executableLength > MaximumPathLength || argumentLength > MaximumArgumentLength ||
 			workingDirectoryLength > MaximumPathLength ||
+			directScriptPathLength > MaximumPathLength ||
 			changedProgramPathLength > MaximumPathLength ||
 			authenticityMarkerLength > MaximumAuthenticityMarkerLength)
 		{
@@ -210,7 +218,8 @@
 		}
 		const std::size_t characterCount = clientNameLength + accountLength +
 			clientPathLength + executableLength + argumentLength +
-			workingDirectoryLength + changedProgramPathLength + authenticityMarkerLength;
+			workingDirectoryLength + directScriptPathLength +
+			changedProgramPathLength + authenticityMarkerLength;
 		if (frame.size() != ApprovalChallengeResultHeaderSize + 2 * characterCount)
 			return false;
 
@@ -251,6 +260,8 @@
 		parsed.storedApprovalPresenceConfirmation = frame[222] != 0;
 		parsed.writableElevatedTargetReason =
 			static_cast<ApprovalFailureReason>(frame[223]);
+		std::copy_n(frame.begin() + 228, parsed.directScriptSha256.size(),
+			parsed.directScriptSha256.begin());
 		std::size_t offset = ApprovalChallengeResultHeaderSize;
 		if (!ReadString(frame, offset, clientNameLength, parsed.canonicalClientName) ||
 			!ReadString(frame, offset, accountLength, parsed.canonicalAccountName) ||
@@ -258,6 +269,7 @@
 			!ReadString(frame, offset, executableLength, parsed.finalExecutablePath) ||
 			!ReadString(frame, offset, argumentLength, parsed.argumentTail) ||
 			!ReadString(frame, offset, workingDirectoryLength, parsed.workingDirectory) ||
+			!ReadString(frame, offset, directScriptPathLength, parsed.directScriptPath) ||
 			!ReadString(frame, offset, changedProgramPathLength, parsed.changedProgramPath) ||
 			!ReadString(frame, offset, authenticityMarkerLength,
 				parsed.authenticityMarker) ||

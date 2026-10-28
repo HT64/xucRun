@@ -256,7 +256,8 @@ namespace xucrun::broker
 	enum class ApprovalProgramScope : std::uint8_t
 	{
 		General,
-		TargetProgram
+		TargetProgram,
+		ExactInvocation
 	};
 
 	enum class ApprovalAccountScope : std::uint8_t
@@ -798,6 +799,8 @@ namespace xucrun::broker
 		bool executableSignatureTrusted = false;
 		std::wstring argumentTail;
 		std::wstring workingDirectory;
+		std::wstring directScriptPath;
+		std::array<std::uint8_t, 32> directScriptSha256 = {};
 		ElevationMode elevationMode = ElevationMode::PreserveToken;
 		LaunchVisibility visibility = LaunchVisibility::Normal;
 		bool userConfirmationRequired = true;

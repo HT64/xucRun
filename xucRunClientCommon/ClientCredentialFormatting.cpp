@@ -3,6 +3,7 @@
 #include "ClientCredentialFormatting.h"
 
 #include "Localization.h"
+#include "TargetNaming.h"
 
 namespace
 {
@@ -148,6 +149,13 @@ namespace xucrun::credential_formatting
 		{
 			text = GetProgramNameFromPath(approval.targetPath) + L" | " +
 				approval.targetPath;
+			if (approval.programScope ==
+				approval::BrokerApprovalProgramScope::ExactInvocation)
+			{
+				text += L" | " + localization::GetText(
+					localization::TextId::ShowApprovalsProgramExactValue);
+				text += L" | " + FormatExactInvocationBinding(approval, L" | ");
+			}
 		}
 		text += approval.accountScope ==
 			approval::BrokerApprovalAccountScope::AllAccounts
@@ -168,5 +176,50 @@ namespace xucrun::credential_formatting
 				localization::TextId::ResetLifetimeUntil,
 				{ FormatCredentialTimestamp(approval.expiresAt) });
 		return text;
+	}
+
+	std::wstring FormatExactInvocationBinding(
+		const approval::BrokerApprovalValue& approval,
+		const std::wstring& separator)
+	{
+		if (approval.programScope !=
+			approval::BrokerApprovalProgramScope::ExactInvocation)
+		{
+			return L"";
+		}
+		std::wstring text =
+			localization::GetText(localization::TextId::ApprovalBindingArgumentHash) +
+			L": " + targets::BytesToUpperHex(approval.argumentHash) + separator +
+			localization::GetText(
+				localization::TextId::ApprovalBindingWorkingDirectory) +
+			L": " + approval.workingDirectory;
+		if (!approval.scriptPath.empty())
+		{
+			text += separator +
+				localization::GetText(
+					localization::TextId::ApprovalBindingScriptPath) +
+				L": " + approval.scriptPath + separator +
+				localization::GetText(
+					localization::TextId::ApprovalBindingScriptHash) +
+				L": " + targets::BytesToUpperHex(approval.scriptHash);
+		}
+		return text;
+	}
+
+	std::wstring FormatBrokerApprovalScope(
+		const approval::BrokerApprovalValue& approval)
+	{
+		switch (approval.programScope)
+		{
+		case approval::BrokerApprovalProgramScope::General:
+			return localization::GetText(
+				localization::TextId::ShowApprovalsProgramGeneralValue);
+		case approval::BrokerApprovalProgramScope::ExactInvocation:
+			return localization::GetText(
+				localization::TextId::ShowApprovalsProgramExactValue);
+		default:
+			return localization::GetText(
+				localization::TextId::ShowApprovalsProgramTargetValue);
+		}
 	}
 }

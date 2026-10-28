@@ -309,12 +309,25 @@ namespace xucrun::approval_management
 				}
 				const bool general = approvalValue.programScope ==
 					approval::BrokerApprovalProgramScope::General;
+				const bool exact = approvalValue.programScope ==
+					approval::BrokerApprovalProgramScope::ExactInvocation;
 				output += localization::Format(
-					localization::TextId::ShowApprovalsScopeTarget,
-					{ general
-						? localization::GetText(
-							localization::TextId::ShowApprovalsProgramGeneralValue)
-						: approvalValue.targetPath });
+					localization::TextId::ShowApprovalsScope,
+					{ credential_formatting::FormatBrokerApprovalScope(approvalValue) });
+				if (!general)
+				{
+					output += localization::Format(
+						localization::TextId::ShowApprovalsTarget,
+						{ approvalValue.targetPath });
+				}
+				if (exact)
+				{
+					output += localization::Format(
+						localization::TextId::ShowApprovalsInvocationBinding,
+						{ L"        " +
+							credential_formatting::FormatExactInvocationBinding(
+								approvalValue, L"\n        ") });
+				}
 				if (approvalValue.lifetime == approval::BrokerApprovalLifetime::Forever)
 					output += localization::GetText(
 						localization::TextId::ShowApprovalsLifetimeForever);
@@ -359,13 +372,17 @@ namespace xucrun::approval_management
 		{
 			const std::vector<table_dialog::Column> columns = {
 				{ localization::GetText(
-					localization::TextId::ShowCredentialsColumnAccount), 150 },
+					localization::TextId::ShowCredentialsColumnAccount), 140 },
 				{ localization::GetText(
-					localization::TextId::ShowApprovalsColumnScopeTarget), 430 },
+					localization::TextId::ShowApprovalsColumnScope), 150 },
 				{ localization::GetText(
-					localization::TextId::ShowApprovalsColumnLifetime), 160 },
+					localization::TextId::ShowApprovalsColumnTarget), 260 },
 				{ localization::GetText(
-					localization::TextId::ShowApprovalsColumnPrivilegeMode), 140 },
+					localization::TextId::ShowApprovalsColumnInvocationBinding), 320 },
+				{ localization::GetText(
+					localization::TextId::ShowApprovalsColumnLifetime), 130 },
+				{ localization::GetText(
+					localization::TextId::ShowApprovalsColumnPrivilegeMode), 110 },
 				{ localization::GetText(
 					localization::TextId::ShowApprovalsColumnTargetHash), 180, true }
 			};
@@ -383,6 +400,8 @@ namespace xucrun::approval_management
 					});
 				const bool general = approvalValue.programScope ==
 					approval::BrokerApprovalProgramScope::General;
+				const bool exact = approvalValue.programScope ==
+					approval::BrokerApprovalProgramScope::ExactInvocation;
 				std::wstring lifetime;
 				if (approvalValue.lifetime == approval::BrokerApprovalLifetime::Forever)
 				{
@@ -407,10 +426,12 @@ namespace xucrun::approval_management
 						: (credential == brokerCredentials.end()
 							? localization::GetText(localization::TextId::ValueNotAvailable)
 							: DisplayAccount(credential->username)),
-					general
-						? localization::GetText(
-							localization::TextId::ShowApprovalsProgramGeneralValue)
-						: approvalValue.targetPath,
+					credential_formatting::FormatBrokerApprovalScope(approvalValue),
+					general ? L"" : approvalValue.targetPath,
+					exact
+						? credential_formatting::FormatExactInvocationBinding(
+							approvalValue, L"\n")
+						: L"",
 					std::move(lifetime),
 					localization::GetText(approvalValue.elevationMode == 0
 						? localization::TextId::ShowApprovalsPrivilegeUnchangedValue

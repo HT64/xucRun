@@ -920,6 +920,7 @@ namespace xucrun::broker
 				result.finalExecutablePath.size() > MaximumPathLength ||
 				result.argumentTail.size() > MaximumArgumentLength ||
 				result.workingDirectory.size() > MaximumPathLength ||
+				result.directScriptPath.size() > MaximumPathLength ||
 				result.changedProgramPath.size() > MaximumPathLength ||
 				result.clientSignatureTrusted != (result.clientTrustStatus == 0) ||
 				result.executableSignatureTrusted != (result.executableTrustStatus == 0) ||
@@ -961,6 +962,10 @@ namespace xucrun::broker
 				!result.canonicalClientName.empty() || !result.canonicalAccountName.empty() ||
 				!result.clientPath.empty() || !result.finalExecutablePath.empty() ||
 				!result.argumentTail.empty() || !result.workingDirectory.empty() ||
+				!result.directScriptPath.empty() ||
+				std::any_of(result.directScriptSha256.begin(),
+					result.directScriptSha256.end(),
+					[](std::uint8_t value) { return value != 0; }) ||
 				!result.authenticityMarker.empty() ||
 				result.writableElevatedTargetReason != ApprovalFailureReason::None ||
 				result.programUpdateAvailable || !result.changedProgramPath.empty() ||
@@ -997,7 +1002,7 @@ namespace xucrun::broker
 			return ContractValidationError::InvalidApprovalDecision;
 		}
 		if (request.persistence > ApprovalPersistence::Forever ||
-			request.programScope > ApprovalProgramScope::TargetProgram ||
+			request.programScope > ApprovalProgramScope::ExactInvocation ||
 			request.accountScope > ApprovalAccountScope::AllAccounts ||
 			request.updateScope > ApprovalUpdateScope::AllAccounts ||
 			(request.decision == ApprovalDecision::Deny &&

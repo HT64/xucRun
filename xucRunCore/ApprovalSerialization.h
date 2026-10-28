@@ -15,7 +15,7 @@ namespace xucrun::approval
 	inline constexpr std::uint8_t ScopedApprovalVersion = 5;
 	inline constexpr std::uint8_t GlobalScopedApprovalVersion = 6;
 	inline constexpr std::size_t ScopedApprovalHeaderSize = 110;
-	inline constexpr std::uint8_t BrokerApprovalVersion = 8;
+	inline constexpr std::uint8_t BrokerApprovalVersion = 9;
 
 	enum class ApprovalMode : std::uint8_t
 	{
@@ -34,7 +34,8 @@ namespace xucrun::approval
 	enum class BrokerApprovalProgramScope : std::uint8_t
 	{
 		General = 1,
-		TargetProgram = 2
+		TargetProgram = 2,
+		ExactInvocation = 3
 	};
 
 	enum class BrokerApprovalAccountScope : std::uint8_t
@@ -56,15 +57,20 @@ namespace xucrun::approval
 		BrokerApprovalAccountScope accountScope = BrokerApprovalAccountScope::CurrentAccount;
 		BrokerApprovalLifetime lifetime = BrokerApprovalLifetime::Until;
 		std::uint8_t elevationMode = 0;
+		std::uint8_t visibility = 0;
 		std::uint64_t createdAt = 0;
 		std::uint64_t expiresAt = 0;
 		Sha256Hash callerHash = {};
 		Sha256Hash targetHash = {};
+		Sha256Hash argumentHash = {};
+		Sha256Hash scriptHash = {};
 		std::wstring ownerUserSid;
 		std::wstring targetAccountSid;
 		std::wstring sessionLogonSid;
 		std::wstring callerPath;
 		std::wstring targetPath;
+		std::wstring workingDirectory;
+		std::wstring scriptPath;
 	};
 
 	struct ScopedApprovalValue

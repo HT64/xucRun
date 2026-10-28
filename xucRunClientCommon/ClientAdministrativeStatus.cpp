@@ -59,8 +59,10 @@ namespace xucrun::administrative_status
 		constexpr std::size_t OwnerColumn = 0;
 		constexpr std::size_t TypeColumn = 1;
 		constexpr std::size_t AccountColumn = 2;
-		constexpr std::size_t ScopeTargetColumn = 3;
-		constexpr std::size_t TimeColumn = 4;
+		constexpr std::size_t ScopeColumn = 3;
+		constexpr std::size_t TargetColumn = 4;
+		constexpr std::size_t BindingColumn = 5;
+		constexpr std::size_t TimeColumn = 6;
 
 		std::wstring ResolveOwnerName(const std::wstring& ownerSid)
 		{
@@ -154,11 +156,15 @@ namespace xucrun::administrative_status
 				{ localization::GetText(
 					localization::TextId::AdministrativeStatusColumnAccount), 110 },
 				{ localization::GetText(
-					localization::TextId::AdministrativeStatusColumnProgram), 190 },
+					localization::TextId::ShowApprovalsColumnScope), 120 },
+				{ localization::GetText(
+					localization::TextId::ShowApprovalsColumnTarget), 220 },
+				{ localization::GetText(
+					localization::TextId::ShowApprovalsColumnInvocationBinding), 300 },
 				{ localization::GetText(
 					localization::TextId::AdministrativeStatusColumnTime), 125 },
 				{ localization::GetText(
-					localization::TextId::ShowApprovalsColumnPrivilegeMode), 110 },
+					localization::TextId::ShowApprovalsColumnPrivilegeMode), 100 },
 				{ localization::GetText(
 					localization::TextId::ShowApprovalsColumnTargetHash), 140, true }
 			};
@@ -189,6 +195,7 @@ namespace xucrun::administrative_status
 							localization::TextId::AdministrativeStatusTypeCredential),
 						documentation_names::DisplayAccount(
 							credential->canonicalAccountName), L"",
+						L"", L"",
 						credential_formatting::FormatCredentialTimestamp(
 							credential->lastWritten),
 						L"", L"" },
@@ -209,16 +216,21 @@ namespace xucrun::administrative_status
 								localization::TextId::ValueNotAvailable);
 					const bool general = approvalValue->programScope ==
 						approval::BrokerApprovalProgramScope::General;
+					const bool exact = approvalValue->programScope ==
+						approval::BrokerApprovalProgramScope::ExactInvocation;
 					broker::AdministrativeDeleteRequest deleteRequest;
 					deleteRequest.kind = broker::AdministrativeDeleteKind::Approval;
 					deleteRequest.ownerUserSid = ownerSid;
 					deleteRequest.approval = *approvalValue;
 					records.push_back({ { displayedOwnerName, localization::GetText(
 							localization::TextId::AdministrativeStatusTypeApproval),
-						account, general
-							? localization::GetText(
-								localization::TextId::ShowApprovalsProgramGeneralValue)
-							: approvalValue->targetPath,
+						account,
+						credential_formatting::FormatBrokerApprovalScope(*approvalValue),
+						general ? L"" : approvalValue->targetPath,
+						exact
+							? credential_formatting::FormatExactInvocationBinding(
+								*approvalValue, L"\n")
+							: L"",
 						FormatApprovalLifetime(*approvalValue),
 						localization::GetText(approvalValue->elevationMode == 0
 							? localization::TextId::
@@ -233,7 +245,8 @@ namespace xucrun::administrative_status
 			}
 			std::sort(records.begin(), records.end(), [](const auto& left, const auto& right) {
 				const std::size_t sortColumns[] = {
-					OwnerColumn, AccountColumn, TypeColumn, ScopeTargetColumn };
+					OwnerColumn, AccountColumn, TypeColumn, ScopeColumn,
+					TargetColumn, BindingColumn };
 				for (const std::size_t column : sortColumns)
 				{
 					const int comparison = _wcsicmp(
@@ -686,7 +699,7 @@ namespace xucrun::administrative_status
 					: localization::Format(localization::TextId::
 						AdministrativeStatusDeleteApprovalConfirm,
 						{ row[OwnerColumn], row[AccountColumn],
-							row[ScopeTargetColumn] });
+							row[ScopeColumn], row[TargetColumn] });
 				if (ui::ShowMessageBox(ui::GetDialogOwnerWindow(), confirmation,
 					ui::GetWindowTitle(localization::GetText(
 						localization::TextId::WarningTitle)),

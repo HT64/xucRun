@@ -35,7 +35,7 @@ xucRun-Ereignisse zu entfernen.
 | Ereignisquelle | `HKLM\SYSTEM\CurrentControlSet\Services\EventLog\Application\xucRunBroker` | Vorhandene Ereignisse bleiben im gemeinsamen Anwendungsprotokoll |
 | Deinstallationseintrag | `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun` | Rechnerweit |
 | Rechner-`PATH` | `%ProgramFiles%\xucRun` | Nur vorhanden, wenn bei der Installation ausgewählt |
-| Produktdaten | `%ProgramData%\xucRun` | Enthält Metadaten zu Anmeldeinformationen in `BrokerStore\v1`, verschlüsselte Archive und Wiederherstellungsjournale in `BrokerBackups\v3-a8` sowie `InstallerLogs` |
+| Produktdaten | `%ProgramData%\xucRun` | Enthält Metadaten zu Anmeldeinformationen in `BrokerStore\v1`, verschlüsselte Archive und Wiederherstellungsjournale in `BrokerBackups\v3-a9` sowie `InstallerLogs` |
 | Broker-Geheimnisse | xucRun-Ziele für Anmeldeinformationen, Freigaben und Authentizitätsmarker | Über die Windows-Anmeldeinformationsverwaltung im LocalSystem-Kontext gespeichert |
 | Signaturzertifikat | Normalerweise `CN=xucRun Local Signing (<COMPUTERNAME>)` | Kann in `LocalMachine\My`, `LocalMachine\Root` und `LocalMachine\TrustedPublisher` liegen; `My` enthält den privaten Schlüssel |
 | Client-Protokolle | `xucRun_YYYYMMDD.log` | Nur bei konfiguriertem `[Logging] ClientLogDirectory`; das Verzeichnis kann beliebig liegen, Umgebungsvariablen werden je Benutzerkontext aufgelöst |

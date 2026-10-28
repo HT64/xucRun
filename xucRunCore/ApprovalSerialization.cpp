@@ -10,8 +10,8 @@ namespace xucrun::approval
 {
 	namespace
 	{
-		constexpr std::size_t BrokerApprovalFixedSize = 98;
-		constexpr std::size_t BrokerApprovalLengthsOffset = 88;
+		constexpr std::size_t BrokerApprovalFixedSize = 166;
+		constexpr std::size_t BrokerApprovalLengthsOffset = 152;
 
 		// Writes a 64-bit integer canonically in little-endian order.
 		void WriteUint64(std::vector<std::uint8_t>& value,
@@ -35,7 +35,8 @@ namespace xucrun::approval
 		bool IsValidBrokerApproval(const BrokerApprovalValue& approval)
 		{
 			const bool validScope = approval.programScope == BrokerApprovalProgramScope::General ||
-				approval.programScope == BrokerApprovalProgramScope::TargetProgram;
+				approval.programScope == BrokerApprovalProgramScope::TargetProgram ||
+				approval.programScope == BrokerApprovalProgramScope::ExactInvocation;
 			const bool validAccountScope =
 				approval.accountScope == BrokerApprovalAccountScope::CurrentAccount ||
 				approval.accountScope == BrokerApprovalAccountScope::AllAccounts;
@@ -43,7 +44,8 @@ namespace xucrun::approval
 				approval.lifetime == BrokerApprovalLifetime::LogonSession ||
 				approval.lifetime == BrokerApprovalLifetime::Forever;
 			return validScope && validAccountScope && validLifetime &&
-				approval.elevationMode <= 1 && approval.createdAt != 0 &&
+				approval.elevationMode <= 1 && approval.visibility <= 2 &&
+				approval.createdAt != 0 &&
 				!approval.ownerUserSid.empty() &&
 				(approval.accountScope == BrokerApprovalAccountScope::AllAccounts
 					? approval.targetAccountSid.empty()
@@ -54,9 +56,35 @@ namespace xucrun::approval
 				(approval.lifetime == BrokerApprovalLifetime::LogonSession
 					? !approval.sessionLogonSid.empty()
 					: approval.sessionLogonSid.empty()) &&
-				(approval.programScope == BrokerApprovalProgramScope::TargetProgram
-					? !approval.callerPath.empty() && !approval.targetPath.empty()
-					: approval.callerPath.empty() && approval.targetPath.empty());
+				(approval.programScope == BrokerApprovalProgramScope::General
+					? approval.callerPath.empty() && approval.targetPath.empty() &&
+						approval.workingDirectory.empty() && approval.scriptPath.empty() &&
+						approval.visibility == 0 &&
+						std::all_of(approval.argumentHash.begin(), approval.argumentHash.end(),
+							[](std::uint8_t value) { return value == 0; }) &&
+						std::all_of(approval.scriptHash.begin(), approval.scriptHash.end(),
+							[](std::uint8_t value) { return value == 0; })
+					: !approval.callerPath.empty() && !approval.targetPath.empty() &&
+						(approval.programScope == BrokerApprovalProgramScope::TargetProgram
+							? approval.workingDirectory.empty() && approval.scriptPath.empty() &&
+								approval.visibility == 0 &&
+								std::all_of(approval.argumentHash.begin(),
+									approval.argumentHash.end(),
+									[](std::uint8_t value) { return value == 0; }) &&
+								std::all_of(approval.scriptHash.begin(),
+									approval.scriptHash.end(),
+									[](std::uint8_t value) { return value == 0; })
+							: !approval.workingDirectory.empty() &&
+								std::any_of(approval.argumentHash.begin(),
+									approval.argumentHash.end(),
+									[](std::uint8_t value) { return value != 0; }) &&
+								(approval.scriptPath.empty()
+									? std::all_of(approval.scriptHash.begin(),
+										approval.scriptHash.end(),
+										[](std::uint8_t value) { return value == 0; })
+									: std::any_of(approval.scriptHash.begin(),
+										approval.scriptHash.end(),
+										[](std::uint8_t value) { return value != 0; }))));
 		}
 	}
 
@@ -217,7 +245,8 @@ namespace xucrun::approval
 		const std::wstring* strings[] = {
 			&approval.ownerUserSid, &approval.targetAccountSid,
 			&approval.sessionLogonSid, &approval.callerPath,
-			&approval.targetPath
+			&approval.targetPath, &approval.workingDirectory,
+			&approval.scriptPath
 		};
 		std::size_t characterCount = 0;
 		for (const std::wstring* text : strings)
@@ -235,10 +264,13 @@ namespace xucrun::approval
 		value[2] = static_cast<std::uint8_t>(approval.accountScope);
 		value[3] = static_cast<std::uint8_t>(approval.lifetime);
 		value[4] = approval.elevationMode;
+		value[5] = approval.visibility;
 		WriteUint64(value, 8, approval.createdAt);
 		WriteUint64(value, 16, approval.expiresAt);
 		std::copy(approval.callerHash.begin(), approval.callerHash.end(), value.begin() + 24);
 		std::copy(approval.targetHash.begin(), approval.targetHash.end(), value.begin() + 56);
+		std::copy(approval.argumentHash.begin(), approval.argumentHash.end(), value.begin() + 88);
+		std::copy(approval.scriptHash.begin(), approval.scriptHash.end(), value.begin() + 120);
 
 		std::size_t lengthOffset = BrokerApprovalLengthsOffset;
 		std::size_t stringOffset = BrokerApprovalFixedSize;
@@ -261,8 +293,9 @@ namespace xucrun::approval
 	bool DeserializeBrokerApproval(std::span<const std::uint8_t> value,
 		BrokerApprovalValue& approval)
 	{
-		if (value.size() < BrokerApprovalFixedSize || value[0] != BrokerApprovalVersion ||
-			value[5] != 0 || value[6] != 0 || value[7] != 0)
+		if (value.size() < BrokerApprovalFixedSize ||
+			value[0] != BrokerApprovalVersion ||
+			value[6] != 0 || value[7] != 0)
 		{
 			return false;
 		}
@@ -272,15 +305,21 @@ namespace xucrun::approval
 		parsed.accountScope = static_cast<BrokerApprovalAccountScope>(value[2]);
 		parsed.lifetime = static_cast<BrokerApprovalLifetime>(value[3]);
 		parsed.elevationMode = value[4];
+		parsed.visibility = value[5];
 		parsed.createdAt = ReadUint64(value, 8);
 		parsed.expiresAt = ReadUint64(value, 16);
 		std::copy_n(value.begin() + 24, parsed.callerHash.size(), parsed.callerHash.begin());
 		std::copy_n(value.begin() + 56, parsed.targetHash.size(), parsed.targetHash.begin());
+		std::copy_n(value.begin() + 88, parsed.argumentHash.size(),
+			parsed.argumentHash.begin());
+		std::copy_n(value.begin() + 120, parsed.scriptHash.size(),
+			parsed.scriptHash.begin());
 
 		std::wstring* strings[] = {
 			&parsed.ownerUserSid, &parsed.targetAccountSid,
 			&parsed.sessionLogonSid, &parsed.callerPath,
-			&parsed.targetPath
+			&parsed.targetPath, &parsed.workingDirectory,
+			&parsed.scriptPath
 		};
 		std::size_t lengthOffset = BrokerApprovalLengthsOffset;
 		std::size_t stringOffset = BrokerApprovalFixedSize;

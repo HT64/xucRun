@@ -61,7 +61,7 @@ namespace xucrun::broker
 	inline constexpr std::size_t CredentialUseTestRequestHeaderSize = 24;
 	inline constexpr std::size_t CredentialUseTestResultSize = 28;
 	inline constexpr std::size_t ApprovalChallengeRequestHeaderSize = 40;
-	inline constexpr std::size_t ApprovalChallengeResultHeaderSize = 228;
+	inline constexpr std::size_t ApprovalChallengeResultHeaderSize = 264;
 	inline constexpr std::size_t ApprovalConfirmationRequestSize = 40;
 	inline constexpr std::size_t ApprovalConfirmationResultSize = 28;
 	inline constexpr std::size_t ApprovalHelperRequestSize = 36;

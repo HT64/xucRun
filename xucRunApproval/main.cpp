@@ -5,6 +5,7 @@
 #include <wincred.h>
 
 #include <atomic>
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <sstream>
@@ -30,14 +31,16 @@ namespace
 	constexpr int ApprovalDurationFirst = 1300;
 	constexpr int ApprovalTargetProgram = 1400;
 	constexpr int ApprovalProgramGeneral = 1401;
+	constexpr int ApprovalExactInvocation = 1402;
 	constexpr int ApprovalAccountCurrent = 1450;
 	constexpr int ApprovalAccountAll = 1451;
 	constexpr int ApprovalCountdownControl = 1500;
+	constexpr int ApprovalExplanationControl = 1501;
 	constexpr int ApprovalInterpreterWarningY = 167;
 	constexpr int ApprovalInterpreterWarningHeight = 52;
 	constexpr int ApprovalInterpreterLayoutOffset = 56;
-	constexpr int ApprovalExistingContentBottom = 324;
-	constexpr int ApprovalMarkerY = 329;
+	constexpr int ApprovalExistingContentBottom = 337;
+	constexpr int ApprovalMarkerY = 342;
 	constexpr int ApprovalMarkerHeight = 24;
 
 	struct CredentialDialogTimeoutState
@@ -104,9 +107,9 @@ namespace
 		return stopped && !cancelled.timedOut.load();
 	}
 #endif
-	constexpr int ApprovalButtonY = 357;
+	constexpr int ApprovalButtonY = 370;
 	constexpr int ApprovalButtonHeight = 14;
-	constexpr int ApprovalDialogHeight = 372;
+	constexpr int ApprovalDialogHeight = 385;
 	static_assert(ApprovalExistingContentBottom < ApprovalMarkerY);
 	static_assert(ApprovalMarkerY + ApprovalMarkerHeight < ApprovalButtonY);
 	static_assert(ApprovalButtonY + ApprovalButtonHeight <= ApprovalDialogHeight);
@@ -706,6 +709,123 @@ namespace
 		SetWindowTextW(GetDlgItem(dialog, ApprovalCountdownControl), countdown.c_str());
 	}
 
+	void UpdateApprovalExplanation(HWND dialog)
+	{
+		const bool once = SendMessageW(GetDlgItem(dialog, ApprovalDurationFirst),
+			BM_GETCHECK, 0, 0) == BST_CHECKED;
+		if (once)
+		{
+			const std::wstring explanation = Text(
+				L"Freigabedauer: Nur dieses eine Mal.\r\nFür diesen einzelnen, vollständig "
+				L"gebundenen Start wird keine wiederverwendbare Freigabe gespeichert."
+				L"\r\n\r\nGeltungsbereich: Nicht anwendbar.\r\nDer aktuelle Start ist bereits "
+				L"auf das angezeigte Programm, seine Argumente, das Arbeitsverzeichnis und die "
+				L"Sichtbarkeit begrenzt."
+				L"\r\n\r\nKontobereich: Nicht anwendbar.\r\nDer aktuelle Start gilt nur für das "
+				L"angezeigte Zielkonto.",
+				L"Approval duration: This time only.\r\nNo reusable approval is stored for this "
+				L"single, fully bound launch."
+				L"\r\n\r\nScope: Not applicable.\r\nThe current launch is already limited to "
+				L"the displayed program, its arguments, working directory, and visibility."
+				L"\r\n\r\nAccount scope: Not applicable.\r\nThe current launch applies only to "
+				L"the displayed target account.");
+			SetWindowTextW(GetDlgItem(dialog, ApprovalExplanationControl),
+				explanation.c_str());
+			return;
+		}
+
+		std::wstring explanation;
+		if (SendMessageW(GetDlgItem(dialog, ApprovalDurationFirst + 1),
+			BM_GETCHECK, 0, 0) == BST_CHECKED)
+		{
+			explanation = Text(
+				L"Freigabedauer: Für 10 Minuten.\r\nIn diesem Zeitraum wiederverwendbar.",
+				L"Approval duration: For 10 minutes.\r\nReusable during this period.");
+		}
+		else if (SendMessageW(GetDlgItem(dialog, ApprovalDurationFirst + 2),
+			BM_GETCHECK, 0, 0) == BST_CHECKED)
+		{
+			explanation = Text(
+				L"Freigabedauer: Für einen Tag.\r\nIn diesem Zeitraum wiederverwendbar.",
+				L"Approval duration: For one day.\r\nReusable during this period.");
+		}
+		else if (SendMessageW(GetDlgItem(dialog, ApprovalDurationFirst + 3),
+			BM_GETCHECK, 0, 0) == BST_CHECKED)
+		{
+			explanation = Text(
+				L"Freigabedauer: Für diese Anmeldung.\r\nBis zur Abmeldung wiederverwendbar.",
+				L"Approval duration: For this logon session.\r\nReusable until sign-out.");
+		}
+		else
+		{
+			explanation = Text(
+				L"Freigabedauer: Dauerhaft.\r\nGespeichert, bis die Freigabe zurückgesetzt wird "
+				L"oder ihre gebundene Identität nicht mehr passt.",
+				L"Approval duration: Permanently.\r\nStored until the approval is reset or its "
+				L"bound identity no longer matches.");
+		}
+
+		if (SendMessageW(GetDlgItem(dialog, ApprovalExactInvocation),
+			BM_GETCHECK, 0, 0) == BST_CHECKED)
+		{
+			explanation += Text(
+				L"\r\n\r\nGeltungsbereich: Genau dieser Aufruf.\r\nGilt nur für dasselbe "
+				L"Programm mit exakt denselben Argumenten, demselben Arbeitsverzeichnis und "
+				L"derselben Sichtbarkeit. Nur das im Detailbereich als gebunden ausgewiesene "
+				L"direkte Skript wird zusätzlich über seinen finalen Pfad und SHA-256-Hash "
+				L"gebunden. Weitere aufgerufene oder nachgeladene Skripte und Dateien sind nicht "
+				L"automatisch umfasst.",
+				L"\r\n\r\nScope: Exactly this invocation.\r\nApplies only to the same program "
+				L"with exactly the same arguments, working directory, and visibility. Only the "
+				L"direct script shown as bound in the details is additionally bound by its final "
+				L"path and SHA-256 hash. Other invoked or loaded scripts and files are not "
+				L"automatically included.");
+		}
+		else if (SendMessageW(GetDlgItem(dialog, ApprovalProgramGeneral),
+			BM_GETCHECK, 0, 0) == BST_CHECKED)
+		{
+			explanation += Text(
+				L"\r\n\r\nGeltungsbereich: Für alle Programme.\r\nGilt für jedes Programm. Das "
+				L"ist der weiteste Geltungsbereich.",
+				L"\r\n\r\nScope: For all programs.\r\nApplies to every program. This is the "
+				L"broadest scope.");
+		}
+		else
+		{
+			explanation += Text(
+				L"\r\n\r\nGeltungsbereich: Nur für dieses Zielprogramm.\r\nGilt für dieselbe "
+				L"unveränderte Programmdatei. Argumente, Arbeitsverzeichnis und aufrufende "
+				L"Dateien sind nicht gebunden.",
+				L"\r\n\r\nScope: Only for this target program.\r\nApplies to the same unchanged "
+				L"program file. Arguments, working directory, and calling files are not bound.");
+		}
+
+		explanation += SendMessageW(GetDlgItem(dialog, ApprovalAccountAll),
+			BM_GETCHECK, 0, 0) == BST_CHECKED
+			? Text(
+				L"\r\n\r\nKontobereich: Für alle gespeicherten Zielkonten.\r\nGilt für alle "
+				L"gespeicherten Zielkonten dieses Windows-Benutzers, auch später hinzugefügte.",
+				L"\r\n\r\nAccount scope: For all stored target accounts.\r\nApplies to all stored "
+				L"target accounts of this Windows user, including accounts added later.")
+			: Text(
+				L"\r\n\r\nKontobereich: Nur für dieses Zielkonto.\r\nGilt nur für das "
+				L"angezeigte Zielkonto.",
+				L"\r\n\r\nAccount scope: Only for this target account.\r\nApplies only to the "
+				L"displayed target account.");
+		SetWindowTextW(GetDlgItem(dialog, ApprovalExplanationControl),
+			explanation.c_str());
+	}
+
+	void SetReusableApprovalControlsEnabled(HWND dialog, bool enabled)
+	{
+		for (const int control : {
+			ApprovalTargetProgram, ApprovalExactInvocation, ApprovalProgramGeneral,
+			ApprovalAccountCurrent, ApprovalAccountAll })
+		{
+			EnableWindow(GetDlgItem(dialog, control), enabled);
+		}
+	}
+
 	INT_PTR CALLBACK ApprovalDialogProc(HWND dialog, UINT message, WPARAM wParam,
 		LPARAM lParam)
 	{
@@ -744,63 +864,37 @@ namespace
 					InterpreterWarningType::PowerShell
 					? Text(
 						L"WARNUNG: PowerShell kann beliebige Befehle und Skripte ausführen. "
-						L"Eine wiederverwendbare Freigabe ist nicht an die hier angezeigten "
-						L"Argumente gebunden und kann später für andere PowerShell-Befehle "
-						L"verwendet werden. Prüfen Sie daher Ziel, Argumente und Arbeitsverzeichnis "
-						L"besonders sorgfältig und wählen Sie möglichst „Nur dieses eine Mal“.\r\n"
+						L"Eine normale wiederverwendbare Programmfreigabe ist nicht an die hier "
+						L"angezeigten Argumente gebunden. Deshalb ist für eine wiederverwendbare "
+						L"Freigabe „Genau dieser Aufruf“ vorausgewählt; dadurch werden Argumente "
+						L"und Arbeitsverzeichnis mitgebunden.\r\n"
 						L"Eine administrativ erzwungene AllSigned-Richtlinie kann "
 						L"PowerShell-Skriptdateien zusätzlich absichern, schützt jedoch nicht vor "
 						L"direkten oder interaktiven Befehlen.",
 						L"WARNING: PowerShell can run arbitrary commands and scripts. A reusable "
-						L"approval is not bound to the arguments shown here and can later be used "
-						L"for other PowerShell commands. Carefully verify the target, arguments, "
-						L"and working directory, and choose \"This time only\" whenever possible.\r\n"
+						L"normal program approval is not bound to the arguments shown here. "
+						L"Therefore, \"Exactly this invocation\" is preselected for a reusable "
+						L"approval to bind the arguments and working directory.\r\n"
 						L"An administratively enforced AllSigned policy can additionally protect "
 						L"PowerShell script files, but does not protect against direct or "
 						L"interactive commands.")
 					: Text(
 						L"WARNUNG: Dieses Ziel ist ein universeller Befehls- oder "
-						L"Skriptinterpreter. Eine wiederverwendbare Freigabe ist nicht an die "
-						L"hier angezeigten Argumente gebunden und kann später für andere Befehle "
-						L"verwendet werden. Prüfen Sie daher Ziel, Argumente und Arbeitsverzeichnis "
-						L"besonders sorgfältig und wählen Sie möglichst „Nur dieses eine Mal“.",
+						L"Skriptinterpreter. Eine normale wiederverwendbare Programmfreigabe ist "
+						L"nicht an die hier angezeigten Argumente gebunden. Deshalb ist für eine "
+						L"wiederverwendbare Freigabe „Genau dieser Aufruf“ vorausgewählt; dadurch "
+						L"werden Argumente und Arbeitsverzeichnis mitgebunden.",
 						L"WARNING: This target is a universal command or script interpreter. "
-						L"A reusable approval is not bound to the arguments shown here and can "
-						L"later be used for other commands. Carefully verify the target, arguments, "
-						L"and working directory, and choose \"This time only\" whenever possible.");
+						L"A reusable normal program approval is not bound to the arguments shown "
+						L"here. Therefore, \"Exactly this invocation\" is preselected for a "
+						L"reusable approval to bind the arguments and working directory.");
 				AddControl(dialog, L"STATIC", warning, SS_LEFT,
 					8, ApprovalInterpreterWarningY, 374,
 					ApprovalInterpreterWarningHeight, 0, font);
 			}
 
-			AddControl(dialog, L"STATIC", Text(L"Geltungsbereich:", L"Scope:"),
-				SS_LEFT, 8, 167 + layoutOffset, 180, 10, 0, font);
-			AddControl(dialog, L"BUTTON", Text(L"Nur für dieses Zielprogramm",
-				L"Only for this target program"),
-				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
-				11, 179 + layoutOffset, 210, 11,
-				ApprovalTargetProgram, font);
-			AddControl(dialog, L"BUTTON", Text(L"Für alle Programme",
-				L"For all programs"), BS_AUTORADIOBUTTON | WS_TABSTOP,
-				11, 192 + layoutOffset, 210, 11, ApprovalProgramGeneral, font);
-			SendMessageW(GetDlgItem(dialog, ApprovalTargetProgram), BM_SETCHECK,
-				BST_CHECKED, 0);
-
-			AddControl(dialog, L"STATIC", Text(L"Kontobereich:", L"Account scope:"),
-				SS_LEFT, 8, 208 + layoutOffset, 180, 10, 0, font);
-			AddControl(dialog, L"BUTTON", Text(L"Nur für dieses Zielkonto",
-				L"Only for this target account"),
-				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
-				11, 220 + layoutOffset, 210, 11,
-				ApprovalAccountCurrent, font);
-			AddControl(dialog, L"BUTTON", Text(L"Für alle gespeicherten Zielkonten",
-				L"For all stored target accounts"), BS_AUTORADIOBUTTON | WS_TABSTOP,
-				11, 233 + layoutOffset, 210, 11, ApprovalAccountAll, font);
-			SendMessageW(GetDlgItem(dialog, ApprovalAccountCurrent), BM_SETCHECK,
-				BST_CHECKED, 0);
-
 			AddControl(dialog, L"STATIC", Text(L"Freigabedauer:", L"Approval duration:"),
-				SS_LEFT, 8, 249 + layoutOffset, 180, 10, 0, font);
+				SS_LEFT, 8, 167 + layoutOffset, 180, 10, 0, font);
 			const wchar_t* choices[] = {
 				Text(L"Nur dieses eine Mal", L"This time only"),
 				Text(L"Für 10 Minuten", L"For 10 minutes"),
@@ -812,12 +906,55 @@ namespace
 			{
 				AddControl(dialog, L"BUTTON", choices[index], BS_AUTORADIOBUTTON |
 					WS_TABSTOP | (index == 0 ? WS_GROUP : 0),
-					11, 261 + layoutOffset + index * 13,
+					11, 179 + layoutOffset + index * 13,
 					180, 11, ApprovalDurationFirst + index, font);
 			}
 			SendMessageW(GetDlgItem(dialog, ApprovalDurationFirst), BM_SETCHECK,
 				BST_CHECKED, 0);
-			EnableWindow(GetDlgItem(dialog, ApprovalAccountAll), FALSE);
+
+			AddControl(dialog, L"STATIC", Text(L"Geltungsbereich:", L"Scope:"),
+				SS_LEFT, 8, 247 + layoutOffset, 180, 10, 0, font);
+			AddControl(dialog, L"BUTTON", Text(L"Nur für dieses Zielprogramm",
+				L"Only for this target program"),
+				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
+				11, 259 + layoutOffset, 210, 11,
+				ApprovalTargetProgram, font);
+			AddControl(dialog, L"BUTTON", Text(L"Genau dieser Aufruf",
+				L"Exactly this invocation"),
+				BS_AUTORADIOBUTTON | WS_TABSTOP,
+				11, 272 + layoutOffset, 210, 11,
+				ApprovalExactInvocation, font);
+			AddControl(dialog, L"BUTTON", Text(L"Für alle Programme",
+				L"For all programs"), BS_AUTORADIOBUTTON | WS_TABSTOP,
+				11, 285 + layoutOffset, 210, 11, ApprovalProgramGeneral, font);
+			SendMessageW(GetDlgItem(dialog, showInterpreterWarning
+				? ApprovalExactInvocation : ApprovalTargetProgram), BM_SETCHECK,
+				BST_CHECKED, 0);
+
+			AddControl(dialog, L"STATIC", Text(L"Kontobereich:", L"Account scope:"),
+				SS_LEFT, 8, 301 + layoutOffset, 180, 10, 0, font);
+			AddControl(dialog, L"BUTTON", Text(L"Nur für dieses Zielkonto",
+				L"Only for this target account"),
+				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
+				11, 313 + layoutOffset, 210, 11,
+				ApprovalAccountCurrent, font);
+			AddControl(dialog, L"BUTTON", Text(L"Für alle gespeicherten Zielkonten",
+				L"For all stored target accounts"), BS_AUTORADIOBUTTON | WS_TABSTOP,
+				11, 326 + layoutOffset, 210, 11, ApprovalAccountAll, font);
+			SendMessageW(GetDlgItem(dialog, ApprovalAccountCurrent), BM_SETCHECK,
+				BST_CHECKED, 0);
+			SetReusableApprovalControlsEnabled(dialog, false);
+
+			AddControl(dialog, L"STATIC",
+				Text(L"Ausgewählte Wirkung:", L"Selected effect:"),
+				SS_LEFT, 228, 167 + layoutOffset, 154, 10, 0, font);
+			HWND explanationControl = AddControl(dialog, L"EDIT", L"",
+				ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
+				228, 179 + layoutOffset, 154, 158,
+				ApprovalExplanationControl, font, WS_EX_CLIENTEDGE);
+			SendMessageW(explanationControl, EM_SETMARGINS,
+				EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(5, 5));
+			UpdateApprovalExplanation(dialog);
 
 			AddControl(dialog, L"STATIC", AuthenticityMarkerText(
 				*context->authenticityMarker, *context->clientName), SS_CENTER,
@@ -874,7 +1011,7 @@ namespace
 				LOWORD(wParam) <= ApprovalDurationFirst + 4 && HIWORD(wParam) == BN_CLICKED)
 			{
 				const bool once = LOWORD(wParam) == ApprovalDurationFirst;
-				EnableWindow(GetDlgItem(dialog, ApprovalAccountAll), !once);
+				SetReusableApprovalControlsEnabled(dialog, !once);
 				if (once)
 				{
 					SendMessageW(GetDlgItem(dialog, ApprovalAccountCurrent), BM_SETCHECK,
@@ -882,6 +1019,17 @@ namespace
 					SendMessageW(GetDlgItem(dialog, ApprovalAccountAll), BM_SETCHECK,
 						BST_UNCHECKED, 0);
 				}
+				UpdateApprovalExplanation(dialog);
+				return TRUE;
+			}
+			if ((LOWORD(wParam) == ApprovalTargetProgram ||
+				 LOWORD(wParam) == ApprovalExactInvocation ||
+				 LOWORD(wParam) == ApprovalProgramGeneral ||
+				 LOWORD(wParam) == ApprovalAccountCurrent ||
+				 LOWORD(wParam) == ApprovalAccountAll) &&
+				HIWORD(wParam) == BN_CLICKED)
+			{
+				UpdateApprovalExplanation(dialog);
 				return TRUE;
 			}
 			if (LOWORD(wParam) == IDOK)
@@ -896,10 +1044,23 @@ namespace
 						break;
 					}
 				}
-				context->decision->programScope = SendMessageW(GetDlgItem(dialog,
-					ApprovalProgramGeneral), BM_GETCHECK, 0, 0) == BST_CHECKED
-					? xucrun::broker::ApprovalProgramScope::General
-					: xucrun::broker::ApprovalProgramScope::TargetProgram;
+				if (SendMessageW(GetDlgItem(dialog, ApprovalProgramGeneral),
+					BM_GETCHECK, 0, 0) == BST_CHECKED)
+				{
+					context->decision->programScope =
+						xucrun::broker::ApprovalProgramScope::General;
+				}
+				else if (SendMessageW(GetDlgItem(dialog, ApprovalExactInvocation),
+					BM_GETCHECK, 0, 0) == BST_CHECKED)
+				{
+					context->decision->programScope =
+						xucrun::broker::ApprovalProgramScope::ExactInvocation;
+				}
+				else
+				{
+					context->decision->programScope =
+						xucrun::broker::ApprovalProgramScope::TargetProgram;
+				}
 				context->decision->accountScope = SendMessageW(GetDlgItem(dialog,
 					ApprovalAccountAll), BM_GETCHECK, 0, 0) == BST_CHECKED
 					? xucrun::broker::ApprovalAccountScope::AllAccounts
@@ -1014,7 +1175,7 @@ namespace
 		const std::wstring accountDetails = std::wstring(Text(
 			L"Aufrufendes Konto: ", L"Calling account: ")) + displayedClientName +
 			Text(L"\nZielkonto: ", L"\nTarget account: ") + displayedAccountName;
-		const std::wstring details = std::wstring(Text(
+		std::wstring details = std::wstring(Text(
 			L"Geprüfter xucRun-Client: ", L"Verified xucRun client: ")) + challenge.clientPath +
 			L"\nSHA-256: " + Hex(challenge.clientSha256) +
 			Text(L"\nAuthenticode: ", L"\nAuthenticode: ") +
@@ -1026,6 +1187,33 @@ namespace
 			Text(L"\n\nArgumente: ", L"\n\nArguments: ") + challenge.argumentTail +
 			Text(L"\nArbeitsverzeichnis: ", L"\nWorking directory: ") +
 			challenge.workingDirectory;
+		if (!challenge.directScriptPath.empty())
+		{
+			const bool scriptContentBound = std::any_of(
+				challenge.directScriptSha256.begin(),
+				challenge.directScriptSha256.end(),
+				[](std::uint8_t value) { return value != 0; });
+			details += Text(L"\nDirektes Skript: ", L"\nDirect script: ") +
+				challenge.directScriptPath;
+			if (scriptContentBound)
+			{
+				details += L"\nSHA-256: " + Hex(challenge.directScriptSha256) +
+					Text(
+						L"\nBei „Genau dieser Aufruf“ werden Skriptpfad und Skripthash "
+						L"zusätzlich gebunden.",
+						L"\n\"Exactly this invocation\" additionally binds the script path "
+						L"and script hash.");
+			}
+			else
+			{
+				details += Text(
+					L"\nDer Skriptinhalt wird nicht gebunden, weil Datei oder Verzeichnis "
+					L"für das aufrufende Konto beschreibbar sind oder nicht sicher geprüft "
+					L"werden konnten.",
+					L"\nThe script contents are not bound because the file or directory is "
+					L"writable by the calling account or could not be verified safely.");
+			}
+		}
 		const std::wstring fixedDetails = launchDetails + L"\n\n" + accountDetails;
 		const std::wstring firstStepDetails = fixedDetails + L"\n\n" + details;
 		if (challenge.writableElevatedTargetReason !=

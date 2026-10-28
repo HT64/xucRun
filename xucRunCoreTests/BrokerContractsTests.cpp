@@ -29,7 +29,7 @@ namespace
 	void ExpectBrokerBackupArchiveSerialization()
 	{
 		using namespace xucrun::backup;
-		if (GetArchiveVersionDirectoryName() != L"v3-a8")
+		if (GetArchiveVersionDirectoryName() != L"v3-a9")
 		{
 			std::cerr << "broker backup version directory mismatch\n";
 			failures++;
@@ -1437,6 +1437,8 @@ namespace
 		result.executableTrustStatus = static_cast<std::int32_t>(0x800B0100u);
 		result.argumentTail = request.argumentTail;
 		result.workingDirectory = request.workingDirectory;
+		result.directScriptPath = L"C:\\Scripts\\task.ps1";
+		result.directScriptSha256[0] = 0x3C;
 		result.elevationMode = request.elevationMode;
 		result.visibility = request.visibility;
 		result.programUpdateAvailable = true;
@@ -1468,6 +1470,8 @@ namespace
 			parsedResult.executableSignatureTrusted != result.executableSignatureTrusted ||
 			parsedResult.argumentTail != result.argumentTail ||
 			parsedResult.workingDirectory != result.workingDirectory ||
+			parsedResult.directScriptPath != result.directScriptPath ||
+			parsedResult.directScriptSha256 != result.directScriptSha256 ||
 			parsedResult.elevationMode != result.elevationMode ||
 			parsedResult.visibility != result.visibility ||
 			parsedResult.programUpdateAvailable != result.programUpdateAvailable ||
@@ -1733,7 +1737,7 @@ namespace
 		request.decision = xucrun::broker::ApprovalDecision::ApproveOnce;
 		request.persistence = xucrun::broker::ApprovalPersistence::OneDay;
 		request.programScope =
-			xucrun::broker::ApprovalProgramScope::TargetProgram;
+			xucrun::broker::ApprovalProgramScope::ExactInvocation;
 		request.accountScope = xucrun::broker::ApprovalAccountScope::AllAccounts;
 		request.updateScope = xucrun::broker::ApprovalUpdateScope::CurrentAccount;
 		request.persistence = xucrun::broker::ApprovalPersistence::Once;
@@ -1880,7 +1884,7 @@ namespace
 		decision.decision = xucrun::broker::ApprovalDecision::ApproveOnce;
 		decision.persistence = xucrun::broker::ApprovalPersistence::OneDay;
 		decision.programScope =
-			xucrun::broker::ApprovalProgramScope::TargetProgram;
+			xucrun::broker::ApprovalProgramScope::ExactInvocation;
 		decision.accountScope = xucrun::broker::ApprovalAccountScope::CurrentAccount;
 		const std::vector<std::uint8_t> decisionFrame =
 			xucrun::broker::SerializeApprovalHelperDecisionRequest(decision);
@@ -2936,28 +2940,79 @@ namespace
 		std::vector<std::uint8_t> brokerSerialized =
 			xucrun::approval::SerializeBrokerApproval(brokerApproval, 4096);
 		xucrun::approval::BrokerApprovalValue parsedBrokerApproval;
-		if (brokerSerialized.empty() || brokerSerialized[0] != 8 ||
+		if (brokerSerialized.empty() ||
+			brokerSerialized[0] != xucrun::approval::BrokerApprovalVersion ||
 			!xucrun::approval::DeserializeBrokerApproval(
 				brokerSerialized, parsedBrokerApproval) ||
 			parsedBrokerApproval.programScope != brokerApproval.programScope ||
 			parsedBrokerApproval.accountScope != brokerApproval.accountScope ||
 			parsedBrokerApproval.lifetime != brokerApproval.lifetime ||
 			parsedBrokerApproval.elevationMode != brokerApproval.elevationMode ||
+			parsedBrokerApproval.visibility != brokerApproval.visibility ||
 			parsedBrokerApproval.createdAt != brokerApproval.createdAt ||
 			parsedBrokerApproval.expiresAt != brokerApproval.expiresAt ||
 			parsedBrokerApproval.callerHash != brokerApproval.callerHash ||
 			parsedBrokerApproval.targetHash != brokerApproval.targetHash ||
+			parsedBrokerApproval.argumentHash != brokerApproval.argumentHash ||
+			parsedBrokerApproval.scriptHash != brokerApproval.scriptHash ||
 			parsedBrokerApproval.ownerUserSid != brokerApproval.ownerUserSid ||
 			parsedBrokerApproval.targetAccountSid != brokerApproval.targetAccountSid ||
 			parsedBrokerApproval.sessionLogonSid != brokerApproval.sessionLogonSid ||
 			parsedBrokerApproval.callerPath != brokerApproval.callerPath ||
-			parsedBrokerApproval.targetPath != brokerApproval.targetPath)
+			parsedBrokerApproval.targetPath != brokerApproval.targetPath ||
+			parsedBrokerApproval.workingDirectory != brokerApproval.workingDirectory ||
+			parsedBrokerApproval.scriptPath != brokerApproval.scriptPath)
 		{
 			std::cerr << "broker approval round trip failed\n";
 			failures++;
 		}
 
+		brokerApproval.programScope =
+			xucrun::approval::BrokerApprovalProgramScope::ExactInvocation;
+		brokerApproval.visibility = 2;
+		brokerApproval.argumentHash[0] = 0x41;
+		brokerApproval.workingDirectory = L"C:\\Work";
+		brokerApproval.scriptHash[0] = 0x42;
+		brokerApproval.scriptPath = L"C:\\Scripts\\task.ps1";
+		brokerSerialized =
+			xucrun::approval::SerializeBrokerApproval(brokerApproval, 4096);
+		if (brokerSerialized.empty() ||
+			!xucrun::approval::DeserializeBrokerApproval(
+				brokerSerialized, parsedBrokerApproval) ||
+			parsedBrokerApproval.programScope != brokerApproval.programScope ||
+			parsedBrokerApproval.visibility != brokerApproval.visibility ||
+			parsedBrokerApproval.argumentHash != brokerApproval.argumentHash ||
+			parsedBrokerApproval.workingDirectory != brokerApproval.workingDirectory ||
+			parsedBrokerApproval.scriptHash != brokerApproval.scriptHash ||
+			parsedBrokerApproval.scriptPath != brokerApproval.scriptPath)
+		{
+			std::cerr << "exact invocation approval round trip failed\n";
+			failures++;
+		}
+		brokerApproval.workingDirectory.clear();
+		if (!xucrun::approval::SerializeBrokerApproval(
+			brokerApproval, 4096).empty())
+		{
+			std::cerr << "exact invocation approval without working directory accepted\n";
+			failures++;
+		}
+		brokerApproval.programScope =
+			xucrun::approval::BrokerApprovalProgramScope::TargetProgram;
+		brokerApproval.visibility = 0;
+		brokerApproval.argumentHash = {};
+		brokerApproval.scriptHash = {};
+		brokerApproval.workingDirectory.clear();
+		brokerApproval.scriptPath.clear();
+
 		std::vector<std::uint8_t> invalidBroker = brokerSerialized;
+		invalidBroker[0] = 8;
+		if (xucrun::approval::DeserializeBrokerApproval(
+			invalidBroker, parsedBrokerApproval))
+		{
+			std::cerr << "obsolete broker approval version 8 accepted\n";
+			failures++;
+		}
+		invalidBroker = brokerSerialized;
 		invalidBroker[0] = 7;
 		if (xucrun::approval::DeserializeBrokerApproval(
 			invalidBroker, parsedBrokerApproval))

@@ -31,4 +31,9 @@ namespace xucrun::credential_formatting
 		const std::wstring& accountName);
 	std::wstring FormatBrokerApprovalForReset(
 		const approval::BrokerApprovalValue& approval);
+	std::wstring FormatBrokerApprovalScope(
+		const approval::BrokerApprovalValue& approval);
+	std::wstring FormatExactInvocationBinding(
+		const approval::BrokerApprovalValue& approval,
+		const std::wstring& separator);
 }

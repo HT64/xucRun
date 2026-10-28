@@ -37,6 +37,7 @@ namespace xucrun::approval_store
 		std::vector<xucrun::approval::BrokerApprovalValue>& approvals, DWORD& error);
 	bool ListAllForAdministration(
 		std::vector<xucrun::approval::BrokerApprovalValue>& approvals, DWORD& error);
+	bool DeleteObsoleteApprovals(std::uint32_t& deletedCount, DWORD& error);
 	bool HasMatching(const xucrun::approval::BrokerApprovalValue& context,
 		std::uint64_t now, bool& matches, DWORD& error);
 	bool RunApprovalMatchSelfTest();

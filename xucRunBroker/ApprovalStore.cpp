@@ -54,9 +54,22 @@ namespace
 		AppendByte(binding, static_cast<std::uint8_t>(approval.programScope));
 		AppendByte(binding, static_cast<std::uint8_t>(approval.accountScope));
 		AppendHash(binding, approval.targetHash);
+		if (approval.programScope ==
+			xucrun::approval::BrokerApprovalProgramScope::ExactInvocation)
+		{
+			AppendByte(binding, approval.visibility);
+			AppendHash(binding, approval.argumentHash);
+			AppendHash(binding, approval.scriptHash);
+		}
 		AppendString(binding, approval.ownerUserSid);
 		AppendString(binding, approval.targetAccountSid);
 		AppendString(binding, approval.targetPath);
+		if (approval.programScope ==
+			xucrun::approval::BrokerApprovalProgramScope::ExactInvocation)
+		{
+			AppendString(binding, approval.workingDirectory);
+			AppendString(binding, approval.scriptPath);
+		}
 
 		xucrun::approval::Sha256Hash digest = {};
 		BCRYPT_ALG_HANDLE algorithm = nullptr;
@@ -119,8 +132,18 @@ namespace
 		}
 		if (stored.programScope == xucrun::approval::BrokerApprovalProgramScope::General)
 			return true;
-		return stored.targetHash == context.targetHash &&
-			EqualInsensitive(stored.targetPath, context.targetPath);
+		if (stored.targetHash != context.targetHash ||
+			!EqualInsensitive(stored.targetPath, context.targetPath))
+		{
+			return false;
+		}
+		return stored.programScope !=
+			xucrun::approval::BrokerApprovalProgramScope::ExactInvocation ||
+			(stored.visibility == context.visibility &&
+			 stored.argumentHash == context.argumentHash &&
+			 stored.scriptHash == context.scriptHash &&
+			 EqualInsensitive(stored.workingDirectory, context.workingDirectory) &&
+			 EqualInsensitive(stored.scriptPath, context.scriptPath));
 	}
 
 	// Identifies an account-bound approval for the same client profile and target account.
@@ -137,8 +160,8 @@ namespace
 	bool IsAffected(const xucrun::approval::BrokerApprovalValue& approval,
 		const xucrun::approval_store::ProgramUpdateInfo& update)
 	{
-		return approval.programScope ==
-			xucrun::approval::BrokerApprovalProgramScope::TargetProgram &&
+		return approval.programScope !=
+			xucrun::approval::BrokerApprovalProgramScope::General &&
 			EqualInsensitive(approval.targetPath, update.changedPath) &&
 			approval.targetHash == update.oldHash;
 	}
@@ -368,6 +391,33 @@ namespace xucrun::approval_store
 		return true;
 	}
 
+	bool DeleteObsoleteApprovals(std::uint32_t& deletedCount, DWORD& error)
+	{
+		deletedCount = 0;
+		std::wstring prefix;
+		if (!xucrun::broker_targets::GetMachineScopedPrefix(
+				xucrun::broker_targets::TargetKind::Approval, prefix, error))
+		{
+			return false;
+		}
+		prefix += L"8-";
+		std::vector<std::wstring> targets;
+		if (!xucrun::broker_store::EnumerateTargets(prefix, targets, error))
+			return false;
+		for (const std::wstring& target : targets)
+		{
+			if (!xucrun::broker_store::Delete(target, error) &&
+				error != ERROR_NOT_FOUND)
+			{
+				return false;
+			}
+			if (error != ERROR_NOT_FOUND)
+				deletedCount++;
+		}
+		error = NO_ERROR;
+		return true;
+	}
+
 	// Finds a still valid approval that fully matches the current security context.
 	bool HasMatching(const xucrun::approval::BrokerApprovalValue& context,
 		std::uint64_t now, bool& matches, DWORD& error)
@@ -424,6 +474,35 @@ namespace xucrun::approval_store
 			return false;
 		context = stored;
 		context.targetPath = L"C:\\Windows\\System32\\write.exe";
+		if (IsMatch(stored, context, 1))
+			return false;
+		stored.programScope =
+			xucrun::approval::BrokerApprovalProgramScope::ExactInvocation;
+		stored.visibility = 1;
+		stored.argumentHash[0] = 4;
+		stored.workingDirectory = L"C:\\Work";
+		stored.scriptPath = L"C:\\Scripts\\task.ps1";
+		stored.scriptHash[0] = 5;
+		context = stored;
+		if (!IsMatch(stored, context, 1))
+			return false;
+		context.argumentHash[0] = 6;
+		if (IsMatch(stored, context, 1))
+			return false;
+		context = stored;
+		context.workingDirectory = L"C:\\Other";
+		if (IsMatch(stored, context, 1))
+			return false;
+		context = stored;
+		context.visibility = 2;
+		if (IsMatch(stored, context, 1))
+			return false;
+		context = stored;
+		context.scriptPath = L"C:\\Scripts\\other.ps1";
+		if (IsMatch(stored, context, 1))
+			return false;
+		context = stored;
+		context.scriptHash[0] = 7;
 		if (IsMatch(stored, context, 1))
 			return false;
 		context = stored;

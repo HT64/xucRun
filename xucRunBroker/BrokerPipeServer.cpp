@@ -29,6 +29,7 @@
 #include <aclapi.h>
 #include <sddl.h>
 #include <bcrypt.h>
+#include <shellapi.h>
 #include <tlhelp32.h>
 
 #include <algorithm>
@@ -37,6 +38,8 @@
 #include <limits>
 #include <memory>
 #include <vector>
+
+#pragma comment(lib, "Shell32.lib")
 
 namespace
 {
@@ -52,6 +55,191 @@ namespace
 #else
 	constexpr bool DiagnosticPipeContractsEnabled = false;
 #endif
+
+	bool ComputeUtf16Sha256(const std::wstring& text,
+		std::array<std::uint8_t, 32>& digest)
+	{
+		digest = {};
+		BCRYPT_ALG_HANDLE algorithm = nullptr;
+		BCRYPT_HASH_HANDLE hash = nullptr;
+		NTSTATUS status = BCryptOpenAlgorithmProvider(
+			&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0);
+		if (status == 0)
+			status = BCryptCreateHash(algorithm, &hash, nullptr, 0, nullptr, 0, 0);
+		if (status == 0 && !text.empty())
+		{
+			status = BCryptHashData(hash,
+				reinterpret_cast<PUCHAR>(const_cast<wchar_t*>(text.data())),
+				static_cast<ULONG>(text.size() * sizeof(wchar_t)), 0);
+		}
+		if (status == 0)
+		{
+			status = BCryptFinishHash(
+				hash, digest.data(), static_cast<ULONG>(digest.size()), 0);
+		}
+		if (hash)
+			BCryptDestroyHash(hash);
+		if (algorithm)
+			BCryptCloseAlgorithmProvider(algorithm, 0);
+		return status == 0;
+	}
+
+	std::wstring LowerFileName(const std::wstring& path)
+	{
+		std::wstring name = std::filesystem::path(path).filename().native();
+		std::transform(name.begin(), name.end(), name.begin(), ::towlower);
+		return name;
+	}
+
+	bool HasExtension(const std::wstring& path,
+		std::initializer_list<const wchar_t*> extensions)
+	{
+		std::wstring extension = std::filesystem::path(path).extension().native();
+		std::transform(extension.begin(), extension.end(), extension.begin(), ::towlower);
+		return std::any_of(extensions.begin(), extensions.end(),
+			[&extension](const wchar_t* candidate) {
+				return extension == candidate;
+			});
+	}
+
+	bool TryGetCommandScriptArgument(const std::wstring& argumentTail,
+		std::initializer_list<const wchar_t*> extensions,
+		std::wstring& scriptArgument)
+	{
+		for (std::size_t position = 0; position + 1 < argumentTail.size(); position++)
+		{
+			if (argumentTail[position] != L'/' ||
+				(::towlower(argumentTail[position + 1]) != L'c' &&
+				 ::towlower(argumentTail[position + 1]) != L'k') ||
+				(position != 0 && !::iswspace(argumentTail[position - 1])) ||
+				(position + 2 != argumentTail.size() &&
+				 !::iswspace(argumentTail[position + 2])))
+			{
+				continue;
+			}
+
+			std::size_t pathStart =
+				argumentTail.find_first_not_of(L" \t", position + 2);
+			if (pathStart == std::wstring::npos)
+				return false;
+			if (argumentTail[pathStart] == L'"')
+			{
+				pathStart++;
+				if (pathStart < argumentTail.size() &&
+					argumentTail[pathStart] == L'"')
+				{
+					pathStart++;
+				}
+				const std::size_t pathEnd = argumentTail.find(L'"', pathStart);
+				if (pathEnd == std::wstring::npos)
+					return false;
+				scriptArgument =
+					argumentTail.substr(pathStart, pathEnd - pathStart);
+			}
+			else
+			{
+				const std::size_t pathEnd =
+					argumentTail.find_first_of(L" \t", pathStart);
+				scriptArgument = argumentTail.substr(pathStart,
+					pathEnd == std::wstring::npos
+						? std::wstring::npos : pathEnd - pathStart);
+			}
+			if (HasExtension(scriptArgument, extensions))
+				return true;
+			scriptArgument.clear();
+			return false;
+		}
+		return false;
+	}
+
+	bool TryGetDirectScriptArgument(const std::wstring& executablePath,
+		const std::wstring& argumentTail, std::wstring& scriptArgument)
+	{
+		scriptArgument.clear();
+		if (argumentTail.empty())
+			return false;
+		const std::wstring commandLine = L"xucRunScriptBinding " + argumentTail;
+		int argumentCount = 0;
+		LPWSTR* arguments = CommandLineToArgvW(commandLine.c_str(), &argumentCount);
+		if (!arguments || argumentCount < 2)
+		{
+			if (arguments)
+				LocalFree(arguments);
+			return false;
+		}
+
+		std::vector<std::wstring> values;
+		values.reserve(static_cast<std::size_t>(argumentCount - 1));
+		for (int index = 1; index < argumentCount; index++)
+			values.emplace_back(arguments[index]);
+		LocalFree(arguments);
+
+		const std::wstring executable = LowerFileName(executablePath);
+		if (executable == L"powershell.exe" || executable == L"pwsh.exe")
+		{
+			for (std::size_t index = 0; index + 1 < values.size(); index++)
+			{
+				if (_wcsicmp(values[index].c_str(), L"-File") == 0 &&
+					HasExtension(values[index + 1], { L".ps1" }))
+				{
+					scriptArgument = values[index + 1];
+					return true;
+				}
+			}
+			return false;
+		}
+
+		if (executable == L"cmd.exe" || executable == L"tcc.exe" ||
+			executable == L"tcmd.exe")
+		{
+			return TryGetCommandScriptArgument(argumentTail,
+				executable == L"cmd.exe"
+					? std::initializer_list<const wchar_t*>{ L".bat", L".cmd" }
+					: std::initializer_list<const wchar_t*>{
+						L".bat", L".cmd", L".btm" },
+				scriptArgument);
+		}
+		if (executable == L"wscript.exe" || executable == L"cscript.exe")
+		{
+			for (const std::wstring& value : values)
+			{
+				if (value.starts_with(L"//"))
+					continue;
+				if (HasExtension(value,
+					{ L".vbs", L".vbe", L".js", L".jse", L".wsf", L".wsh" }))
+				{
+					scriptArgument = value;
+					return true;
+				}
+				return false;
+			}
+		}
+		return false;
+	}
+
+	bool RunDirectScriptArgumentSelfTest()
+	{
+		std::wstring script;
+		return TryGetDirectScriptArgument(L"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+				L"-NoProfile -File \"C:\\Scripts\\task.ps1\" -Name Test", script) &&
+			script == L"C:\\Scripts\\task.ps1" &&
+			TryGetDirectScriptArgument(L"C:\\Windows\\System32\\cmd.exe",
+				L"/D /S /C \"C:\\Scripts\\task.cmd\" value", script) &&
+			script == L"C:\\Scripts\\task.cmd" &&
+			TryGetDirectScriptArgument(L"C:\\Windows\\System32\\cmd.exe",
+				L"/D /S /C \"\"C:\\Scripts\\task.cmd\" value\"", script) &&
+			script == L"C:\\Scripts\\task.cmd" &&
+			TryGetDirectScriptArgument(L"C:\\Tools\\tcc.exe",
+				L"/C \"C:\\Scripts\\task.btm\" value", script) &&
+			script == L"C:\\Scripts\\task.btm" &&
+			TryGetDirectScriptArgument(L"C:\\Windows\\System32\\cscript.exe",
+				L"//NoLogo \"C:\\Scripts\\task.vbs\" value", script) &&
+			script == L"C:\\Scripts\\task.vbs" &&
+			!TryGetDirectScriptArgument(L"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+				L"-Command \"Get-Process\"", script) &&
+			!TryGetDirectScriptArgument(L"C:\\Windows\\System32\\cmd.exe",
+				L"/C echo test", script);
+	}
 
 	struct ReplayEntry
 	{
@@ -80,6 +268,9 @@ namespace
 		bool executableSignatureTrusted = false;
 		std::wstring argumentTail;
 		std::wstring workingDirectory;
+		std::array<std::uint8_t, 32> argumentHash = {};
+		std::wstring scriptPath;
+		std::array<std::uint8_t, 32> scriptSha256 = {};
 		xucrun::broker::ElevationMode elevationMode =
 			xucrun::broker::ElevationMode::PreserveToken;
 		xucrun::broker::LaunchVisibility visibility =
@@ -1294,10 +1485,24 @@ namespace
 		if (request.persistence == xucrun::broker::ApprovalPersistence::Once)
 			return true;
 		xucrun::approval::BrokerApprovalValue approval;
-		approval.programScope = request.programScope ==
-			xucrun::broker::ApprovalProgramScope::General
-			? xucrun::approval::BrokerApprovalProgramScope::General
-			: xucrun::approval::BrokerApprovalProgramScope::TargetProgram;
+		switch (request.programScope)
+		{
+		case xucrun::broker::ApprovalProgramScope::General:
+			approval.programScope =
+				xucrun::approval::BrokerApprovalProgramScope::General;
+			break;
+		case xucrun::broker::ApprovalProgramScope::TargetProgram:
+			approval.programScope =
+				xucrun::approval::BrokerApprovalProgramScope::TargetProgram;
+			break;
+		case xucrun::broker::ApprovalProgramScope::ExactInvocation:
+			approval.programScope =
+				xucrun::approval::BrokerApprovalProgramScope::ExactInvocation;
+			break;
+		default:
+			error = ERROR_INVALID_DATA;
+			return false;
+		}
 		approval.accountScope = request.accountScope ==
 			xucrun::broker::ApprovalAccountScope::CurrentAccount
 			? xucrun::approval::BrokerApprovalAccountScope::CurrentAccount
@@ -1329,14 +1534,23 @@ namespace
 		approval.ownerUserSid = pending.clientSid;
 		if (approval.accountScope == xucrun::approval::BrokerApprovalAccountScope::CurrentAccount)
 			approval.targetAccountSid = pending.accountSid;
-		if (approval.programScope ==
-			xucrun::approval::BrokerApprovalProgramScope::TargetProgram)
+		if (approval.programScope !=
+			xucrun::approval::BrokerApprovalProgramScope::General)
 		{
 			approval.callerPath = pending.clientPath;
 			approval.targetPath = pending.executablePath;
 			std::copy_n(pending.clientSha256.begin(), approval.callerHash.size(),
 				approval.callerHash.begin());
 			approval.targetHash = pending.executableSha256;
+			if (approval.programScope ==
+				xucrun::approval::BrokerApprovalProgramScope::ExactInvocation)
+			{
+				approval.visibility = static_cast<std::uint8_t>(pending.visibility);
+				approval.argumentHash = pending.argumentHash;
+				approval.workingDirectory = pending.workingDirectory;
+				approval.scriptPath = pending.scriptPath;
+				approval.scriptHash = pending.scriptSha256;
+			}
 		}
 		if (!xucrun::approval_store::Write(approval, error))
 			return false;
@@ -1364,6 +1578,11 @@ namespace
 		std::copy_n(pending.clientSha256.begin(), context.callerHash.size(),
 			context.callerHash.begin());
 		context.targetHash = pending.executableSha256;
+		context.visibility = static_cast<std::uint8_t>(pending.visibility);
+		context.argumentHash = pending.argumentHash;
+		context.workingDirectory = pending.workingDirectory;
+		context.scriptPath = pending.scriptPath;
+		context.scriptHash = pending.scriptSha256;
 		return true;
 	}
 
@@ -1603,6 +1822,113 @@ namespace
 			CloseHandle(primaryToken);
 		LocalFree(descriptor);
 		return success;
+	}
+
+	bool IsDirectScriptBindingProtected(HANDLE clientProcess,
+		const std::wstring& scriptPath)
+	{
+		DWORD grantedAccess = 0;
+		DWORD accessError = NO_ERROR;
+		const DWORD fileWriteMask =
+			FILE_WRITE_DATA | FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES |
+			FILE_WRITE_EA | DELETE | WRITE_DAC | WRITE_OWNER;
+		if (!GetClientMaximumAllowedAccess(
+				clientProcess, scriptPath, grantedAccess, accessError) ||
+			(grantedAccess & fileWriteMask) != 0)
+		{
+			return false;
+		}
+
+		std::filesystem::path directory =
+			std::filesystem::path(scriptPath).parent_path();
+		bool immediateParent = true;
+		while (!directory.empty())
+		{
+			grantedAccess = 0;
+			const DWORD directoryWriteMask =
+				FILE_DELETE_CHILD | DELETE | WRITE_DAC | WRITE_OWNER |
+				(immediateParent ? FILE_ADD_FILE : 0);
+			if (!GetClientMaximumAllowedAccess(clientProcess,
+					directory.native(), grantedAccess, accessError) ||
+				(grantedAccess & directoryWriteMask) != 0)
+			{
+				return false;
+			}
+			const std::filesystem::path parent = directory.parent_path();
+			if (parent == directory)
+				break;
+			directory = parent;
+			immediateParent = false;
+		}
+		return true;
+	}
+
+	void ResolveDirectScriptBinding(HANDLE clientProcess,
+		const std::wstring& executablePath, const std::wstring& argumentTail,
+		const std::wstring& workingDirectory, std::wstring& displayedScriptPath,
+		std::wstring& boundScriptPath,
+		std::array<std::uint8_t, 32>& boundScriptHash)
+	{
+		displayedScriptPath.clear();
+		boundScriptPath.clear();
+		boundScriptHash = {};
+		std::wstring scriptArgument;
+		if (!TryGetDirectScriptArgument(
+			executablePath, argumentTail, scriptArgument))
+		{
+			return;
+		}
+
+		std::filesystem::path requested(scriptArgument);
+		if (requested.is_relative())
+			requested = std::filesystem::path(workingDirectory) / requested;
+		requested = requested.lexically_normal();
+		displayedScriptPath = requested.native();
+
+		HANDLE script = CreateFileW(displayedScriptPath.c_str(), GENERIC_READ,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+			nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
+		if (script == INVALID_HANDLE_VALUE)
+			return;
+		std::wstring finalPath;
+		std::vector<std::uint8_t> hash;
+		BY_HANDLE_FILE_INFORMATION information = {};
+		const bool identityRead =
+			GetFileInformationByHandle(script, &information) == TRUE &&
+			(information.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0 &&
+			xucrun::files::ResolveFinalFilePathFromHandle(script, finalPath) &&
+			xucrun::files::ComputeFileSHA256FromHandle(script, hash) &&
+			hash.size() == boundScriptHash.size();
+		CloseHandle(script);
+		if (!identityRead)
+			return;
+		displayedScriptPath = finalPath;
+
+		if (!IsDirectScriptBindingProtected(clientProcess, finalPath))
+			return;
+
+		boundScriptPath = finalPath;
+		std::copy(hash.begin(), hash.end(), boundScriptHash.begin());
+	}
+
+	bool ValidateBoundDirectScript(HANDLE clientProcess,
+		const PendingApprovalChallenge& pending, DWORD& error)
+	{
+		if (pending.scriptPath.empty())
+			return true;
+		std::wstring displayedPath;
+		std::wstring boundPath;
+		std::array<std::uint8_t, 32> boundHash = {};
+		ResolveDirectScriptBinding(clientProcess, pending.executablePath,
+			pending.argumentTail, pending.workingDirectory, displayedPath,
+			boundPath, boundHash);
+		if (_wcsicmp(boundPath.c_str(), pending.scriptPath.c_str()) == 0 &&
+			boundHash == pending.scriptSha256)
+		{
+			return true;
+		}
+		error = ERROR_FILE_INVALID;
+		return false;
 	}
 
 	bool IsElevatedLaunchPathProtected(HANDLE clientProcess,
@@ -2251,7 +2577,8 @@ namespace
 // Tests that approval challenges cannot be transferred between clients, sessions, or image identities.
 bool RunApprovalChallengeIdentitySelfTest()
 {
-	if (!RunEmptyPasswordCommitHostSelfTest())
+	if (!RunEmptyPasswordCommitHostSelfTest() ||
+		!RunDirectScriptArgumentSelfTest())
 		return false;
 
 	xucrun::broker::ApprovalChallengeRequest inventoryRequest;
