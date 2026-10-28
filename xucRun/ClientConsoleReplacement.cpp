@@ -136,16 +136,20 @@ namespace xucrun::console_replacement
 				: L"Already elevated admin account without user switch -> use current token");
 		}
 
-		if (!request.username.empty() &&
+		if ((!request.username.empty() || request.requestElevation) &&
 			sameUserLaunchMode == same_user_launch::SameUserLaunchMode::Credentials &&
 			selection == broker_credential_selection::BrokerCredentialSelectionOutcome::NotFound)
 		{
-			client_logging::Write(L"Info", L"Explicit broker credential for console replacement missing - starting credential prompt for: " +
-				request.username);
+			client_logging::Write(L"Info", request.username.empty()
+				? L"No administrator broker credential stored for elevated console replacement - starting administrator credential creation"
+				: L"Explicit broker credential for console replacement missing - starting credential prompt for: " +
+					request.username);
 			if (!broker_credential_management::PromptAndSaveBrokerCredentials(
-				request.username, ui::GetDialogOwnerWindow()))
+				request.username, ui::GetDialogOwnerWindow(),
+				request.requestElevation))
 			{
-				client_logging::Write(L"Info", L"Credential creation for explicit console replacement cancelled or failed");
+				client_logging::Write(L"Info",
+					L"Credential creation for explicit console replacement cancelled or failed");
 				return { ConsoleReplacementCompletion::Failed, 1, false };
 			}
 			selection = broker_credential_selection::SelectBrokerCredential(

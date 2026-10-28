@@ -801,6 +801,7 @@ namespace
 		const AccountIdentity& accountIdentity,
 		PendingApprovalChallenge& pending,
 		std::uint64_t& clientHelperProcessHandle,
+		xucrun::broker::ApprovalFailureReason& failureReason,
 		DWORD& error, std::wstring& failedStage)
 	{
 		clientHelperProcessHandle = 0;
@@ -902,7 +903,7 @@ namespace
 				xucrun::broker::ElevationMode::RequireElevated,
 				xucrun::broker::LaunchVisibility::Normal,
 				secureHostProcessId, effectiveWorkingDirectory, error, failedStage,
-				&helperHostProcess))
+				&helperHostProcess, &failureReason))
 			{
 				return false;
 			}
@@ -2831,7 +2832,15 @@ bool RunApprovalChallengeIdentitySelfTest()
 		!RunDirectScriptLockSelfTest() ||
 		!RunApprovalHelperDirectScriptBindingSelfTest() ||
 		!RunWindowsCommandTrustSelfTest() ||
-		!RunBroadInterpreterApprovalConfirmationSelfTest())
+		!RunBroadInterpreterApprovalConfirmationSelfTest() ||
+		!ShouldRejectPreElevatedCrossAccountLaunch(
+			xucrun::broker::ElevationMode::RequireElevated, true, true) ||
+		ShouldRejectPreElevatedCrossAccountLaunch(
+			xucrun::broker::ElevationMode::PreserveToken, true, true) ||
+		ShouldRejectPreElevatedCrossAccountLaunch(
+			xucrun::broker::ElevationMode::RequireElevated, false, true) ||
+		ShouldRejectPreElevatedCrossAccountLaunch(
+			xucrun::broker::ElevationMode::RequireElevated, true, false))
 		return false;
 
 	xucrun::broker::ApprovalChallengeRequest inventoryRequest;

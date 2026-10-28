@@ -209,6 +209,11 @@ xucRun supports Windows 10 and Windows 11 on x64 systems. It requires the curren
 Visual C++ Redistributable v14 for x64. The minimum version required for a release is listed in
 the corresponding [changelog](CHANGELOG.md) entry.
 
+For elevated cross-account launches, Windows Admin Approval Mode must be enabled for the selected
+administrator account. This particularly affects the built-in `Administrator` account, for which
+this mode may be disabled. Otherwise, xucRun blocks the launch because UAC confirmation would not
+be possible.
+
 xucRun is intended for experienced private users and developers on self-managed computers and in
 personal development and test systems. It is not a solution for unattended elevation, centralized
 privilege management, or systems requiring an elevated level of protection.
@@ -670,9 +675,18 @@ shown.
 | `xucRun.exe /user-elevated <Program> [Arguments ...]` | select an administrator account for which xucRun credentials are stored and start elevated |
 | `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated |
 
+If no credentials for a suitable administrator account are stored on the first invocation with
+`/user-elevated`, xucRun automatically offers administrator-account selection and protected
+password entry. After the credentials are stored successfully, the original launch request
+continues. `/addcred` remains available for storing credentials before a separate launch request.
+
 Stored credentials do not bypass Windows UAC. When elevation is required, UAC confirmation remains
 interactive. For a new approval involving an elevated start, the approval dialog on the separate
 desktop may appear first, followed by the UAC dialog for the target program.
+For elevated cross-account launches, Windows Admin Approval Mode must be enabled for the selected
+administrator account. If Windows instead already provides a fully elevated token, xucRun blocks
+the launch because UAC confirmation would not be possible. This can particularly affect the
+built-in `Administrator` account.
 
 ## Approvals
 
@@ -869,6 +883,10 @@ files and signatures, uninstall registration, and per-user autostart tasks. If t
 was disabled,
 `xucRun.exe /enable-broker` enables it again. `xucRun.exe /help` displays the complete local
 command overview.
+
+If xucRun reports that an elevated launch was blocked because UAC confirmation was unavailable,
+Windows Admin Approval Mode is not effective for the selected different administrator account.
+This can particularly affect the built-in `Administrator` account.
 
 | Runtime information | Security audit |
 |:---:|:---:|

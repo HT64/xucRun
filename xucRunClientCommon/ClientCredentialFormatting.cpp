@@ -38,6 +38,9 @@ namespace
 			return xucrun::localization::GetText(TextId::ApprovalSessionLimitReached);
 		case ApprovalFailureReason::ChallengeProcessLimitReached:
 			return xucrun::localization::GetText(TextId::ApprovalProcessLimitReached);
+		case ApprovalFailureReason::CrossAccountUacUnavailable:
+			return xucrun::localization::GetText(
+				TextId::ApprovalCrossAccountUacUnavailable);
 		case ApprovalFailureReason::None:
 		default:
 			return {};

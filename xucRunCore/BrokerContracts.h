@@ -13,7 +13,7 @@
 
 namespace xucrun::broker
 {
-	inline constexpr std::uint32_t ProtocolVersion = 39;
+	inline constexpr std::uint32_t ProtocolVersion = 40;
 	inline constexpr std::uint32_t PolicyDeniedWindowsError = 5;
 	inline constexpr std::size_t MaximumAccountSidLength = 184;
 	inline constexpr std::size_t MaximumPathLength = 32767;
@@ -293,7 +293,8 @@ namespace xucrun::broker
 		ChallengeGlobalLimitReached,
 		ChallengeSidLimitReached,
 		ChallengeSessionLimitReached,
-		ChallengeProcessLimitReached
+		ChallengeProcessLimitReached,
+		CrossAccountUacUnavailable
 	};
 
 	enum class ApprovalManagementStatus : std::uint8_t

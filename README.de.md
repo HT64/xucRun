@@ -225,6 +225,11 @@ xucRun unterstützt Windows 10 und Windows 11 auf x64-Systemen. Es benötigt die
 Microsoft Visual C++ Redistributable v14 für x64. Die für eine Veröffentlichung erforderliche
 Mindestversion steht im zugehörigen Eintrag des [Änderungsprotokolls](CHANGELOG.de.md).
 
+Für kontenübergreifende erhöhte Starts muss für das ausgewählte Administratorkonto der
+Windows-Administratorbestätigungsmodus aktiviert sein. Das betrifft insbesondere das integrierte
+Konto `Administrator`, für das dieser Modus deaktiviert sein kann. Andernfalls blockiert xucRun
+den Start, weil keine UAC-Bestätigung möglich wäre.
+
 xucRun ist für erfahrene Privatanwender und Entwickler auf selbst verwalteten Rechnern sowie in
 persönlichen Entwicklungs- und Testsystemen vorgesehen. Es ist keine Lösung für unbeaufsichtigte
 Rechteerhöhung, zentrale Rechteverwaltung oder Systeme mit erhöhtem Schutzbedarf.
@@ -717,10 +722,19 @@ Konto mit xucRun-Anmeldedaten, wird es automatisch gewählt; bei mehreren ersche
 | `xucRun.exe /user-elevated <Programm> [Argumente ...]` | Administratorkonto wählen, für das xucRun-Anmeldedaten gespeichert sind, und erhöht starten |
 | `xucRun.exe /user-elevated:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden und erhöht starten |
 
+Sind beim ersten Aufruf mit `/user-elevated` noch keine Anmeldedaten für ein geeignetes
+Administratorkonto gespeichert, bietet xucRun automatisch die Auswahl eines Administratorkontos
+und die geschützte Kennworteingabe an. Nach erfolgreicher Speicherung wird der ursprüngliche
+Startauftrag fortgesetzt. `/addcred` kann weiterhin verwendet werden, um Anmeldedaten unabhängig
+von einem Startauftrag vorab zu speichern.
+
 Gespeicherte Anmeldedaten umgehen Windows-UAC nicht. Ist eine Erhöhung erforderlich, bleibt die
 UAC-Bestätigung interaktiv. Bei einer neuen Freigabe für einen erhöhten Start können zunächst der
 Freigabedialog auf dem separaten Desktop und anschließend der UAC-Dialog für das Zielprogramm
-erscheinen.
+erscheinen. Für kontenübergreifende erhöhte Starts muss für das ausgewählte Administratorkonto der
+Windows-Administratorbestätigungsmodus aktiviert sein. Stellt Windows stattdessen bereits einen
+vollständig erhöhten Token bereit, blockiert xucRun den Start, weil keine UAC-Bestätigung möglich
+wäre. Das kann insbesondere das integrierte Konto `Administrator` betreffen.
 
 ## Freigaben
 
@@ -927,6 +941,10 @@ installierte Dateien und Signaturen, Deinstallationsregistrierung und benutzerbe
 Autostartaufgaben. Wurde der Brokerdienst deaktiviert, kann er mit
 `xucRun.exe /enable-broker` wieder aktiviert werden. `xucRun.exe /help` zeigt die vollständige
 lokale Befehlsübersicht.
+
+Meldet xucRun, dass ein erhöhter Start wegen fehlender UAC-Bestätigung blockiert wurde, ist für
+das ausgewählte andere Administratorkonto der Windows-Administratorbestätigungsmodus nicht
+wirksam. Das kann insbesondere das integrierte Konto `Administrator` betreffen.
 
 | Laufzeitinformationen | Sicherheitsaudit |
 |:---:|:---:|

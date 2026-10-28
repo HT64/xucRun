@@ -120,14 +120,17 @@ int RunNormalProgramLaunch(int argc, LPWSTR* argv,
 		BrokerCredentialSelectionOutcome selection = SelectBrokerCredential(
 			specificUserParam, requestElevation, selectedCredential, selectionError);
 		if (selection == BrokerCredentialSelectionOutcome::NotFound &&
-			!specificUserParam.empty())
+			(!specificUserParam.empty() || requestElevation))
 		{
-			WriteLog(L"Info", L"Explicit broker credential missing - starting credential prompt for: " +
-				specificUserParam);
+			WriteLog(L"Info", specificUserParam.empty()
+				? L"No administrator broker credential stored - starting administrator credential creation"
+				: L"Explicit broker credential missing - starting credential prompt for: " +
+					specificUserParam);
 			if (!PromptAndSaveBrokerCredentials(
-				specificUserParam, GetDialogOwnerWindow()))
+				specificUserParam, GetDialogOwnerWindow(), requestElevation))
 			{
-				WriteLog(L"Info", L"Credential creation for explicit program launch cancelled or failed");
+				WriteLog(L"Info",
+					L"Credential creation for explicit program launch cancelled or failed");
 				return 1;
 			}
 			selection = SelectBrokerCredential(

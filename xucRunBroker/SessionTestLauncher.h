@@ -27,6 +27,11 @@ bool LaunchCredentialTestProcess(
 	DWORD& error,
 	std::wstring& failedStage);
 
+bool ShouldRejectPreElevatedCrossAccountLaunch(
+	xucrun::broker::ElevationMode elevationMode,
+	bool crossAccount,
+	bool tokenElevated) noexcept;
+
 bool LaunchApprovedCredentialProcess(
 	HANDLE clientProcess,
 	const AccountIdentity& identity,
@@ -42,7 +47,8 @@ bool LaunchApprovedCredentialProcess(
 	std::wstring& effectiveWorkingDirectory,
 	DWORD& error,
 	std::wstring& failedStage,
-	HANDLE* processHandle = nullptr);
+	HANDLE* processHandle = nullptr,
+	xucrun::broker::ApprovalFailureReason* failureReason = nullptr);
 
 bool LaunchApprovedClientProcess(
 	HANDLE clientProcess,

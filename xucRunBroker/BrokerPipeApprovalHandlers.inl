@@ -529,7 +529,8 @@
 								pending.argumentTail, pending.workingDirectory,
 								pending.elevationMode, pending.visibility, launchedProcessId,
 								effectiveWorkingDirectory,
-								confirmationError, failedStage))
+								confirmationError, failedStage, nullptr,
+								&confirmationResult.failureReason))
 							{
 								confirmationResult.status =
 									xucrun::broker::ApprovalConfirmationStatus::Confirmed;
@@ -973,16 +974,19 @@
 					const AccountIdentity& helperAccount =
 						useSeparateApprovalAccount
 						? approvalAccountIdentity : accountIdentity;
+					xucrun::broker::ApprovalFailureReason helperFailureReason =
+						xucrun::broker::ApprovalFailureReason::None;
 					if (!LaunchApprovalHelperForChallenge(clientProcess, helperAccount,
 						pending, result.approvalHelperProcessHandle,
-						challengeError, failedStage))
+						helperFailureReason, challengeError, failedStage))
 					{
 						result = {};
 						result.requestId = request.requestId;
 						result.status =
-							xucrun::broker::ApprovalChallengeStatus::Failed;
+						xucrun::broker::ApprovalChallengeStatus::Failed;
+						result.failureReason = helperFailureReason;
 						result.windowsError = challengeError == NO_ERROR
-							? ERROR_GEN_FAILURE : challengeError;
+						? ERROR_GEN_FAILURE : challengeError;
 						if (log)
 							log(EVENTLOG_ERROR_TYPE,
 								L"Approval helper launch failed at stage " + failedStage +

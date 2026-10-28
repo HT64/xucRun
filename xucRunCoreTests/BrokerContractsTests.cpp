@@ -626,7 +626,7 @@ namespace
 			xucrun::broker::ElevationMode::RequireElevated);
 		const std::vector<std::uint8_t> expectedFrame = {
 			'X', 'U', 'C', 'R', 1, 1, 0, 0,
-			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
 			'S', 0, 'E', 0, 'W', 0
 		};
@@ -681,7 +681,7 @@ namespace
 		expected.windowsError = 5;
 		const std::vector<std::uint8_t> expectedFrame = {
 			'X', 'U', 'C', 'S', 2, 5, 0, 0,
-			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			5, 0, 0, 0
 		};
 		if (xucrun::broker::SerializeLaunchResult(expected) != expectedFrame)
@@ -774,7 +774,7 @@ namespace
 		xucrun::broker::CredentialMetadataRequest parsedRequest;
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'M', 6, 0, 0, 0,
-			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			3, 0, 0, 0, 'S', 0, '-', 0, '1', 0
 		};
 		if (requestFrame != expectedRequestFrame ||
@@ -832,7 +832,7 @@ namespace
 			xucrun::broker::SerializeSessionTestRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'T', 8, 0, 0, 0,
-			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
+			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
 		};
 		xucrun::broker::SessionTestRequest parsedRequest;
 		if (requestFrame != expectedRequestFrame ||
@@ -851,7 +851,7 @@ namespace
 			xucrun::broker::SerializeSessionTestResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'C', 'U', 9, 0, 0, 0,
-			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			0, 0, 0, 0, 0x44, 0x33, 0x22, 0x11
 		};
 		xucrun::broker::SessionTestResult parsedResult;
@@ -881,7 +881,7 @@ namespace
 			xucrun::broker::SerializeCredentialStoreTestRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'V', 10, 0, 0, 0,
-			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
+			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
 		};
 		xucrun::broker::CredentialStoreTestRequest parsedRequest;
 		if (requestFrame != expectedRequestFrame ||
@@ -901,7 +901,7 @@ namespace
 			xucrun::broker::SerializeCredentialStoreTestResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'C', 'W', 11, 1, 0, 0,
-			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			13, 0, 0, 0
 		};
 		xucrun::broker::CredentialStoreTestResult parsedResult;
@@ -1831,7 +1831,8 @@ namespace
 		result.requestId = 0x8877665544332211ULL;
 		result.status = xucrun::broker::ApprovalConfirmationStatus::Expired;
 		result.windowsError = ERROR_TIMEOUT;
-		result.failureReason = xucrun::broker::ApprovalFailureReason::LaunchObjectChanged;
+		result.failureReason =
+			xucrun::broker::ApprovalFailureReason::CrossAccountUacUnavailable;
 		const std::vector<std::uint8_t> resultFrame =
 			xucrun::broker::SerializeApprovalConfirmationResult(result);
 		xucrun::broker::ApprovalConfirmationResult parsedResult;

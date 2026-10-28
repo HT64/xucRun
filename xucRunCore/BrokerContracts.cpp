@@ -867,7 +867,7 @@ namespace xucrun::broker
 			return ResultValidationError::UnsupportedProtocolVersion;
 		if (result.requestId == 0)
 			return ResultValidationError::MissingRequestId;
-		if (result.failureReason > ApprovalFailureReason::ChallengeProcessLimitReached)
+		if (result.failureReason > ApprovalFailureReason::CrossAccountUacUnavailable)
 			return ResultValidationError::InvalidStatus;
 		switch (result.status)
 		{
@@ -1029,7 +1029,7 @@ namespace xucrun::broker
 		{
 			return ResultValidationError::InvalidStatus;
 		}
-		if (result.failureReason > ApprovalFailureReason::ChallengeProcessLimitReached ||
+		if (result.failureReason > ApprovalFailureReason::CrossAccountUacUnavailable ||
 			(result.status == ApprovalConfirmationStatus::Confirmed &&
 			 result.failureReason != ApprovalFailureReason::None))
 		{

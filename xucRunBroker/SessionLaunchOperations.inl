@@ -115,6 +115,15 @@ bool LaunchCredentialTestProcess(
 		identity, password, sessionId, processId, error, failedStage);
 }
 
+bool ShouldRejectPreElevatedCrossAccountLaunch(
+	xucrun::broker::ElevationMode elevationMode,
+	bool crossAccount,
+	bool tokenElevated) noexcept
+{
+	return elevationMode == xucrun::broker::ElevationMode::RequireElevated &&
+		crossAccount && tokenElevated;
+}
+
 // Launches an approved target only with a validated token bound to the account and session.
 bool LaunchApprovedCredentialProcess(
 	HANDLE clientProcess,
@@ -131,9 +140,11 @@ bool LaunchApprovedCredentialProcess(
 	std::wstring& effectiveWorkingDirectory,
 	DWORD& error,
 	std::wstring& failedStage,
-	HANDLE* processHandle)
+	HANDLE* processHandle,
+	xucrun::broker::ApprovalFailureReason* failureReason)
 {
 	if (processHandle) *processHandle = nullptr;
+	if (failureReason) *failureReason = xucrun::broker::ApprovalFailureReason::None;
 	processId = 0;
 	effectiveWorkingDirectory.clear();
 	error = NO_ERROR;
@@ -178,6 +189,32 @@ bool LaunchApprovedCredentialProcess(
 		if (!LogonAccountWithSessionGroups(clientProcess,
 			identity, password, token, error, failedStage))
 		{
+			return false;
+		}
+	}
+	if (elevationMode == xucrun::broker::ElevationMode::RequireElevated &&
+		crossAccount)
+	{
+		TOKEN_ELEVATION tokenElevation = {};
+		DWORD tokenElevationSize = 0;
+		failedStage = L"cross-account UAC availability";
+		if (!GetTokenInformation(token, TokenElevation, &tokenElevation,
+			sizeof(tokenElevation), &tokenElevationSize))
+		{
+			error = GetLastError();
+			CloseHandle(token);
+			return false;
+		}
+		if (ShouldRejectPreElevatedCrossAccountLaunch(
+			elevationMode, crossAccount, tokenElevation.TokenIsElevated != 0))
+		{
+			error = ERROR_ACCESS_DENIED;
+			if (failureReason)
+			{
+				*failureReason =
+					xucrun::broker::ApprovalFailureReason::CrossAccountUacUnavailable;
+			}
+			CloseHandle(token);
 			return false;
 		}
 	}
