@@ -450,7 +450,8 @@
 							   pending.executablePath,
 							   confirmationResult.failureReason,
 							   confirmationError)))) ||
-						!ValidateBoundDirectScript(clientProcess, pending, confirmationError) ||
+						!LockAndValidateDirectScript(
+							pending, launchObjectLocks, confirmationError) ||
 						!LockAndValidateLaunchObjects(
 							pending, launchObjectLocks, confirmationResult.failureReason,
 							confirmationError))
@@ -748,8 +749,10 @@
 		}
 		else
 		{
+			std::array<std::uint8_t, 32> displayedScriptHash = {};
 			ResolveDirectScriptBinding(clientProcess, targetIdentity.path,
 				request.argumentTail, finalWorkingDirectory, displayedScriptPath,
+				displayedScriptHash,
 				boundScriptPath, boundScriptHash);
 			result.status = xucrun::broker::ApprovalChallengeStatus::Issued;
 			result.canonicalClientName = clientAccountIdentity.canonicalName;
@@ -790,6 +793,8 @@
 			pending.executableSignatureTrusted = targetImageIdentity.signatureTrusted;
 			pending.argumentTail = result.argumentTail;
 			pending.workingDirectory = result.workingDirectory;
+			pending.directScriptPath = displayedScriptPath;
+			pending.directScriptSha256 = displayedScriptHash;
 			pending.scriptPath = boundScriptPath;
 			pending.scriptSha256 = boundScriptHash;
 			pending.elevationMode = result.elevationMode;

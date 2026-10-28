@@ -210,9 +210,9 @@ vergleicht.
 xucRun enthält:
 
 - den Client `xucRun.exe`,
-- den bedarfsgestarteten Brokerdienst `xucRunBroker`, der bei Bedarf automatisch gestartet wird,
-  anschließend im Hintergrund läuft, die von xucRun gespeicherten Anmeldedaten verwaltet und
-  Programmstarts unter dem gewählten Benutzerkonto ausführt,
+- den Brokerdienst `xucRunBroker`, der bei Bedarf automatisch gestartet wird, im Hintergrund die
+  von xucRun gespeicherten Anmeldedaten verwaltet und Programmstarts unter dem gewählten
+  Benutzerkonto ausführt,
 - den Approval-Helper,
 - gemeinsame Protokoll-, Serialisierungs- und Sicherheitskomponenten,
 - deutsche und englische Sprachressourcen.
@@ -241,11 +241,9 @@ Rechteerhöhung, zentrale Rechteverwaltung oder Systeme mit erhöhtem Schutzbeda
 > Sicherheitsprüfung. Der Einsatz erfolgt eigenverantwortlich. xucRun sollte nur auf
 > vertrauenswürdigen, selbst verwalteten Systemen ohne erhöhten Schutzbedarf sowie
 > möglichst mit dedizierten, minimal berechtigten Zielkonten eingesetzt werden.
-> Werden xucRun-Aufrufe in Skripten, Verknüpfungen, Aufgaben oder Konfigurationsdateien
-> hinterlegt, müssen auch diese Dateien gegen Änderungen durch nicht vertrauenswürdige Konten
-> geschützt werden. xucRun kann die Integrität solcher aufrufenden Dateien nicht allgemein prüfen;
-> ihre Manipulation kann insbesondere bei wiederverwendbaren Freigaben das Verhalten späterer
-> Programmstarts beeinflussen.
+> Skripte, Verknüpfungen, geplante Aufgaben und Konfigurationsdateien, die xucRun aufrufen oder
+> seine Parameter vorgeben, müssen ebenfalls vertrauenswürdig und vor unbefugten Änderungen
+> geschützt sein.
 > Soweit gesetzlich zulässig, übernehmen der Autor und die Mitwirkenden keine Haftung für Schäden,
 > Datenverluste oder sonstige Folgen, die aus der Nutzung oder fehlerhaften Anwendung von xucRun,
 > aus Softwarefehlern oder Sicherheitslücken sowie durch Malware oder ein kompromittiertes System
@@ -554,12 +552,11 @@ Die oben gezeigten Aufrufe mit einem Zielprogramm können auch in Skripten und
 Desktop-Verknüpfungen verwendet werden. Kann xucRun das Zielkonto eindeutig automatisch bestimmen,
 muss im Aufruf kein Kontoname stehen.
 
-Skripte, Verknüpfungen, Aufgabenplanungsdefinitionen und Konfigurationsdateien, die einen
-xucRun-Aufruf enthalten oder dessen Ziel, Argumente oder Arbeitsverzeichnis bestimmen, werden
-damit selbst Teil der Sicherheitsgrenze. xucRun prüft den angeforderten Programmstart, kann jedoch
-die Integrität und Vertrauenswürdigkeit dieser aufrufenden Dateien nicht allgemein feststellen.
-Sie sollten deshalb nur für vertrauenswürdige Benutzer beschreibbar sein und nicht aus gemeinsam
-oder ungeschützt beschreibbaren Verzeichnissen verwendet werden.
+Skripte, Verknüpfungen, geplante Aufgaben und Konfigurationsdateien, die einen xucRun-Aufruf
+enthalten oder dessen Ziel, Argumente oder Arbeitsverzeichnis bestimmen, müssen selbst
+vertrauenswürdig und vor unbefugten Änderungen geschützt sein. xucRun kann ihre Integrität nicht
+allgemein prüfen. Sie sollten nur für vertrauenswürdige Benutzer beschreibbar sein und nicht in
+gemeinsam oder unzureichend geschützten beschreibbaren Verzeichnissen liegen.
 
 Die parameterlose Shell-Ersetzung ist dagegen für den interaktiven Aufruf aus einer unterstützten
 Shell bestimmt. In einem Skript sollte sie nur verwendet werden, wenn das Schließen der bisherigen
@@ -736,8 +733,8 @@ Freigabe anfordern. Verfügbar sind:
 - bis zur Abmeldung,
 - dauerhaft.
 
-Bei „Nur dieses eine Mal“ gelten Geltungsbereich und Kontobereich nicht: Dieser eine Start ist
-bereits vollständig an die aktuelle Challenge gebunden, und die betreffenden Auswahlfelder sind
+Bei „Nur dieses eine Mal“ gelten Geltungsbereich und Kontobereich nicht, weil die Freigabe
+ausschließlich für den aktuell angezeigten Start gilt. Die betreffenden Auswahlfelder sind deshalb
 deaktiviert. Eine wiederverwendbare Freigabe kann an ein bestimmtes Programm oder an alle Programme
 sowie an ein bestimmtes Zielkonto oder an alle gespeicherten Konten des aktuellen Windows-Benutzers
 gebunden werden. Programmspezifische Freigaben berücksichtigen den SHA-256-Hash der Startdatei.
@@ -745,12 +742,15 @@ gebunden werden. Programmspezifische Freigaben berücksichtigen den SHA-256-Hash
 werden. Der Dialog erklärt rechts getrennt nach Freigabedauer, Geltungsbereich und Kontobereich die
 Wirkung der aktuellen Auswahl.
 
-Mit **„Genau dieser Aufruf“** kann eine wiederverwendbare Freigabe zusätzlich an die exakten
-Argumente, das kanonische Arbeitsverzeichnis und die Sichtbarkeit des Starts gebunden werden.
-Schon eine Änderung dieser Werte erfordert dann eine neue Freigabe. Die Argumente werden dabei
-nicht im Klartext gespeichert, sondern nur durch ihren SHA-256-Hash gebunden.
-
 ![Freigabe nach Änderung eines Programmhashs](docs/de/images/program-hash-change-approval.png)
+
+Mit **„Genau dieser Aufruf“** kann eine wiederverwendbare Freigabe zusätzlich an die exakten
+Argumente, das Arbeitsverzeichnis und daran gebunden werden, ob das Programm sichtbar oder
+verborgen gestartet wird. Schon eine Änderung dieser Werte erfordert dann eine neue Freigabe. Die
+Argumente werden dabei nicht im Klartext gespeichert, sondern nur durch ihren SHA-256-Hash
+gebunden.
+
+![xucRun-Freigabedialog auf separatem Desktop](docs/de/images/approval-dialog.png)
 
 Eine Freigabe begrenzt nicht die Fähigkeiten des gestarteten Programms. Allgemeine oder dauerhafte
 Freigaben für universelle Interpreter wie `cmd.exe`, PowerShell oder `wscript.exe` sind deshalb
@@ -759,23 +759,27 @@ besonders weitreichend.
 Bei `cmd.exe`, `powershell.exe`, `pwsh.exe`, TCC und Windows Script Host weist der Freigabedialog
 deshalb auf die weiterreichenden Fähigkeiten des Interpreters hin. Eine normale
 Programmfreigabe bindet die angezeigten Argumente nicht. Deshalb ist bei diesen Shells und
-Interpretern für eine wiederverwendbare Freigabe „Genau dieser Aufruf“ vorausgewählt. Erkennt
-xucRun dabei ein direkt angegebenes PowerShell-, Batch-, TCC- oder Windows-Script-Host-Skript,
-bindet es dessen finalen Pfad und SHA-256-Hash zusätzlich, sofern das aufrufende Konto weder das
-Skript noch einen für den Pfadaustausch relevanten Verzeichnisbestandteil verändern kann.
-Andernfalls weist der Dialog ausdrücklich darauf hin, dass der Skriptinhalt nicht gebunden ist. Bei
-PowerShell kann eine administrativ erzwungene Richtlinie `AllSigned` Skriptdateien zusätzlich
-absichern, schützt jedoch nicht vor direkten oder interaktiven Befehlen.
+Interpretern für eine wiederverwendbare Freigabe „Genau dieser Aufruf“ vorausgewählt.
+
+Erkennt xucRun dabei ein direkt angegebenes PowerShell-, Batch-, TCC- oder
+Windows-Script-Host-Skript, bindet es dessen vollständig aufgelösten Pfad und SHA-256-Hash
+zusätzlich, sofern das aufrufende Konto weder das Skript noch einen übergeordneten Ordner so
+verändern kann, dass das Skript ausgetauscht werden könnte.
+
+Kann das Skript nicht sicher gebunden werden, erklärt der Dialog dies und lässt für diesen Aufruf
+nur eine einmalige Freigabe zu. Vor dem Start prüft der Broker Pfad und Inhalt des erkannten
+Skripts erneut und verhindert bis zum Programmstart, dass die geprüfte Datei verändert oder
+ausgetauscht wird. Bei PowerShell kann eine administrativ erzwungene Richtlinie `AllSigned`
+Skriptdateien zusätzlich absichern, schützt jedoch nicht vor direkten oder interaktiven Befehlen.
 
 Aufrufende Skripte, Verknüpfungen und Konfigurationsdateien, aus denen der xucRun-Aufruf erst
-erzeugt wird, werden weiterhin nicht allgemein gehasht. „Genau dieser Aufruf“ bindet ihre
-wirksamen Ausgaben, nicht ihre Herkunft. Dynamisch nachgeladene Skripte, Module,
-Konfigurationsdateien, Plugins und Programmeingaben gehören ebenfalls nicht automatisch zur
-Bindung. Solche Dateien müssen deshalb weiterhin vertrauenswürdig und vor unbefugten Änderungen
-geschützt sein. Die übrigen Brokerprüfungen, insbesondere die Bindung an Konto, Tokenmodus,
-Zielpfad und Zielprogrammhash, bleiben wirksam.
-
-![xucRun-Freigabedialog auf separatem Desktop](docs/de/images/approval-dialog.png)
+erzeugt wird, werden weiterhin nicht allgemein gehasht. Die Freigabe bindet den daraus
+entstehenden xucRun-Aufruf, nicht die Skript-, Verknüpfungs- oder Konfigurationsdatei, aus der er
+stammt. Dynamisch nachgeladene Skripte, Module, Konfigurationsdateien, Plugins und
+Programmeingaben gehören ebenfalls nicht automatisch zur Bindung. Solche Dateien müssen deshalb
+weiterhin vertrauenswürdig und vor unbefugten Änderungen geschützt sein. Die übrigen
+Brokerprüfungen, insbesondere zu Konto, angeforderten Rechten, Sichtbarkeit, Zielpfad und
+Zielprogrammhash, bleiben wirksam.
 
 ## Programme, Argumente und Sonderzeichen
 

@@ -195,9 +195,8 @@ protection on a compromised system and helps only when the user actually compare
 xucRun contains:
 
 - the `xucRun.exe` client,
-- the demand-start `xucRunBroker` service, which starts automatically when needed, then runs in the
-  background, manages credentials stored by xucRun, and starts programs under the selected user
-  account,
+- the `xucRunBroker` service, which starts automatically when needed, manages credentials stored by
+  xucRun in the background, and starts programs under the selected user account,
 - the Approval Helper,
 - shared protocol, serialization, and security components,
 - German and English language resources.
@@ -224,10 +223,9 @@ privilege management, or systems requiring an elevated level of protection.
 > guarantee nor evidence of an independent security audit. Use xucRun at your own responsibility.
 > xucRun should be used only on trusted, self-managed systems that do not require an elevated level
 > of protection, and preferably with dedicated target accounts having the minimum
-> required privileges. When xucRun invocations are stored in scripts, shortcuts, tasks, or
-> configuration files, those files must also be protected against modification by untrusted
-> accounts. xucRun cannot generally verify the integrity of such calling files; modifying them
-> can affect the behavior of later program starts, particularly when reusable approvals are used.
+> required privileges. Scripts, shortcuts, scheduled tasks, and configuration files that invoke
+> xucRun or provide its parameters must also be trusted and protected against unauthorized
+> modification.
 > To the extent permitted by law, the author and contributors accept
 > no liability for damage, data loss, or other consequences arising from the use or incorrect use
 > of xucRun, software defects or security vulnerabilities, malware, or a compromised system. This
@@ -513,11 +511,10 @@ The invocations shown above that specify a target program can also be used in sc
 shortcuts. If xucRun can determine the target account unambiguously and automatically, the
 invocation does not need to name an account.
 
-Scripts, shortcuts, scheduled-task definitions, and configuration files that contain an xucRun
-invocation or determine its target, arguments, or working directory thereby become part of the
-security boundary themselves. xucRun verifies the requested program start but cannot generally
-establish the integrity or trustworthiness of these calling files. They should therefore be
-writable only by trusted users and should not be used from shared or insufficiently protected
+Scripts, shortcuts, scheduled tasks, and configuration files that contain an xucRun invocation or
+determine its target, arguments, or working directory must themselves be trusted and protected
+against unauthorized modification. xucRun cannot generally verify their integrity. They should be
+writable only by trusted users and should not be stored in shared or insufficiently protected
 writable locations.
 
 Shell replacement without parameters, in contrast, is intended for interactive invocation from a
@@ -688,20 +685,22 @@ The available durations are:
 - until sign-out,
 - permanently.
 
-For "This start only," scope and account scope do not apply: that single launch is already fully
-bound to the current challenge, and the corresponding controls are disabled. A reusable approval
-can be bound to one program or all programs and to one target account or all stored accounts of the
-current Windows user. Program-specific approvals include the SHA-256 hash of the executable. If the
-file changes, transferring the approval to the new version requires explicit confirmation. On the
-right, the dialog explains the effect of the current selection separately for approval duration,
-scope, and account scope.
-
-With **"Exactly this invocation,"** a reusable approval can additionally be bound to the exact
-arguments, the canonical working directory, and the launch visibility. Any change to these values
-then requires a new approval. The arguments are not stored in clear text; only their SHA-256 hash
-is retained as the binding.
+For "This start only," scope and account scope do not apply because the approval applies only to
+the currently displayed launch. The corresponding controls are therefore disabled. A reusable
+approval can be bound to one program or all programs and to one target account or all stored
+accounts of the current Windows user. Program-specific approvals include the SHA-256 hash of the
+executable. If the file changes, transferring the approval to the new version requires explicit
+confirmation. On the right, the dialog explains the effect of the current selection separately for
+approval duration, scope, and account scope.
 
 ![Approval after a program hash has changed](docs/en/images/program-hash-change-approval.png)
+
+With **"Exactly this invocation,"** a reusable approval can additionally be bound to the exact
+arguments, the working directory, and whether the program is started visibly or hidden. Any change
+to these values then requires a new approval. The arguments are not stored in clear text; only
+their SHA-256 hash is retained as the binding.
+
+![xucRun approval dialog on separate desktop](docs/en/images/approval-dialog.png)
 
 An approval does not restrict what the started program can do. General or permanent approvals for
 universal interpreters such as `cmd.exe`, PowerShell, or `wscript.exe` are therefore particularly
@@ -710,21 +709,26 @@ powerful.
 For `cmd.exe`, `powershell.exe`, `pwsh.exe`, TCC, and Windows Script Host, the approval dialog
 therefore warns about the interpreter's broader capabilities. A normal program approval does not
 bind the displayed arguments. Therefore, "Exactly this invocation" is preselected for reusable
-approvals involving these shells and interpreters. If xucRun recognizes a directly specified
-PowerShell, batch, TCC, or Windows Script Host script, it additionally binds the script's final path
-and SHA-256 hash when the calling account cannot change the script or any path component relevant
-to replacing it. Otherwise, the dialog explicitly says that the script contents are not bound. For
-PowerShell, an administratively enforced `AllSigned` policy can additionally protect script files,
-but does not protect against direct or interactive commands.
+approvals involving these shells and interpreters.
+
+If xucRun recognizes a directly specified PowerShell, batch, TCC, or Windows Script Host script, it
+additionally binds the script's fully resolved path and SHA-256 hash, provided that the calling
+account can neither modify the script nor change a parent directory in a way that would allow the
+script to be replaced.
+
+If the script cannot be bound securely, the dialog explains this and permits only a one-time
+approval for that invocation. Before launch, the broker rechecks the recognized script's path and
+contents and prevents the verified file from being modified or replaced until the program starts.
+For PowerShell, an administratively enforced `AllSigned` policy can additionally protect script
+files, but does not protect against direct or interactive commands.
 
 Calling scripts, shortcuts, and configuration files from which the xucRun invocation is first
-generated are still not generally hashed. "Exactly this invocation" binds their effective output,
-not its provenance. Dynamically loaded scripts, modules, configuration files, plugins, and program
-inputs are likewise not automatically included. Such files must therefore remain trusted and
-protected against unauthorized modification. The other broker checks, particularly the binding to
-the account, token mode, target path, and target-program hash, remain effective.
-
-![xucRun approval dialog on separate desktop](docs/en/images/approval-dialog.png)
+generated are still not generally hashed. The approval binds the resulting xucRun invocation, not
+the script, shortcut, or configuration file from which it originated. Dynamically loaded scripts,
+modules, configuration files, plugins, and program inputs are likewise not automatically included.
+Such files must therefore remain trusted and protected against unauthorized modification. The
+other broker checks, particularly those for the account, requested privileges, visibility, target
+path, and target-program hash, remain effective.
 
 ## Programs, arguments, and special characters
 

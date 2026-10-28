@@ -179,7 +179,9 @@ namespace
 		{
 			for (std::size_t index = 0; index + 1 < values.size(); index++)
 			{
-				if (_wcsicmp(values[index].c_str(), L"-File") == 0 &&
+				const std::wstring& option = values[index];
+				if (option.size() >= 2 && option.size() <= 5 &&
+					_wcsnicmp(option.c_str(), L"-File", option.size()) == 0 &&
 					HasExtension(values[index + 1], { L".ps1" }))
 				{
 					scriptArgument = values[index + 1];
@@ -223,6 +225,9 @@ namespace
 		return TryGetDirectScriptArgument(L"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
 				L"-NoProfile -File \"C:\\Scripts\\task.ps1\" -Name Test", script) &&
 			script == L"C:\\Scripts\\task.ps1" &&
+			TryGetDirectScriptArgument(L"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+				L"-NoProfile -f \"C:\\Scripts\\short.ps1\"", script) &&
+			script == L"C:\\Scripts\\short.ps1" &&
 			TryGetDirectScriptArgument(L"C:\\Windows\\System32\\cmd.exe",
 				L"/D /S /C \"C:\\Scripts\\task.cmd\" value", script) &&
 			script == L"C:\\Scripts\\task.cmd" &&
@@ -269,6 +274,8 @@ namespace
 		std::wstring argumentTail;
 		std::wstring workingDirectory;
 		std::array<std::uint8_t, 32> argumentHash = {};
+		std::wstring directScriptPath;
+		std::array<std::uint8_t, 32> directScriptSha256 = {};
 		std::wstring scriptPath;
 		std::array<std::uint8_t, 32> scriptSha256 = {};
 		xucrun::broker::ElevationMode elevationMode =
@@ -320,9 +327,12 @@ namespace
 	{
 		HANDLE executable = INVALID_HANDLE_VALUE;
 		HANDLE workingDirectory = INVALID_HANDLE_VALUE;
+		HANDLE script = INVALID_HANDLE_VALUE;
 
 		~LaunchObjectLocks()
 		{
+			if (script != INVALID_HANDLE_VALUE)
+				CloseHandle(script);
 			if (workingDirectory != INVALID_HANDLE_VALUE)
 				CloseHandle(workingDirectory);
 			if (executable != INVALID_HANDLE_VALUE)
@@ -1484,6 +1494,11 @@ namespace
 		approvalStored = false;
 		if (request.persistence == xucrun::broker::ApprovalPersistence::Once)
 			return true;
+		if (!pending.directScriptPath.empty() && pending.scriptPath.empty())
+		{
+			error = ERROR_ACCESS_DENIED;
+			return false;
+		}
 		xucrun::approval::BrokerApprovalValue approval;
 		switch (request.programScope)
 		{
@@ -1866,10 +1881,12 @@ namespace
 	void ResolveDirectScriptBinding(HANDLE clientProcess,
 		const std::wstring& executablePath, const std::wstring& argumentTail,
 		const std::wstring& workingDirectory, std::wstring& displayedScriptPath,
+		std::array<std::uint8_t, 32>& displayedScriptHash,
 		std::wstring& boundScriptPath,
 		std::array<std::uint8_t, 32>& boundScriptHash)
 	{
 		displayedScriptPath.clear();
+		displayedScriptHash = {};
 		boundScriptPath.clear();
 		boundScriptHash = {};
 		std::wstring scriptArgument;
@@ -1903,32 +1920,50 @@ namespace
 		if (!identityRead)
 			return;
 		displayedScriptPath = finalPath;
+		std::copy(hash.begin(), hash.end(), displayedScriptHash.begin());
 
 		if (!IsDirectScriptBindingProtected(clientProcess, finalPath))
 			return;
 
 		boundScriptPath = finalPath;
-		std::copy(hash.begin(), hash.end(), boundScriptHash.begin());
+		boundScriptHash = displayedScriptHash;
 	}
 
-	bool ValidateBoundDirectScript(HANDLE clientProcess,
-		const PendingApprovalChallenge& pending, DWORD& error)
+	bool LockAndValidateDirectScript(const PendingApprovalChallenge& pending,
+		LaunchObjectLocks& locks, DWORD& error)
 	{
-		if (pending.scriptPath.empty())
+		if (pending.directScriptPath.empty())
 			return true;
-		std::wstring displayedPath;
-		std::wstring boundPath;
-		std::array<std::uint8_t, 32> boundHash = {};
-		ResolveDirectScriptBinding(clientProcess, pending.executablePath,
-			pending.argumentTail, pending.workingDirectory, displayedPath,
-			boundPath, boundHash);
-		if (_wcsicmp(boundPath.c_str(), pending.scriptPath.c_str()) == 0 &&
-			boundHash == pending.scriptSha256)
+		if (std::all_of(pending.directScriptSha256.begin(),
+			pending.directScriptSha256.end(),
+			[](std::uint8_t value) { return value == 0; }))
 		{
-			return true;
+			error = ERROR_FILE_INVALID;
+			return false;
 		}
-		error = ERROR_FILE_INVALID;
-		return false;
+		locks.script = CreateFileW(pending.directScriptPath.c_str(), GENERIC_READ,
+			FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
+		if (locks.script == INVALID_HANDLE_VALUE)
+		{
+			error = GetLastError();
+			return false;
+		}
+		std::wstring finalPath;
+		std::vector<std::uint8_t> hash;
+		BY_HANDLE_FILE_INFORMATION information = {};
+		if (GetFileInformationByHandle(locks.script, &information) != TRUE ||
+			(information.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 ||
+			!xucrun::files::ResolveFinalFilePathFromHandle(locks.script, finalPath) ||
+			!xucrun::files::ComputeFileSHA256FromHandle(locks.script, hash) ||
+			finalPath != pending.directScriptPath ||
+			hash.size() != pending.directScriptSha256.size() ||
+			!std::equal(hash.begin(), hash.end(),
+				pending.directScriptSha256.begin()))
+		{
+			error = ERROR_FILE_INVALID;
+			return false;
+		}
+		return true;
 	}
 
 	bool IsElevatedLaunchPathProtected(HANDLE clientProcess,
@@ -2061,7 +2096,7 @@ namespace
 			failureReason = xucrun::broker::ApprovalFailureReason::LaunchObjectLockFailed;
 			return false;
 		}
-		if (_wcsicmp(finalWorkingDirectory.c_str(), pending.workingDirectory.c_str()) != 0)
+		if (finalWorkingDirectory != pending.workingDirectory)
 		{
 			error = ERROR_DIRECTORY;
 			failureReason = xucrun::broker::ApprovalFailureReason::LaunchObjectChanged;
@@ -2572,13 +2607,101 @@ namespace
 		return pending.stagedPassword.empty() &&
 			IsCredentialCommitHost(pending, processId, sessionId);
 	}
+
+	bool RunUnboundScriptPersistenceSelfTest()
+	{
+		PendingApprovalChallenge pending;
+		pending.directScriptPath = L"C:\\Scripts\\mutable.ps1";
+		xucrun::broker::ApprovalConfirmationRequest request;
+		request.persistence = xucrun::broker::ApprovalPersistence::TenMinutes;
+		request.programScope =
+			xucrun::broker::ApprovalProgramScope::ExactInvocation;
+		xucrun::approval::BrokerApprovalValue storedApproval;
+		bool approvalStored = false;
+		DWORD error = NO_ERROR;
+		if (StoreApproval(pending, request, storedApproval, approvalStored, error) ||
+			approvalStored || error != ERROR_ACCESS_DENIED)
+		{
+			return false;
+		}
+		request.persistence = xucrun::broker::ApprovalPersistence::Once;
+		error = NO_ERROR;
+		return StoreApproval(
+			pending, request, storedApproval, approvalStored, error) &&
+			!approvalStored && error == NO_ERROR;
+	}
+
+	bool RunDirectScriptLockSelfTest()
+	{
+		wchar_t temporaryPath[MAX_PATH + 1] = {};
+		if (GetTempPathW(MAX_PATH, temporaryPath) == 0)
+			return false;
+		wchar_t scriptPath[MAX_PATH + 1] = {};
+		if (GetTempFileNameW(temporaryPath, L"xrs", 0, scriptPath) == 0)
+			return false;
+		const std::uint8_t content[] = { 'W', 'r', 'i', 't', 'e', '-', 'O', 'u', 't', 'p', 'u', 't' };
+		HANDLE script = CreateFileW(scriptPath, GENERIC_WRITE, 0, nullptr,
+			TRUNCATE_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+		DWORD written = 0;
+		const bool contentWritten = script != INVALID_HANDLE_VALUE &&
+			WriteFile(script, content, static_cast<DWORD>(std::size(content)),
+				&written, nullptr) == TRUE &&
+			written == std::size(content);
+		if (script != INVALID_HANDLE_VALUE)
+			CloseHandle(script);
+		if (!contentWritten)
+		{
+			DeleteFileW(scriptPath);
+			return false;
+		}
+
+		script = CreateFileW(scriptPath, GENERIC_READ,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+			nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
+		std::wstring finalPath;
+		std::vector<std::uint8_t> hash;
+		const bool identityRead = script != INVALID_HANDLE_VALUE &&
+			xucrun::files::ResolveFinalFilePathFromHandle(script, finalPath) &&
+			xucrun::files::ComputeFileSHA256FromHandle(script, hash) &&
+			hash.size() == 32;
+		if (script != INVALID_HANDLE_VALUE)
+			CloseHandle(script);
+		if (!identityRead)
+		{
+			DeleteFileW(scriptPath);
+			return false;
+		}
+
+		PendingApprovalChallenge pending;
+		pending.directScriptPath = finalPath;
+		std::copy(hash.begin(), hash.end(), pending.directScriptSha256.begin());
+		DWORD error = NO_ERROR;
+		bool passed = false;
+		{
+			LaunchObjectLocks locks;
+			if (LockAndValidateDirectScript(pending, locks, error))
+			{
+				HANDLE writer = CreateFileW(finalPath.c_str(), GENERIC_WRITE,
+					FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+					nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+				passed = writer == INVALID_HANDLE_VALUE &&
+					GetLastError() == ERROR_SHARING_VIOLATION;
+				if (writer != INVALID_HANDLE_VALUE)
+					CloseHandle(writer);
+			}
+		}
+		DeleteFileW(scriptPath);
+		return passed;
+	}
 }
 
 // Tests that approval challenges cannot be transferred between clients, sessions, or image identities.
 bool RunApprovalChallengeIdentitySelfTest()
 {
 	if (!RunEmptyPasswordCommitHostSelfTest() ||
-		!RunDirectScriptArgumentSelfTest())
+		!RunDirectScriptArgumentSelfTest() ||
+		!RunUnboundScriptPersistenceSelfTest() ||
+		!RunDirectScriptLockSelfTest())
 		return false;
 
 	xucrun::broker::ApprovalChallengeRequest inventoryRequest;

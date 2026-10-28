@@ -672,6 +672,7 @@ namespace
 		const std::wstring* authenticityMarker;
 		const std::wstring* clientName;
 		InterpreterWarningType interpreterWarningType;
+		bool reusableApprovalAllowed;
 		std::uint32_t elapsedSeconds;
 		bool foregroundActivated;
 		bool* timedOut;
@@ -711,11 +712,13 @@ namespace
 
 	void UpdateApprovalExplanation(HWND dialog)
 	{
+		const auto* context = reinterpret_cast<const ApprovalDialogContext*>(
+			GetWindowLongPtrW(dialog, DWLP_USER));
 		const bool once = SendMessageW(GetDlgItem(dialog, ApprovalDurationFirst),
 			BM_GETCHECK, 0, 0) == BST_CHECKED;
 		if (once)
 		{
-			const std::wstring explanation = Text(
+			std::wstring explanation = Text(
 				L"Freigabedauer: Nur dieses eine Mal.\r\nFür diesen einzelnen, vollständig "
 				L"gebundenen Start wird keine wiederverwendbare Freigabe gespeichert."
 				L"\r\n\r\nGeltungsbereich: Nicht anwendbar.\r\nDer aktuelle Start ist bereits "
@@ -729,6 +732,14 @@ namespace
 				L"the displayed program, its arguments, working directory, and visibility."
 				L"\r\n\r\nAccount scope: Not applicable.\r\nThe current launch applies only to "
 				L"the displayed target account.");
+			if (context && !context->reusableApprovalAllowed)
+			{
+				explanation += Text(
+					L"\r\n\r\nEine wiederverwendbare Freigabe ist nicht verfügbar, weil das "
+						L"direkte Skript nicht sicher an Pfad und Inhalt gebunden werden konnte.",
+					L"\r\n\r\nA reusable approval is unavailable because the direct script "
+						L"could not be bound safely to its path and contents.");
+			}
 			SetWindowTextW(GetDlgItem(dialog, ApprovalExplanationControl),
 				explanation.c_str());
 			return;
@@ -911,6 +922,11 @@ namespace
 			}
 			SendMessageW(GetDlgItem(dialog, ApprovalDurationFirst), BM_SETCHECK,
 				BST_CHECKED, 0);
+			if (!context->reusableApprovalAllowed)
+			{
+				for (int index = 1; index < static_cast<int>(std::size(choices)); index++)
+					EnableWindow(GetDlgItem(dialog, ApprovalDurationFirst + index), FALSE);
+			}
 
 			AddControl(dialog, L"STATIC", Text(L"Geltungsbereich:", L"Scope:"),
 				SS_LEFT, 8, 247 + layoutOffset, 180, 10, 0, font);
@@ -1129,10 +1145,15 @@ namespace
 		const std::wstring displayedClientName =
 			xucrun::documentation_names::DisplayAccount(
 				challenge.canonicalClientName);
+		const bool reusableApprovalAllowed =
+			challenge.directScriptPath.empty() ||
+			std::any_of(challenge.directScriptSha256.begin(),
+				challenge.directScriptSha256.end(),
+				[](std::uint8_t value) { return value != 0; });
 		ApprovalDialogContext context = {
 			&decision, &fixedDetails, &details, &challenge.authenticityMarker,
 			&displayedClientName, interpreterWarningType,
-			0, false, &timedOut
+			reusableApprovalAllowed, 0, false, &timedOut
 		};
 		return DialogBoxIndirectParamW(GetModuleHandleW(nullptr),
 			reinterpret_cast<DLGTEMPLATE*>(buffer), nullptr, ApprovalDialogProc,
@@ -1209,9 +1230,11 @@ namespace
 				details += Text(
 					L"\nDer Skriptinhalt wird nicht gebunden, weil Datei oder Verzeichnis "
 					L"für das aufrufende Konto beschreibbar sind oder nicht sicher geprüft "
-					L"werden konnten.",
+					L"werden konnten. Für diesen Aufruf ist deshalb nur eine einmalige "
+					L"Freigabe möglich.",
 					L"\nThe script contents are not bound because the file or directory is "
-					L"writable by the calling account or could not be verified safely.");
+					L"writable by the calling account or could not be verified safely. Only a "
+					L"one-time approval is therefore available for this invocation.");
 			}
 		}
 		const std::wstring fixedDetails = launchDetails + L"\n\n" + accountDetails;

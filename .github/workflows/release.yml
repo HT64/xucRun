@@ -131,7 +131,15 @@ jobs:
             throw "Multiple GitHub Releases exist for tag '$tag'."
           }
           if ($existingReleases.Count -eq 1 -and -not $existingReleases[0].draft) {
-            Write-Host "::notice title=Published release retained::A published GitHub Release already exists for tag '$tag'. The validated assets remain available as the workflow artifact; the published release was not modified."
+            Write-Host "::notice title=Published release retained::A published GitHub Release already exists for tag '$tag'. The tagged source was built and its assets remain available only as the workflow artifact. Published assets and attestations were not replaced and may refer to an earlier commit."
+            @"
+          ### Published release retained
+
+          The tagged source was built and validated. A published release already exists for tag
+          $tag, so its assets, release notes, and attestations were not modified. They may
+          refer to an earlier commit than the current tag. The newly built files are available
+          only in the workflow artifact.
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             exit 0
           }
           if ($existingReleases.Count -eq 1) {

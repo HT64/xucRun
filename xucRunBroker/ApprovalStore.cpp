@@ -142,7 +142,7 @@ namespace
 			(stored.visibility == context.visibility &&
 			 stored.argumentHash == context.argumentHash &&
 			 stored.scriptHash == context.scriptHash &&
-			 EqualInsensitive(stored.workingDirectory, context.workingDirectory) &&
+			stored.workingDirectory == context.workingDirectory &&
 			 EqualInsensitive(stored.scriptPath, context.scriptPath));
 	}
 
@@ -491,6 +491,10 @@ namespace xucrun::approval_store
 			return false;
 		context = stored;
 		context.workingDirectory = L"C:\\Other";
+		if (IsMatch(stored, context, 1))
+			return false;
+		context = stored;
+		context.workingDirectory = L"C:\\WORK";
 		if (IsMatch(stored, context, 1))
 			return false;
 		context = stored;
