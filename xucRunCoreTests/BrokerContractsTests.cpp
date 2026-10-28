@@ -1,6 +1,7 @@
 // Purpose: Tests contracts, serialization, identity helpers, and sensitive storage primitives.
 // Runs positive round trips and targeted rejection cases as a release test program.
 #include "ApprovalSerialization.h"
+#include "AuthenticodeTrust.h"
 #include "BrokerBackupArchive.h"
 #include "BrokerContracts.h"
 #include "BrokerSerialization.h"
@@ -13,6 +14,7 @@
 
 #include <Windows.h>
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 
@@ -327,8 +329,8 @@ namespace
 		using namespace xucrun::broker;
 		if (DefaultBrokerRequestTimeoutMilliseconds != 5000 ||
 			BrokerIpcTimeoutReserveMilliseconds != 5000 ||
-			ApprovalDialogTimeoutMilliseconds != 60000 ||
-			ApprovalHelperDecisionLifetimeMilliseconds != 90000 ||
+			ApprovalDialogTimeoutMilliseconds != 120000 ||
+			ApprovalHelperDecisionLifetimeMilliseconds != 130000 ||
 			ApprovalDialogTimeoutMilliseconds >=
 				ApprovalHelperDecisionLifetimeMilliseconds ||
 			ElevatedLaunchHelperTimeoutMilliseconds != 30000 ||
@@ -342,6 +344,38 @@ namespace
 				ApprovalHelperHostTimeoutMilliseconds + BrokerIpcTimeoutReserveMilliseconds)
 		{
 			std::cerr << "broker timeout contracts failed\n";
+			failures++;
+		}
+	}
+
+	void ExpectWindowsCommandTrust()
+	{
+		wchar_t systemDirectory[MAX_PATH + 1] = {};
+		const UINT length = GetSystemDirectoryW(
+			systemDirectory, static_cast<UINT>(std::size(systemDirectory)));
+		if (length == 0 || length >= std::size(systemDirectory))
+		{
+			std::cerr << "system directory unavailable for trust test\n";
+			failures++;
+			return;
+		}
+		const std::wstring commandPath =
+			std::wstring(systemDirectory, length) + L"\\cmd.exe";
+		HANDLE command = CreateFileW(commandPath.c_str(), GENERIC_READ,
+			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+			nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+		xucrun::authenticode::VerificationResult result;
+		const bool trusted = command != INVALID_HANDLE_VALUE &&
+			xucrun::authenticode::Verify(commandPath, command, result);
+		if (command != INVALID_HANDLE_VALUE)
+			CloseHandle(command);
+		if (!trusted || !result.trusted || result.trustStatus != ERROR_SUCCESS ||
+			result.signerCertificate.empty() ||
+			std::all_of(result.signerCertificateSha256.begin(),
+				result.signerCertificateSha256.end(),
+				[](BYTE value) { return value == 0; }))
+		{
+			std::cerr << "Windows command Authenticode or catalog trust failed\n";
 			failures++;
 		}
 	}
@@ -592,7 +626,7 @@ namespace
 			xucrun::broker::ElevationMode::RequireElevated);
 		const std::vector<std::uint8_t> expectedFrame = {
 			'X', 'U', 'C', 'R', 1, 1, 0, 0,
-			38, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
 			'S', 0, 'E', 0, 'W', 0
 		};
@@ -647,7 +681,7 @@ namespace
 		expected.windowsError = 5;
 		const std::vector<std::uint8_t> expectedFrame = {
 			'X', 'U', 'C', 'S', 2, 5, 0, 0,
-			38, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			5, 0, 0, 0
 		};
 		if (xucrun::broker::SerializeLaunchResult(expected) != expectedFrame)
@@ -740,7 +774,7 @@ namespace
 		xucrun::broker::CredentialMetadataRequest parsedRequest;
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'M', 6, 0, 0, 0,
-			38, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			3, 0, 0, 0, 'S', 0, '-', 0, '1', 0
 		};
 		if (requestFrame != expectedRequestFrame ||
@@ -798,7 +832,7 @@ namespace
 			xucrun::broker::SerializeSessionTestRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'T', 8, 0, 0, 0,
-			38, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
+			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
 		};
 		xucrun::broker::SessionTestRequest parsedRequest;
 		if (requestFrame != expectedRequestFrame ||
@@ -817,7 +851,7 @@ namespace
 			xucrun::broker::SerializeSessionTestResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'C', 'U', 9, 0, 0, 0,
-			38, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			0, 0, 0, 0, 0x44, 0x33, 0x22, 0x11
 		};
 		xucrun::broker::SessionTestResult parsedResult;
@@ -847,7 +881,7 @@ namespace
 			xucrun::broker::SerializeCredentialStoreTestRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'V', 10, 0, 0, 0,
-			38, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
+			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
 		};
 		xucrun::broker::CredentialStoreTestRequest parsedRequest;
 		if (requestFrame != expectedRequestFrame ||
@@ -867,7 +901,7 @@ namespace
 			xucrun::broker::SerializeCredentialStoreTestResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'C', 'W', 11, 1, 0, 0,
-			38, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			39, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			13, 0, 0, 0
 		};
 		xucrun::broker::CredentialStoreTestResult parsedResult;
@@ -1886,6 +1920,7 @@ namespace
 		decision.programScope =
 			xucrun::broker::ApprovalProgramScope::ExactInvocation;
 		decision.accountScope = xucrun::broker::ApprovalAccountScope::CurrentAccount;
+		decision.broadInterpreterApprovalConfirmed = false;
 		const std::vector<std::uint8_t> decisionFrame =
 			xucrun::broker::SerializeApprovalHelperDecisionRequest(decision);
 		xucrun::broker::ApprovalHelperDecisionRequest parsedDecision;
@@ -1899,7 +1934,9 @@ namespace
 			parsedDecision.persistence != decision.persistence ||
 			parsedDecision.programScope != decision.programScope ||
 			parsedDecision.accountScope != decision.accountScope ||
-			parsedDecision.updateScope != decision.updateScope)
+			parsedDecision.updateScope != decision.updateScope ||
+			parsedDecision.broadInterpreterApprovalConfirmed !=
+				decision.broadInterpreterApprovalConfirmed)
 		{
 			std::cerr << "approval helper decision serialization failed\n";
 			failures++;
@@ -1910,6 +1947,35 @@ namespace
 			invalidDecision, parsedDecision))
 		{
 			std::cerr << "invalid approval helper decision accepted\n";
+			failures++;
+		}
+		decision.persistence = xucrun::broker::ApprovalPersistence::TenMinutes;
+		decision.programScope =
+			xucrun::broker::ApprovalProgramScope::TargetProgram;
+		decision.broadInterpreterApprovalConfirmed = true;
+		const std::vector<std::uint8_t> broadDecisionFrame =
+			xucrun::broker::SerializeApprovalHelperDecisionRequest(decision);
+		if (broadDecisionFrame.empty() ||
+			!xucrun::broker::DeserializeApprovalHelperDecisionRequest(
+				broadDecisionFrame, parsedDecision) ||
+			!parsedDecision.broadInterpreterApprovalConfirmed)
+		{
+			std::cerr << "broad interpreter confirmation serialization failed\n";
+			failures++;
+		}
+		invalidDecision = broadDecisionFrame;
+		invalidDecision[38] = 2;
+		if (xucrun::broker::DeserializeApprovalHelperDecisionRequest(
+			invalidDecision, parsedDecision))
+		{
+			std::cerr << "invalid broad interpreter confirmation accepted\n";
+			failures++;
+		}
+		decision.programScope =
+			xucrun::broker::ApprovalProgramScope::ExactInvocation;
+		if (!xucrun::broker::SerializeApprovalHelperDecisionRequest(decision).empty())
+		{
+			std::cerr << "broad confirmation accepted for exact invocation\n";
 			failures++;
 		}
 
@@ -3276,6 +3342,7 @@ int main()
 	}
 	ExpectClientCommandLine();
 	ExpectClientProcessContext();
+	ExpectWindowsCommandTrust();
 	ExpectFileIdentity();
 	ExpectApprovalSerialization();
 	ExpectTargetNaming();

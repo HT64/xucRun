@@ -13,6 +13,7 @@
   </ItemGroup>
   <ItemGroup>
 	<ClCompile Include="ApplicationIcon.cpp" />
+    <ClCompile Include="AuthenticodeTrust.cpp" />
     <ClCompile Include="ApprovalSerialization.cpp" />
 	<ClCompile Include="BrokerBackupArchive.cpp" />
     <ClCompile Include="BrokerContracts.cpp" />
@@ -28,6 +29,7 @@
   </ItemGroup>
   <ItemGroup>
 	<ClInclude Include="ApplicationIcon.h" />
+    <ClInclude Include="AuthenticodeTrust.h" />
     <ClInclude Include="ApprovalSerialization.h" />
 	<ClInclude Include="BrokerBackupArchive.h" />
     <ClInclude Include="BrokerContracts.h" />

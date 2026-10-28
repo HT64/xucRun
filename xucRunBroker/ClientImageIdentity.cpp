@@ -2,11 +2,9 @@
 // Locks the process-reported file and its protected path during authorization.
 #include "ClientImageIdentity.h"
 
+#include "AuthenticodeTrust.h"
 #include "FileIdentity.h"
 #include "SecurityAclAudit.h"
-
-#include <Softpub.h>
-#include <wintrust.h>
 
 #include <algorithm>
 #include <filesystem>
@@ -140,50 +138,19 @@ bool ReadFileImageIdentity(
 
 	if (success)
 	{
-		WINTRUST_FILE_INFO fileInfo = {};
-		fileInfo.cbStruct = sizeof(fileInfo);
-		fileInfo.pcwszFilePath = identity.path.c_str();
-		fileInfo.hFile = image;
-
-		WINTRUST_DATA trustData = {};
-		trustData.cbStruct = sizeof(trustData);
-		trustData.dwUIChoice = WTD_UI_NONE;
-		trustData.fdwRevocationChecks = WTD_REVOKE_NONE;
-		trustData.dwUnionChoice = WTD_CHOICE_FILE;
-		trustData.pFile = &fileInfo;
-		trustData.dwStateAction = WTD_STATEACTION_VERIFY;
-		trustData.dwProvFlags = WTD_CACHE_ONLY_URL_RETRIEVAL | WTD_SAFER_FLAG;
-		GUID policy = WINTRUST_ACTION_GENERIC_VERIFY_V2;
-		identity.trustStatus = WinVerifyTrust(nullptr, &policy, &trustData);
-		identity.signatureTrusted = identity.trustStatus == ERROR_SUCCESS;
-		if (identity.signatureTrusted)
+		xucrun::authenticode::VerificationResult trust;
+		xucrun::authenticode::Verify(identity.path, image, trust);
+		identity.trustStatus = trust.trustStatus;
+		identity.signatureTrusted = trust.trusted;
+		if (trust.trusted && std::any_of(
+			trust.signerCertificateSha256.begin(),
+			trust.signerCertificateSha256.end(),
+			[](BYTE value) { return value != 0; }))
 		{
-			const CRYPT_PROVIDER_DATA* providerData =
-				WTHelperProvDataFromStateData(trustData.hWVTStateData);
-			const CRYPT_PROVIDER_SGNR* signer = providerData
-				? WTHelperGetProvSignerFromChain(
-					const_cast<CRYPT_PROVIDER_DATA*>(providerData), 0, FALSE, 0)
-				: nullptr;
-			if (signer && signer->csCertChain > 0 &&
-				signer->pasCertChain[0].pCert)
-			{
-				DWORD fingerprintSize = 0;
-				if (CertGetCertificateContextProperty(
-					signer->pasCertChain[0].pCert, CERT_SHA256_HASH_PROP_ID,
-					nullptr, &fingerprintSize) && fingerprintSize == 32)
-				{
-					identity.signerCertificateSha256.resize(fingerprintSize);
-					if (!CertGetCertificateContextProperty(
-						signer->pasCertChain[0].pCert, CERT_SHA256_HASH_PROP_ID,
-						identity.signerCertificateSha256.data(), &fingerprintSize))
-					{
-						identity.signerCertificateSha256.clear();
-					}
-				}
-			}
+			identity.signerCertificateSha256.assign(
+				trust.signerCertificateSha256.begin(),
+				trust.signerCertificateSha256.end());
 		}
-		trustData.dwStateAction = WTD_STATEACTION_CLOSE;
-		WinVerifyTrust(nullptr, &policy, &trustData);
 	}
 
 	if (!bindProtectedPath)

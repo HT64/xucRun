@@ -349,6 +349,35 @@ namespace
 		result.directScriptSha256 = pending.scriptSha256;
 	}
 
+	bool IsUniversalInterpreter(const std::wstring& executablePath)
+	{
+		const std::size_t separator = executablePath.find_last_of(L"\\/");
+		const std::wstring fileName = separator == std::wstring::npos
+			? executablePath : executablePath.substr(separator + 1);
+		for (const wchar_t* candidate : {
+			L"cmd.exe", L"powershell.exe", L"pwsh.exe", L"tcc.exe", L"tcmd.exe",
+			L"wscript.exe", L"cscript.exe" })
+		{
+			if (CompareStringOrdinal(
+				fileName.c_str(), -1, candidate, -1, TRUE) == CSTR_EQUAL)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool RequiresBroadInterpreterApprovalConfirmation(
+		const PendingApprovalChallenge& pending,
+		const xucrun::broker::ApprovalHelperDecisionRequest& request)
+	{
+		return request.decision == xucrun::broker::ApprovalDecision::ApproveOnce &&
+			request.persistence != xucrun::broker::ApprovalPersistence::Once &&
+			request.programScope !=
+				xucrun::broker::ApprovalProgramScope::ExactInvocation &&
+			IsUniversalInterpreter(pending.executablePath);
+	}
+
 	std::shared_ptr<void> OwnHandle(HANDLE handle)
 	{
 		return std::shared_ptr<void>(handle, [](void* value) {
@@ -1494,6 +1523,21 @@ namespace
 			}));
 	}
 
+	bool CanPersistApproval(
+		const PendingApprovalChallenge& pending,
+		const xucrun::broker::ApprovalConfirmationRequest& request)
+	{
+		const bool reusableScriptBinding =
+			pending.scriptPath == pending.directScriptPath &&
+			!pending.scriptPath.empty() &&
+			std::any_of(pending.scriptSha256.begin(), pending.scriptSha256.end(),
+				[](std::uint8_t value) { return value != 0; });
+		return request.persistence == xucrun::broker::ApprovalPersistence::Once ||
+			pending.directScriptPath.empty() || reusableScriptBinding ||
+			request.programScope !=
+				xucrun::broker::ApprovalProgramScope::ExactInvocation;
+	}
+
 	// Persists a confirmed approval with owner, account, program, and lifetime bindings.
 	bool StoreApproval(const PendingApprovalChallenge& pending,
 		const xucrun::broker::ApprovalConfirmationRequest& request,
@@ -1503,7 +1547,7 @@ namespace
 		approvalStored = false;
 		if (request.persistence == xucrun::broker::ApprovalPersistence::Once)
 			return true;
-		if (!pending.directScriptPath.empty() && pending.scriptPath.empty())
+		if (!CanPersistApproval(pending, request))
 		{
 			error = ERROR_ACCESS_DENIED;
 			return false;
@@ -1848,21 +1892,11 @@ namespace
 		return success;
 	}
 
-	bool IsDirectScriptBindingProtected(HANDLE clientProcess,
+	bool IsDirectScriptPathProtected(HANDLE clientProcess,
 		const std::wstring& scriptPath)
 	{
 		DWORD grantedAccess = 0;
 		DWORD accessError = NO_ERROR;
-		const DWORD fileWriteMask =
-			FILE_WRITE_DATA | FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES |
-			FILE_WRITE_EA | DELETE | WRITE_DAC | WRITE_OWNER;
-		if (!GetClientMaximumAllowedAccess(
-				clientProcess, scriptPath, grantedAccess, accessError) ||
-			(grantedAccess & fileWriteMask) != 0)
-		{
-			return false;
-		}
-
 		std::filesystem::path directory =
 			std::filesystem::path(scriptPath).parent_path();
 		bool immediateParent = true;
@@ -1931,7 +1965,7 @@ namespace
 		displayedScriptPath = finalPath;
 		std::copy(hash.begin(), hash.end(), displayedScriptHash.begin());
 
-		if (!IsDirectScriptBindingProtected(clientProcess, finalPath))
+		if (!IsDirectScriptPathProtected(clientProcess, finalPath))
 			return;
 
 		boundScriptPath = finalPath;
@@ -2633,6 +2667,26 @@ namespace
 		{
 			return false;
 		}
+		request.programScope =
+			xucrun::broker::ApprovalProgramScope::TargetProgram;
+		if (!CanPersistApproval(pending, request))
+			return false;
+		request.programScope = xucrun::broker::ApprovalProgramScope::General;
+		if (!CanPersistApproval(pending, request))
+			return false;
+		request.programScope =
+			xucrun::broker::ApprovalProgramScope::ExactInvocation;
+		pending.scriptPath = pending.directScriptPath;
+		if (CanPersistApproval(pending, request))
+			return false;
+		pending.scriptSha256[0] = 1;
+		if (!CanPersistApproval(pending, request))
+			return false;
+		pending.scriptPath = L"C:\\Scripts\\different.ps1";
+		if (CanPersistApproval(pending, request))
+			return false;
+		pending.scriptPath.clear();
+		pending.scriptSha256 = {};
 		request.persistence = xucrun::broker::ApprovalPersistence::Once;
 		error = NO_ERROR;
 		return StoreApproval(
@@ -2724,6 +2778,48 @@ namespace
 		return result.directScriptPath == pending.directScriptPath &&
 			result.directScriptSha256 == pending.scriptSha256;
 	}
+
+	bool RunWindowsCommandTrustSelfTest()
+	{
+		wchar_t systemDirectory[MAX_PATH + 1] = {};
+		const UINT length = GetSystemDirectoryW(
+			systemDirectory, static_cast<UINT>(std::size(systemDirectory)));
+		if (length == 0 || length >= std::size(systemDirectory))
+			return false;
+		const std::wstring commandPath =
+			std::wstring(systemDirectory, length) + L"\\cmd.exe";
+		ClientImageIdentity identity;
+		DWORD error = NO_ERROR;
+		return ReadFileImageIdentity(commandPath, identity, error, false) &&
+			identity.signatureTrusted && identity.trustStatus == ERROR_SUCCESS &&
+			identity.signerCertificateSha256.size() == 32;
+	}
+
+	bool RunBroadInterpreterApprovalConfirmationSelfTest()
+	{
+		PendingApprovalChallenge pending;
+		pending.executablePath = L"C:\\Windows\\System32\\cmd.exe";
+		xucrun::broker::ApprovalHelperDecisionRequest request;
+		request.decision = xucrun::broker::ApprovalDecision::ApproveOnce;
+		request.persistence = xucrun::broker::ApprovalPersistence::TenMinutes;
+		request.programScope = xucrun::broker::ApprovalProgramScope::TargetProgram;
+		if (!RequiresBroadInterpreterApprovalConfirmation(pending, request))
+			return false;
+		request.programScope = xucrun::broker::ApprovalProgramScope::General;
+		if (!RequiresBroadInterpreterApprovalConfirmation(pending, request))
+			return false;
+		request.programScope =
+			xucrun::broker::ApprovalProgramScope::ExactInvocation;
+		if (RequiresBroadInterpreterApprovalConfirmation(pending, request))
+			return false;
+		request.programScope = xucrun::broker::ApprovalProgramScope::TargetProgram;
+		request.persistence = xucrun::broker::ApprovalPersistence::Once;
+		if (RequiresBroadInterpreterApprovalConfirmation(pending, request))
+			return false;
+		request.persistence = xucrun::broker::ApprovalPersistence::Forever;
+		pending.executablePath = L"C:\\Windows\\System32\\notepad.exe";
+		return !RequiresBroadInterpreterApprovalConfirmation(pending, request);
+	}
 }
 
 // Tests that approval challenges cannot be transferred between clients, sessions, or image identities.
@@ -2733,7 +2829,9 @@ bool RunApprovalChallengeIdentitySelfTest()
 		!RunDirectScriptArgumentSelfTest() ||
 		!RunUnboundScriptPersistenceSelfTest() ||
 		!RunDirectScriptLockSelfTest() ||
-		!RunApprovalHelperDirectScriptBindingSelfTest())
+		!RunApprovalHelperDirectScriptBindingSelfTest() ||
+		!RunWindowsCommandTrustSelfTest() ||
+		!RunBroadInterpreterApprovalConfirmationSelfTest())
 		return false;
 
 	xucrun::broker::ApprovalChallengeRequest inventoryRequest;

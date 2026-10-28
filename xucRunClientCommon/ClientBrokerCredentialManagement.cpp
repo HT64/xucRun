@@ -36,6 +36,21 @@ namespace xucrun::broker_credential_management
 		constexpr int CredentialTableSummaryId = 1700;
 		constexpr int CredentialTableListId = 1701;
 		constexpr int CredentialTableNoteId = 1702;
+		constexpr int CredentialTableDeleteAllId = 1703;
+		constexpr int CredentialTableDeleteSelectedId = 1705;
+
+		enum class CredentialTableAction
+		{
+			Closed,
+			DeleteAll,
+			DeleteSelected
+		};
+
+		struct CredentialTableResult
+		{
+			CredentialTableAction action = CredentialTableAction::Closed;
+			int selectedRow = -1;
+		};
 
 		std::wstring DisplayAccount(const std::wstring& accountName)
 		{
@@ -49,6 +64,7 @@ namespace xucrun::broker_credential_management
 			const std::wstring* note;
 			const std::vector<CredentialInfo>* credentials;
 			const std::vector<std::size_t>* approvalCounts;
+			int selectedRow = -1;
 		};
 
 		std::wstring TrimLineBreaks(std::wstring text)
@@ -71,6 +87,7 @@ namespace xucrun::broker_credential_management
 			const int summaryHeight = MulDiv(54, dpi ? dpi : 96, 96);
 			const int noteHeight = MulDiv(46, dpi ? dpi : 96, 96);
 			const int buttonWidth = MulDiv(76, dpi ? dpi : 96, 96);
+			const int actionWidth = MulDiv(170, dpi ? dpi : 96, 96);
 			const int buttonHeight = MulDiv(26, dpi ? dpi : 96, 96);
 			const int gap = MulDiv(8, dpi ? dpi : 96, 96);
 			const int buttonY = height - margin - buttonHeight;
@@ -84,7 +101,15 @@ namespace xucrun::broker_credential_management
 				(std::max)(1, noteY - gap - listY), FALSE);
 			MoveWindow(GetDlgItem(dialog, CredentialTableNoteId), margin, noteY,
 				(std::max)(1, width - 2 * margin), noteHeight, FALSE);
-			MoveWindow(GetDlgItem(dialog, IDOK), (width - buttonWidth) / 2,
+			const int buttonsWidth = 2 * actionWidth + 3 * gap + buttonWidth;
+			const int buttonsX = (width - buttonsWidth) / 2;
+			MoveWindow(GetDlgItem(dialog, CredentialTableDeleteAllId),
+				buttonsX, buttonY, actionWidth, buttonHeight, FALSE);
+			MoveWindow(GetDlgItem(dialog, CredentialTableDeleteSelectedId),
+				buttonsX + actionWidth + gap, buttonY,
+				actionWidth, buttonHeight, FALSE);
+			MoveWindow(GetDlgItem(dialog, IDOK),
+				buttonsX + 2 * (actionWidth + gap),
 				buttonY, buttonWidth, buttonHeight, FALSE);
 
 			RECT listRect = {};
@@ -119,6 +144,7 @@ namespace xucrun::broker_credential_management
 			{
 				const auto* context =
 					reinterpret_cast<const CredentialTableContext*>(lParam);
+				SetWindowLongPtrW(dialog, DWLP_USER, lParam);
 				ui::ApplyApplicationIcon(dialog);
 				SetWindowTextW(dialog, context->title->c_str());
 				SetWindowPos(dialog, HWND_TOPMOST, 0, 0, 0, 0,
@@ -175,8 +201,19 @@ namespace xucrun::broker_credential_management
 
 				ui::CreateDialogControl(dialog, 0, L"STATIC", context->note->c_str(),
 					SS_LEFT, 8, 238, 464, 30, CredentialTableNoteId);
+				ui::CreateDialogControl(dialog, 0, L"BUTTON",
+					localization::GetText(
+						localization::TextId::ShowCredentialsDeleteAll).c_str(),
+					BS_PUSHBUTTON | WS_TABSTOP, 20, 274, 140, 14,
+					CredentialTableDeleteAllId);
+				HWND deleteSelectedButton = ui::CreateDialogControl(dialog, 0, L"BUTTON",
+					localization::GetText(
+						localization::TextId::ShowCredentialsDeleteSelected).c_str(),
+					BS_PUSHBUTTON | WS_TABSTOP, 168, 274, 140, 14,
+					CredentialTableDeleteSelectedId);
+				EnableWindow(deleteSelectedButton, FALSE);
 				HWND okButton = ui::CreateDialogControl(dialog, 0, L"BUTTON", L"OK",
-					BS_DEFPUSHBUTTON | WS_TABSTOP, 202, 274, 76, 14, IDOK);
+					BS_DEFPUSHBUTTON | WS_TABSTOP, 316, 274, 76, 14, IDOK);
 				LayoutCredentialTable(dialog);
 				SetFocus(okButton);
 				return FALSE;
@@ -185,6 +222,20 @@ namespace xucrun::broker_credential_management
 			case WM_SIZE:
 				LayoutCredentialTable(dialog);
 				return TRUE;
+
+			case WM_NOTIFY:
+			{
+				const auto* header = reinterpret_cast<const NMHDR*>(lParam);
+				if (header && header->idFrom == CredentialTableListId &&
+					header->code == LVN_ITEMCHANGED)
+				{
+					EnableWindow(GetDlgItem(dialog, CredentialTableDeleteSelectedId),
+						ListView_GetNextItem(GetDlgItem(dialog, CredentialTableListId),
+							-1, LVNI_SELECTED) >= 0);
+					return TRUE;
+				}
+				break;
+			}
 
 			case WM_GETMINMAXINFO:
 			{
@@ -196,6 +247,20 @@ namespace xucrun::broker_credential_management
 			}
 
 			case WM_COMMAND:
+				if (LOWORD(wParam) == CredentialTableDeleteAllId ||
+					LOWORD(wParam) == CredentialTableDeleteSelectedId)
+				{
+					auto* context = reinterpret_cast<CredentialTableContext*>(
+						GetWindowLongPtrW(dialog, DWLP_USER));
+					if (context && LOWORD(wParam) == CredentialTableDeleteSelectedId)
+					{
+						context->selectedRow = ListView_GetNextItem(
+							GetDlgItem(dialog, CredentialTableListId),
+							-1, LVNI_SELECTED);
+					}
+					EndDialog(dialog, LOWORD(wParam));
+					return TRUE;
+				}
 				if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
 				{
 					EndDialog(dialog, LOWORD(wParam));
@@ -210,7 +275,7 @@ namespace xucrun::broker_credential_management
 			return FALSE;
 		}
 
-		void ShowCredentialTable(const std::wstring& title,
+		CredentialTableResult ShowCredentialTable(const std::wstring& title,
 			const std::wstring& summary, const std::wstring& note,
 			const std::vector<CredentialInfo>& credentials,
 			const std::vector<std::size_t>& approvalCounts, HWND owner)
@@ -251,9 +316,14 @@ namespace xucrun::broker_credential_management
 
 			CredentialTableContext context = {
 				&title, &summary, &note, &credentials, &approvalCounts };
-			DialogBoxIndirectParamW(GetModuleHandleW(nullptr),
+			const INT_PTR result = DialogBoxIndirectParamW(GetModuleHandleW(nullptr),
 				reinterpret_cast<LPCDLGTEMPLATEW>(buffer), owner,
 				CredentialTableDialogProc, reinterpret_cast<LPARAM>(&context));
+			if (result == CredentialTableDeleteAllId)
+				return { CredentialTableAction::DeleteAll, -1 };
+			if (result == CredentialTableDeleteSelectedId)
+				return { CredentialTableAction::DeleteSelected, context.selectedRow };
+			return {};
 		}
 
 		std::wstring GetInvokingAccount()
@@ -418,7 +488,7 @@ namespace xucrun::broker_credential_management
 		int DeleteBrokerCredentialByIdentity(
 			const std::wstring& canonicalUsername,
 			const std::wstring& accountSid, const std::wstring& invokingAccount,
-			HWND owner)
+			HWND owner, bool showSuccess = true)
 		{
 			broker::CredentialDeleteRequest request;
 			request.requestId = broker::GenerateBrokerRequestId();
@@ -467,10 +537,13 @@ namespace xucrun::broker_credential_management
 
 			client_logging::Write(
 				L"Ok", L"Broker credential deleted: " + canonicalUsername);
-			ui::ShowInfo(localization::Format(
-				localization::TextId::CredentialDeleteSucceeded,
-				{ DisplayAccount(invokingAccount),
-					DisplayAccount(canonicalUsername) }), owner);
+			if (showSuccess)
+			{
+				ui::ShowInfo(localization::Format(
+					localization::TextId::CredentialDeleteSucceeded,
+					{ DisplayAccount(invokingAccount),
+						DisplayAccount(canonicalUsername) }), owner);
+			}
 			return 0;
 		}
 	}
@@ -804,6 +877,8 @@ namespace xucrun::broker_credential_management
 		const std::wstring fullCurrentUser = currentDomain.empty()
 			? currentUser : currentDomain + L"\\" + currentUser;
 
+		for (;;)
+		{
 		std::vector<CredentialInfo> credentials;
 		DWORD credentialListError = NO_ERROR;
 		if (!broker_credential_selection::GetAllBrokerCredentials(
@@ -902,6 +977,7 @@ namespace xucrun::broker_credential_management
 		if (credentials.empty())
 		{
 			text_dialog::Show(title, heading, output, ui::GetDialogOwnerWindow());
+			return 0;
 		}
 		else if (console_output::WriteToAvailableTarget(heading, output) !=
 			console_output::TextOutputResult::Complete)
@@ -914,11 +990,67 @@ namespace xucrun::broker_credential_management
 					{ std::to_wstring(credentials.size()) })) + L"\n" +
 				TrimLineBreaks(localization::GetText(
 					localization::TextId::ShowCredentialsApproval));
-			ShowCredentialTable(title, summary,
+			const CredentialTableResult dialogResult = ShowCredentialTable(title, summary,
 				TrimLineBreaks(localization::GetText(
 					localization::TextId::ShowCredentialsNote)),
 				credentials, approvalCounts, ui::GetDialogOwnerWindow());
+			if (dialogResult.action == CredentialTableAction::Closed)
+				return 0;
+
+			const std::wstring invokingAccount = GetInvokingAccount();
+			if (dialogResult.action == CredentialTableAction::DeleteAll)
+			{
+				const std::wstring confirmation = localization::Format(
+					localization::TextId::ShowCredentialsDeleteAllConfirm,
+					{ std::to_wstring(credentials.size()) });
+				if (ui::ShowMessageBox(ui::GetDialogOwnerWindow(), confirmation,
+					ui::GetWindowTitle(localization::GetText(
+						localization::TextId::WarningTitle)),
+					MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2 |
+					MB_SETFOREGROUND | MB_TOPMOST) != IDYES)
+				{
+					continue;
+				}
+				for (const CredentialInfo& credential : credentials)
+				{
+					if (DeleteBrokerCredentialByIdentity(
+						credential.username, credential.accountSid,
+						invokingAccount, ui::GetDialogOwnerWindow(), false) != 0)
+					{
+						return 1;
+					}
+				}
+				continue;
+			}
+
+			if (dialogResult.selectedRow < 0 ||
+				static_cast<std::size_t>(dialogResult.selectedRow) >= credentials.size())
+			{
+				continue;
+			}
+			const CredentialInfo& credential =
+				credentials[static_cast<std::size_t>(dialogResult.selectedRow)];
+			const std::wstring confirmation = localization::Format(
+				localization::TextId::CredentialDeleteConfirmation,
+				{ DisplayAccount(invokingAccount),
+					DisplayAccount(credential.username) });
+			if (ui::ShowMessageBox(ui::GetDialogOwnerWindow(), confirmation,
+				ui::GetWindowTitle(localization::GetText(
+					localization::TextId::CredentialDeleteTitle)),
+				MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2 |
+				MB_SETFOREGROUND | MB_TOPMOST) != IDYES)
+			{
+				continue;
+			}
+			if (DeleteBrokerCredentialByIdentity(
+				credential.username, credential.accountSid, invokingAccount,
+				ui::GetDialogOwnerWindow(), false) != 0)
+			{
+				return 1;
+			}
+			continue;
 		}
 		return 0;
+		}
 	}
 }

@@ -243,6 +243,8 @@ namespace xucrun::approval_management
 		}
 		const std::wstring fullCurrentUser = currentDomain.empty()
 			? currentUser : currentDomain + L"\\" + currentUser;
+		for (;;)
+		{
 		broker::ApprovalListRequest request;
 		request.requestId = broker::GenerateBrokerRequestId();
 		const auto response = broker::SubmitApprovalListRequest(request);
@@ -366,6 +368,7 @@ namespace xucrun::approval_management
 		{
 			text_dialog::Show(
 				ui::GetWindowTitle(title), heading, output, ui::GetDialogOwnerWindow());
+			return 0;
 		}
 		else if (console_output::WriteToAvailableTarget(heading, output) !=
 			console_output::TextOutputResult::Complete)
@@ -439,11 +442,93 @@ namespace xucrun::approval_management
 					general ? L"" : targets::BytesToUpperHex(approvalValue.targetHash)
 				});
 			}
-			table_dialog::Show(ui::GetWindowTitle(title),
+			const auto dialogResult = table_dialog::Show(ui::GetWindowTitle(title),
 				localization::Format(localization::TextId::ShowApprovalsIntro,
 					{ DisplayAccount(fullCurrentUser) }), L"", columns, rows,
-				ui::GetDialogOwnerWindow());
+				ui::GetDialogOwnerWindow(),
+				localization::GetText(
+					localization::TextId::ShowApprovalsDeleteAll),
+				L"",
+				localization::GetText(
+					localization::TextId::ShowApprovalsDeleteSelected));
+			if (dialogResult.action == table_dialog::TableDialogAction::Closed)
+				return 0;
+
+			std::vector<std::size_t> selectedEntries;
+			if (dialogResult.action == table_dialog::TableDialogAction::Action)
+			{
+				const std::wstring confirmation = localization::Format(
+					localization::TextId::ShowApprovalsDeleteAllConfirm,
+					{ std::to_wstring(response.result.entries.size()) });
+				if (ui::ShowMessageBox(ui::GetDialogOwnerWindow(), confirmation,
+					ui::GetWindowTitle(localization::GetText(
+						localization::TextId::WarningTitle)),
+					MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES)
+				{
+					continue;
+				}
+				selectedEntries.resize(response.result.entries.size());
+				for (std::size_t index = 0; index < selectedEntries.size(); index++)
+					selectedEntries[index] = index;
+			}
+			else
+			{
+				if (dialogResult.selectedRow < 0 ||
+					static_cast<std::size_t>(dialogResult.selectedRow) >=
+						response.result.entries.size())
+				{
+					continue;
+				}
+				const std::size_t selected =
+					static_cast<std::size_t>(dialogResult.selectedRow);
+				const auto& row = rows[selected];
+				const std::wstring confirmation = localization::Format(
+					localization::TextId::ShowApprovalsDeleteSelectedConfirm,
+					{ row[0], row[1], row[2].empty()
+						? localization::GetText(
+							localization::TextId::ValueNotAvailable)
+						: row[2] });
+				if (ui::ShowMessageBox(ui::GetDialogOwnerWindow(), confirmation,
+					ui::GetWindowTitle(localization::GetText(
+						localization::TextId::WarningTitle)),
+					MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES)
+				{
+					continue;
+				}
+				selectedEntries.push_back(selected);
+			}
+
+			bool deletionFailed = false;
+			for (const std::size_t selected : selectedEntries)
+			{
+				broker::ApprovalResetRequest resetRequest;
+				resetRequest.requestId = broker::GenerateBrokerRequestId();
+				resetRequest.approval = response.result.entries[selected];
+				const auto resetResponse =
+					broker::SubmitApprovalResetRequest(resetRequest);
+				if (resetResponse.status !=
+						broker::PipeApprovalManagementStatus::Succeeded ||
+					resetResponse.result.status !=
+						broker::ApprovalManagementStatus::Succeeded)
+				{
+					const DWORD resetError = resetResponse.status ==
+						broker::PipeApprovalManagementStatus::Succeeded
+						? resetResponse.result.windowsError
+						: resetResponse.windowsError;
+					ui::ReportError(localization::Format(
+						localization::TextId::ShowApprovalsDeleteFailed,
+						{ windows_error::FormatWindowsError(resetError) }),
+						L"Deleting an approval from the approval view failed. "
+						L"Windows error: " + std::to_wstring(resetError));
+					deletionFailed = true;
+					break;
+				}
+			}
+			if (deletionFailed)
+				return 1;
+			continue;
 		}
 		return 0;
+		}
 	}
 }

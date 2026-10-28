@@ -725,7 +725,9 @@ erscheinen.
 ## Freigaben
 
 Vor einem noch nicht freigegebenen Start kann xucRun eine einmalige oder wiederverwendbare
-Freigabe anfordern. Verfügbar sind:
+Freigabe anfordern. Der Dialog zeigt auch den Signaturstatus des Zielprogramms; xucRun erkennt
+dabei sowohl direkt eingebettete Authenticode-Signaturen als auch vertrauenswürdige
+Windows-Katalogsignaturen. Verfügbar sind:
 
 - nur dieser eine Start,
 - 10 Minuten,
@@ -733,13 +735,13 @@ Freigabe anfordern. Verfügbar sind:
 - bis zur Abmeldung,
 - dauerhaft.
 
-Bei „Nur dieses eine Mal“ gelten Geltungsbereich und Kontobereich nicht, weil die Freigabe
+Bei „Nur dieses eine Mal“ gelten Freigabeumfang und Zielkontenauswahl nicht, weil die Freigabe
 ausschließlich für den aktuell angezeigten Start gilt. Die betreffenden Auswahlfelder sind deshalb
 deaktiviert. Eine wiederverwendbare Freigabe kann an ein bestimmtes Programm oder an alle Programme
 sowie an ein bestimmtes Zielkonto oder an alle gespeicherten Konten des aktuellen Windows-Benutzers
 gebunden werden. Programmspezifische Freigaben berücksichtigen den SHA-256-Hash der Startdatei.
 Ändert sich die Datei, muss die Übernahme der Freigabe auf die neue Version ausdrücklich bestätigt
-werden. Der Dialog erklärt rechts getrennt nach Freigabedauer, Geltungsbereich und Kontobereich die
+werden. Der Dialog erklärt rechts getrennt nach Freigabedauer, Freigabeumfang und Zielkonten die
 Wirkung der aktuellen Auswahl.
 
 ![Freigabe nach Änderung eines Programmhashs](docs/de/images/program-hash-change-approval.png)
@@ -761,25 +763,50 @@ deshalb auf die weiterreichenden Fähigkeiten des Interpreters hin. Eine normale
 Programmfreigabe bindet die angezeigten Argumente nicht. Deshalb ist bei diesen Shells und
 Interpretern für eine wiederverwendbare Freigabe „Genau dieser Aufruf“ vorausgewählt.
 
+Wird eine wiederverwendbare Freigabe für einen dieser Interpreter dennoch auf „Nur für dieses
+Zielprogramm“ oder „Für alle Programme“ geändert, verlangt xucRun auf dem geschützten Desktop eine
+zweite ausdrückliche Bestätigung. Sie erklärt, dass Argumente, Skriptpfade und Skriptinhalte nicht
+Teil der gespeicherten Freigabe sind und später andere Befehle oder neue beziehungsweise veränderte
+Skripte ohne erneuten xucRun-Freigabedialog gestartet werden können. „Zurück zur Auswahl“ ist die
+Vorgabe. Eine bewusst gespeicherte weitreichende Freigabe behält diese Wirkung, wenn sie auf einen
+späteren Aufruf passt.
+
 Erkennt xucRun dabei ein direkt angegebenes PowerShell-, Batch-, TCC- oder
 Windows-Script-Host-Skript, bindet es dessen vollständig aufgelösten Pfad und SHA-256-Hash
-zusätzlich, sofern das aufrufende Konto weder das Skript noch einen übergeordneten Ordner so
-verändern kann, dass das Skript ausgetauscht werden könnte.
+zusätzlich, sofern das aufrufende Konto keinen für den Austausch relevanten Ordner verändern kann.
+Die Skriptdatei selbst darf beschreibbar sein: Ändert sich ihr Inhalt später, passt ihr Hash nicht
+mehr und xucRun verlangt eine neue Freigabe. Unmittelbar vor jedem Start prüft der Broker finalen
+Pfad und Hash erneut und hält die geprüfte Datei bis zum Programmstart gegen Änderung und
+Austausch gesperrt. Eine aktive Skriptbindung ist daran erkennbar, dass oben im Freigabedialog
+das direkte Skript mit Pfad und SHA-256-Hash angezeigt wird. Wird dort kein direktes Skript mit
+Pfad und SHA-256-Hash angezeigt, bindet „Genau dieser Aufruf“ zwar
+Programmdatei, Argumente, Arbeitsverzeichnis und
+dieselbe Einstellung für einen sichtbaren oder verborgenen Start, aber kein weiteres Programm und
+keinen Skriptinhalt. Programme, Skripte und andere Dateien, die im Befehl genannt oder von ihm
+direkt oder indirekt aufgerufen werden, können ersetzt oder inhaltlich verändert werden, ohne
+dass die Freigabe dadurch ungültig wird. Das gilt beispielsweise für freien CMD-Befehlstext mit
+`SET` und `CALL`, für PowerShell `-Command` und für Programme, die ein gebundenes Zielprogramm
+oder Skript anschließend startet.
 
-Kann das Skript nicht sicher gebunden werden, erklärt der Dialog dies und lässt für diesen Aufruf
-nur eine einmalige Freigabe zu. Vor dem Start prüft der Broker Pfad und Inhalt des erkannten
-Skripts erneut und verhindert bis zum Programmstart, dass die geprüfte Datei verändert oder
-ausgetauscht wird. Bei PowerShell kann eine administrativ erzwungene Richtlinie `AllSigned`
-Skriptdateien zusätzlich absichern, schützt jedoch nicht vor direkten oder interaktiven Befehlen.
+Kann dagegen ein austauschrelevanter Ordner verändert oder Pfad beziehungsweise Inhalt nicht
+sicher geprüft werden, ist eine wiederverwendbare Freigabe für „Genau dieser Aufruf“ nicht
+verfügbar. Der Dialog erklärt den Grund und behält die einmalige Freigabe als Vorgabe bei. Der
+Anwender kann stattdessen bewusst eine wiederverwendbare Freigabe für den Interpreter oder für
+alle Programme wählen. Eine solche weitreichende Freigabe bindet Argumente, Skriptpfad und
+Skriptinhalt nicht und erfordert deshalb die oben beschriebene gesonderte ausdrückliche
+Bestätigung. Vor jedem einzelnen Start prüft und sperrt der Broker ein erkanntes direktes Skript
+dennoch erneut; diese Startprüfung bindet spätere Aufrufe nicht an den früheren Skriptinhalt. Bei
+PowerShell kann eine administrativ erzwungene Richtlinie `AllSigned` Skriptdateien zusätzlich
+absichern, schützt jedoch nicht vor direkten oder interaktiven Befehlen.
 
 Aufrufende Skripte, Verknüpfungen und Konfigurationsdateien, aus denen der xucRun-Aufruf erst
 erzeugt wird, werden weiterhin nicht allgemein gehasht. Die Freigabe bindet den daraus
 entstehenden xucRun-Aufruf, nicht die Skript-, Verknüpfungs- oder Konfigurationsdatei, aus der er
-stammt. Dynamisch nachgeladene Skripte, Module, Konfigurationsdateien, Plugins und
-Programmeingaben gehören ebenfalls nicht automatisch zur Bindung. Solche Dateien müssen deshalb
-weiterhin vertrauenswürdig und vor unbefugten Änderungen geschützt sein. Die übrigen
-Brokerprüfungen, insbesondere zu Konto, angeforderten Rechten, Sichtbarkeit, Zielpfad und
-Zielprogrammhash, bleiben wirksam.
+stammt. Nachgelagerte Programme und dynamisch nachgeladene Skripte, Module,
+Konfigurationsdateien, Plugins und Programmeingaben gehören ebenfalls nicht automatisch zur
+Bindung. Solche Programme und Dateien müssen deshalb weiterhin vertrauenswürdig und vor
+unbefugten Änderungen geschützt sein. Die übrigen Brokerprüfungen, insbesondere zu Konto,
+angeforderten Rechten, Sichtbarkeit, Zielpfad und Zielprogrammhash, bleiben wirksam.
 
 ## Programme, Argumente und Sonderzeichen
 
@@ -836,8 +863,13 @@ nicht verborgen oder überwacht.
 
 `/showcred` zeigt die Zielkonten, für die xucRun-Anmeldedaten gespeichert sind. `/showapprovals`
 zeigt die aktiven allgemeinen, zielprogrammspezifischen und an einen genauen Aufruf gebundenen
-Freigaben; Geltungsbereich, Ziel, Aufrufbindung und Zielhash stehen dabei in getrennten Spalten. Die
-gespeicherten Kennwörter werden nicht angezeigt oder an den Client übertragen.
+Freigaben; Freigabeumfang, Ziel, Aufrufbindung und Zielhash stehen dabei in getrennten Spalten. Die
+gespeicherten Kennwörter werden nicht angezeigt oder an den Client übertragen. In beiden
+grafischen Listen kann die ausgewählte Zeile unmittelbar gelöscht werden. Die Anmeldedatenansicht
+kann außerdem alle angezeigten Anmeldedaten löschen; deren kontogebundene Freigaben werden dabei
+mit entfernt, profilweite Freigaben bleiben gespeichert. Die Freigabenansicht kann alle
+angezeigten Freigaben löschen. Jeder Löschvorgang verlangt eine eigene Bestätigung; ohne markierte
+Zeile bleibt die Einzelaktion deaktiviert.
 
 | Gespeicherte Anmeldedaten | Aktive Freigaben |
 |:---:|:---:|

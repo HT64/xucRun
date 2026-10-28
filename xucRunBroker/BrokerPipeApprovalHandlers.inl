@@ -316,7 +316,9 @@
 				xucrun::broker::ApprovalFailureReason::None &&
 			 !IsSingleUseApprovalDecision(request)) ||
 			(request.updateScope != xucrun::broker::ApprovalUpdateScope::None &&
-			 !pending->programUpdate.available))
+			 !pending->programUpdate.available) ||
+			request.broadInterpreterApprovalConfirmed !=
+				RequiresBroadInterpreterApprovalConfirmation(*pending, request))
 		{
 			result.status = xucrun::broker::ApprovalConfirmationStatus::Denied;
 			result.windowsError = ERROR_ACCESS_DENIED;

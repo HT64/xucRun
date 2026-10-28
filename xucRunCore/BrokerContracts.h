@@ -13,7 +13,7 @@
 
 namespace xucrun::broker
 {
-	inline constexpr std::uint32_t ProtocolVersion = 38;
+	inline constexpr std::uint32_t ProtocolVersion = 39;
 	inline constexpr std::uint32_t PolicyDeniedWindowsError = 5;
 	inline constexpr std::size_t MaximumAccountSidLength = 184;
 	inline constexpr std::size_t MaximumPathLength = 32767;
@@ -34,9 +34,9 @@ namespace xucrun::broker
 	inline constexpr std::uint32_t DefaultBrokerRequestTimeoutMilliseconds = 5000;
 	inline constexpr std::uint32_t BrokerIpcTimeoutReserveMilliseconds = 5000;
 	inline constexpr std::uint32_t ApprovalChallengeLifetimeMilliseconds = 120000;
-	inline constexpr std::uint32_t ApprovalDialogTimeoutMilliseconds = 60000;
+	inline constexpr std::uint32_t ApprovalDialogTimeoutMilliseconds = 120000;
 	inline constexpr std::uint32_t CredentialCaptureDialogTimeoutMilliseconds = 60000;
-	inline constexpr std::uint32_t ApprovalHelperDecisionLifetimeMilliseconds = 90000;
+	inline constexpr std::uint32_t ApprovalHelperDecisionLifetimeMilliseconds = 130000;
 	inline constexpr std::uint32_t ApprovalHelperMaximumLifetimeMilliseconds = 300000;
 	inline constexpr std::uint32_t ApprovalHelperHostTimeoutMilliseconds =
 		ApprovalHelperMaximumLifetimeMilliseconds + BrokerIpcTimeoutReserveMilliseconds;
@@ -857,6 +857,7 @@ namespace xucrun::broker
 		ApprovalProgramScope programScope = ApprovalProgramScope::TargetProgram;
 		ApprovalAccountScope accountScope = ApprovalAccountScope::CurrentAccount;
 		ApprovalUpdateScope updateScope = ApprovalUpdateScope::None;
+		bool broadInterpreterApprovalConfirmed = false;
 	};
 
 	struct ApprovalHelperDecisionResult

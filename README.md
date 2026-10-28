@@ -677,7 +677,8 @@ desktop may appear first, followed by the UAC dialog for the target program.
 ## Approvals
 
 Before a start that has not yet been approved, xucRun can request a one-time or reusable approval.
-The available durations are:
+The dialog also shows the target program's signature status; xucRun recognizes both embedded
+Authenticode signatures and trusted Windows catalog signatures. The available durations are:
 
 - this start only,
 - 10 minutes,
@@ -685,13 +686,13 @@ The available durations are:
 - until sign-out,
 - permanently.
 
-For "This start only," scope and account scope do not apply because the approval applies only to
+For "This start only," approval scope and target accounts do not apply because the approval applies only to
 the currently displayed launch. The corresponding controls are therefore disabled. A reusable
 approval can be bound to one program or all programs and to one target account or all stored
 accounts of the current Windows user. Program-specific approvals include the SHA-256 hash of the
 executable. If the file changes, transferring the approval to the new version requires explicit
 confirmation. On the right, the dialog explains the effect of the current selection separately for
-approval duration, scope, and account scope.
+approval duration, approval scope, and target accounts.
 
 ![Approval after a program hash has changed](docs/en/images/program-hash-change-approval.png)
 
@@ -711,24 +712,45 @@ therefore warns about the interpreter's broader capabilities. A normal program a
 bind the displayed arguments. Therefore, "Exactly this invocation" is preselected for reusable
 approvals involving these shells and interpreters.
 
+If a reusable approval for one of these interpreters is nevertheless changed to "Only for this
+target program" or "For all programs," xucRun requires a second explicit confirmation on the
+protected desktop. It explains that arguments, script paths, and script contents are not part of
+the stored approval and that different commands or new or modified scripts can later start without
+another xucRun approval dialog. Returning to the selection is the default. An intentionally stored
+broad approval retains this broad effect when it matches a later invocation.
+
 If xucRun recognizes a directly specified PowerShell, batch, TCC, or Windows Script Host script, it
 additionally binds the script's fully resolved path and SHA-256 hash, provided that the calling
-account can neither modify the script nor change a parent directory in a way that would allow the
-script to be replaced.
+account cannot modify a folder relevant to replacing the script. The script file itself may be
+writable: if its contents change later, its hash no longer matches and xucRun requires a new
+approval. Immediately before every launch, the broker rechecks the final path and hash and keeps
+the verified file locked against modification and replacement until the program starts. An active
+script binding is visible when the direct script's path and SHA-256 hash are shown at the top of
+the approval dialog. If no direct script with its path and SHA-256 hash is shown there, "Exactly
+this invocation" still binds the program file, arguments, working directory, and the setting for
+a visible or hidden launch, but no additional program or script contents. Programs, scripts, and
+other files named in the command or
+invoked by it directly or indirectly can be replaced or modified without invalidating the
+approval. Examples include free CMD command text using `SET` and `CALL`, PowerShell `-Command`,
+and programs subsequently started by a bound target program or script.
 
-If the script cannot be bound securely, the dialog explains this and permits only a one-time
-approval for that invocation. Before launch, the broker rechecks the recognized script's path and
-contents and prevents the verified file from being modified or replaced until the program starts.
-For PowerShell, an administratively enforced `AllSigned` policy can additionally protect script
-files, but does not protect against direct or interactive commands.
+If a folder relevant to replacement can be modified, or if the path or contents cannot be verified
+safely, a reusable approval for "Exactly this invocation" is not available. The dialog explains
+why and keeps the one-time approval as the default. The user can instead deliberately select a
+reusable approval for the interpreter or for all programs. Such a broad approval does not bind
+arguments, the script path, or script contents and therefore requires the separate explicit
+confirmation described above. Before each individual launch, the broker still rechecks and locks
+a recognized direct script; this launch-time check does not bind later invocations to the earlier
+script contents. For PowerShell, an administratively enforced `AllSigned` policy can additionally
+protect script files, but does not protect against direct or interactive commands.
 
 Calling scripts, shortcuts, and configuration files from which the xucRun invocation is first
 generated are still not generally hashed. The approval binds the resulting xucRun invocation, not
 the script, shortcut, or configuration file from which it originated. Dynamically loaded scripts,
-modules, configuration files, plugins, and program inputs are likewise not automatically included.
-Such files must therefore remain trusted and protected against unauthorized modification. The
-other broker checks, particularly those for the account, requested privileges, visibility, target
-path, and target-program hash, remain effective.
+modules, configuration files, plugins, program inputs, and downstream programs are likewise not
+automatically included. Such programs and files must therefore remain trusted and protected
+against unauthorized modification. The other broker checks, particularly those for the account,
+requested privileges, visibility, target path, and target-program hash, remain effective.
 
 ## Programs, arguments, and special characters
 
@@ -785,7 +807,11 @@ these options.
 `/showcred` lists target accounts for which xucRun credentials are stored. `/showapprovals` lists
 active general, target-program, and exact-invocation approvals, with separate columns for scope,
 target, invocation binding, and target hash. Stored passwords are neither displayed nor returned
-to the client.
+to the client. In each graphical list, the selected row can be deleted directly. The credential
+view can also delete all displayed credentials; their account-bound approvals are removed with
+them, while profile-wide approvals remain stored. The approval view can delete all displayed
+approvals. Each deletion requires a separate confirmation, and the selected-row action remains
+disabled until a row is selected.
 
 | Stored credentials | Active approvals |
 |:---:|:---:|

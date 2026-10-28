@@ -526,7 +526,7 @@
 		frame.insert(frame.end(), request.challengeId.begin(), request.challengeId.end());
 		frame.push_back(static_cast<std::uint8_t>(request.accountScope));
 		frame.push_back(static_cast<std::uint8_t>(request.updateScope));
-		frame.push_back(0);
+		frame.push_back(request.broadInterpreterApprovalConfirmed ? 1 : 0);
 		frame.push_back(0);
 		return frame;
 	}
@@ -539,7 +539,7 @@
 			!std::equal(std::begin(ApprovalHelperDecisionRequestMagic),
 				std::end(ApprovalHelperDecisionRequestMagic), frame.begin()) ||
 			frame[4] != ApprovalHelperDecisionRequestMessageType ||
-			frame[38] != 0 || frame[39] != 0)
+			frame[38] > 1 || frame[39] != 0)
 		{
 			return false;
 		}
@@ -553,6 +553,7 @@
 			parsed.challengeId.begin());
 		parsed.accountScope = static_cast<ApprovalAccountScope>(frame[36]);
 		parsed.updateScope = static_cast<ApprovalUpdateScope>(frame[37]);
+		parsed.broadInterpreterApprovalConfirmed = frame[38] == 1;
 		if (ValidateApprovalHelperDecisionRequest(parsed) !=
 			ContractValidationError::None)
 		{

@@ -1073,7 +1073,19 @@ namespace xucrun::broker
 		confirmation.programScope = request.programScope;
 		confirmation.accountScope = request.accountScope;
 		confirmation.updateScope = request.updateScope;
-		return ValidateApprovalConfirmationRequest(confirmation);
+		const ContractValidationError validation =
+			ValidateApprovalConfirmationRequest(confirmation);
+		if (validation != ContractValidationError::None)
+			return validation;
+		if (request.broadInterpreterApprovalConfirmed &&
+			(request.decision != ApprovalDecision::ApproveOnce ||
+			 request.persistence == ApprovalPersistence::Once ||
+			 request.programScope == ApprovalProgramScope::ExactInvocation ||
+			 request.updateScope != ApprovalUpdateScope::None))
+		{
+			return ContractValidationError::InvalidApprovalDecision;
+		}
+		return ContractValidationError::None;
 	}
 
 	ResultValidationError ValidateApprovalHelperDecisionResult(
