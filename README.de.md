@@ -771,8 +771,8 @@ Aufrufende Skripte, Verknüpfungen und Konfigurationsdateien, aus denen der xucR
 erzeugt wird, werden weiterhin nicht allgemein gehasht. „Genau dieser Aufruf“ bindet ihre
 wirksamen Ausgaben, nicht ihre Herkunft. Dynamisch nachgeladene Skripte, Module,
 Konfigurationsdateien, Plugins und Programmeingaben gehören ebenfalls nicht automatisch zur
-Bindung. Solche Dateien müssen deshalb weiterhin gegen nicht vertrauenswürdige Änderungen
-geschützt werden. Die übrigen Brokerprüfungen, insbesondere die Bindung an Konto, Tokenmodus,
+Bindung. Solche Dateien müssen deshalb weiterhin vertrauenswürdig und vor unbefugten Änderungen
+geschützt sein. Die übrigen Brokerprüfungen, insbesondere die Bindung an Konto, Tokenmodus,
 Zielpfad und Zielprogrammhash, bleiben wirksam.
 
 ![xucRun-Freigabedialog auf separatem Desktop](docs/de/images/approval-dialog.png)

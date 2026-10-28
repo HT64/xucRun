@@ -720,9 +720,9 @@ but does not protect against direct or interactive commands.
 Calling scripts, shortcuts, and configuration files from which the xucRun invocation is first
 generated are still not generally hashed. "Exactly this invocation" binds their effective output,
 not its provenance. Dynamically loaded scripts, modules, configuration files, plugins, and program
-inputs are likewise not automatically included. Continue to protect such files against untrusted
-modification. The other broker checks, particularly the binding to the account, token mode, target
-path, and target-program hash, remain effective.
+inputs are likewise not automatically included. Such files must therefore remain trusted and
+protected against unauthorized modification. The other broker checks, particularly the binding to
+the account, token mode, target path, and target-program hash, remain effective.
 
 ![xucRun approval dialog on separate desktop](docs/en/images/approval-dialog.png)
 
