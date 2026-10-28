@@ -219,6 +219,12 @@ namespace
 		return false;
 	}
 
+	bool IsPowerShellInterpreter(const std::wstring& executablePath)
+	{
+		const std::wstring executable = LowerFileName(executablePath);
+		return executable == L"powershell.exe" || executable == L"pwsh.exe";
+	}
+
 	bool RunDirectScriptArgumentSelfTest()
 	{
 		std::wstring script;
@@ -1528,15 +1534,23 @@ namespace
 		const PendingApprovalChallenge& pending,
 		const xucrun::broker::ApprovalConfirmationRequest& request)
 	{
+		if (request.persistence == xucrun::broker::ApprovalPersistence::Once ||
+			request.programScope !=
+				xucrun::broker::ApprovalProgramScope::ExactInvocation)
+		{
+			return true;
+		}
+		if (pending.directScriptPath.empty() &&
+			IsPowerShellInterpreter(pending.executablePath))
+		{
+			return false;
+		}
 		const bool reusableScriptBinding =
 			pending.scriptPath == pending.directScriptPath &&
 			!pending.scriptPath.empty() &&
 			std::any_of(pending.scriptSha256.begin(), pending.scriptSha256.end(),
 				[](std::uint8_t value) { return value != 0; });
-		return request.persistence == xucrun::broker::ApprovalPersistence::Once ||
-			pending.directScriptPath.empty() || reusableScriptBinding ||
-			request.programScope !=
-				xucrun::broker::ApprovalProgramScope::ExactInvocation;
+		return pending.directScriptPath.empty() || reusableScriptBinding;
 	}
 
 	// Persists a confirmed approval with owner, account, program, and lifetime bindings.
@@ -2686,8 +2700,23 @@ namespace
 		pending.scriptPath = L"C:\\Scripts\\different.ps1";
 		if (CanPersistApproval(pending, request))
 			return false;
-		pending.scriptPath.clear();
-		pending.scriptSha256 = {};
+		pending = {};
+		pending.executablePath = L"C:\\Tools\\application.exe";
+		if (!CanPersistApproval(pending, request))
+			return false;
+		pending.executablePath =
+			L"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+		if (CanPersistApproval(pending, request))
+			return false;
+		pending.executablePath = L"C:\\Program Files\\PowerShell\\7\\pwsh.exe";
+		if (CanPersistApproval(pending, request))
+			return false;
+		request.programScope =
+			xucrun::broker::ApprovalProgramScope::TargetProgram;
+		if (!CanPersistApproval(pending, request))
+			return false;
+		request.programScope =
+			xucrun::broker::ApprovalProgramScope::ExactInvocation;
 		request.persistence = xucrun::broker::ApprovalPersistence::Once;
 		error = NO_ERROR;
 		return StoreApproval(

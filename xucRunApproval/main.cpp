@@ -741,11 +741,11 @@ namespace
 			if (context && !context->exactInvocationReusableAllowed)
 			{
 				explanation += Text(
-					L"\r\n\r\nDas direkte Skript konnte nicht sicher an Pfad und Inhalt gebunden "
-						L"werden. Eine wiederverwendbare Freigabe für genau diesen Aufruf ist "
+					L"\r\n\r\nDer ausgeführte Inhalt konnte nicht sicher an Pfad und Inhalt "
+						L"gebunden werden. Eine wiederverwendbare Freigabe für genau diesen Aufruf ist "
 						L"deshalb nicht möglich. Sie können den Start einmalig freigeben oder "
 						L"bewusst eine weiterreichende Interpreterfreigabe wählen.",
-					L"\r\n\r\nThe direct script could not be bound safely to its path and "
+					L"\r\n\r\nThe executed content could not be bound safely to its path and "
 						L"contents. A reusable approval for exactly this invocation is therefore "
 						L"not available. You can approve this launch once or deliberately choose "
 						L"a broader interpreter approval.");
@@ -962,17 +962,17 @@ namespace
 				const std::wstring warning = !context->exactInvocationReusableAllowed
 					? Text(
 						L"WARNUNG: Dieser Interpreter kann beliebige Befehle und Skripte "
-						L"ausführen. Das direkt angegebene Skript kann nicht sicher in „Genau "
-						L"dieser Aufruf“ einbezogen werden, weil ein für seinen Austausch "
-						L"relevanter Ordner vom aufrufenden Konto verändert werden kann oder "
-						L"Pfad beziehungsweise Inhalt nicht sicher geprüft werden konnten. Für eine "
+						L"ausführen. Der ausgeführte Inhalt kann nicht sicher in „Genau dieser "
+						L"Aufruf“ einbezogen werden, weil er nicht als direkt bindbares Skript "
+						L"erkannt wurde oder Pfad beziehungsweise Inhalt nicht sicher geprüft "
+						L"werden konnten. Für eine "
 						L"wiederverwendbare Freigabe stehen deshalb nur die weiterreichenden "
 						L"Freigabeumfänge zur Verfügung; sie müssen zusätzlich bestätigt werden.",
 						L"WARNING: This interpreter can run arbitrary commands and scripts. "
-						L"The directly specified script cannot be included safely in \"Exactly "
-						L"this invocation\" because a folder relevant to its replacement can be "
-						L"modified by the calling account or its path or contents could not be "
-						L"verified safely. Only broader approval scopes are therefore available "
+						L"The executed content cannot be included safely in \"Exactly this "
+						L"invocation\" because it was not recognized as a directly bindable script "
+						L"or because its path or contents could not be verified safely. Only "
+						L"broader approval scopes are therefore available "
 						L"for a reusable approval; they require an additional confirmation.")
 					: Text(
 						L"WARNUNG: Dieser Interpreter kann beliebige Befehle und Skripte "
@@ -1253,7 +1253,9 @@ namespace
 				challenge.directScriptSha256.end(),
 				[](std::uint8_t value) { return value != 0; });
 		const bool exactInvocationReusableAllowed =
-			challenge.directScriptPath.empty() || directScriptBound;
+			directScriptBound ||
+			(challenge.directScriptPath.empty() &&
+				interpreterWarningType != InterpreterWarningType::PowerShell);
 		ApprovalDialogContext context = {
 			&decision, &fixedDetails, &details, &challenge.authenticityMarker,
 			&displayedClientName, interpreterWarningType,

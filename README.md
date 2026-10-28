@@ -733,6 +733,8 @@ the stored approval and that different commands or new or modified scripts can l
 another xucRun approval dialog. Returning to the selection is the default. An intentionally stored
 broad approval retains this broad effect when it matches a later invocation.
 
+![Confirmation before storing a broad interpreter approval](docs/en/images/broad-interpreter-approval-confirmation.png)
+
 If xucRun recognizes a directly specified PowerShell, batch, TCC, or Windows Script Host script, it
 additionally binds the script's fully resolved path and SHA-256 hash, provided that the calling
 account cannot modify a folder relevant to replacing the script. The script file itself may be
@@ -740,13 +742,18 @@ writable: if its contents change later, its hash no longer matches and xucRun re
 approval. Immediately before every launch, the broker rechecks the final path and hash and keeps
 the verified file locked against modification and replacement until the program starts. An active
 script binding is visible when the direct script's path and SHA-256 hash are shown at the top of
-the approval dialog. If no direct script with its path and SHA-256 hash is shown there, "Exactly
-this invocation" still binds the program file, arguments, working directory, and the setting for
-a visible or hidden launch, but no additional program or script contents. Programs, scripts, and
-other files named in the command or
+the approval dialog. For PowerShell, a reusable "Exactly this invocation" approval is available
+only with such a safely bound direct script. In particular, `-Command`, interactive invocations,
+and other forms not recognized as direct `-File` execution can be approved only once or
+deliberately with a broader approval scope.
+
+For other interpreters, if no direct script with its path and SHA-256 hash is shown,
+"Exactly this invocation" still binds the program file, arguments, working directory, and the
+setting for a visible or hidden launch, but no additional program or script contents. Programs,
+scripts, and other files named in the command or
 invoked by it directly or indirectly can be replaced or modified without invalidating the
-approval. Examples include free CMD command text using `SET` and `CALL`, PowerShell `-Command`,
-and programs subsequently started by a bound target program or script.
+approval. Examples include free CMD command text using `SET` and `CALL` and programs subsequently
+started by a bound target program or script.
 
 If a folder relevant to replacement can be modified, or if the path or contents cannot be verified
 safely, a reusable approval for "Exactly this invocation" is not available. The dialog explains
@@ -887,6 +894,8 @@ command overview.
 If xucRun reports that an elevated launch was blocked because UAC confirmation was unavailable,
 Windows Admin Approval Mode is not effective for the selected different administrator account.
 This can particularly affect the built-in `Administrator` account.
+
+![Elevated cross-account launch blocked because UAC confirmation is unavailable](docs/en/images/cross-account-elevation-blocked.png)
 
 | Runtime information | Security audit |
 |:---:|:---:|

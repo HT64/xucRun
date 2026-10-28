@@ -785,6 +785,8 @@ Skripte ohne erneuten xucRun-Freigabedialog gestartet werden können. „Zurück
 Vorgabe. Eine bewusst gespeicherte weitreichende Freigabe behält diese Wirkung, wenn sie auf einen
 späteren Aufruf passt.
 
+![Bestätigung vor dem Speichern einer weitreichenden Interpreterfreigabe](docs/de/images/broad-interpreter-approval-confirmation.png)
+
 Erkennt xucRun dabei ein direkt angegebenes PowerShell-, Batch-, TCC- oder
 Windows-Script-Host-Skript, bindet es dessen vollständig aufgelösten Pfad und SHA-256-Hash
 zusätzlich, sofern das aufrufende Konto keinen für den Austausch relevanten Ordner verändern kann.
@@ -792,15 +794,20 @@ Die Skriptdatei selbst darf beschreibbar sein: Ändert sich ihr Inhalt später, 
 mehr und xucRun verlangt eine neue Freigabe. Unmittelbar vor jedem Start prüft der Broker finalen
 Pfad und Hash erneut und hält die geprüfte Datei bis zum Programmstart gegen Änderung und
 Austausch gesperrt. Eine aktive Skriptbindung ist daran erkennbar, dass oben im Freigabedialog
-das direkte Skript mit Pfad und SHA-256-Hash angezeigt wird. Wird dort kein direktes Skript mit
-Pfad und SHA-256-Hash angezeigt, bindet „Genau dieser Aufruf“ zwar
-Programmdatei, Argumente, Arbeitsverzeichnis und
-dieselbe Einstellung für einen sichtbaren oder verborgenen Start, aber kein weiteres Programm und
-keinen Skriptinhalt. Programme, Skripte und andere Dateien, die im Befehl genannt oder von ihm
+das direkte Skript mit Pfad und SHA-256-Hash angezeigt wird. Für PowerShell ist eine
+wiederverwendbare Freigabe „Genau dieser Aufruf“ nur mit einer solchen sicher gebundenen direkten
+Skriptdatei verfügbar. Insbesondere `-Command`, interaktive Aufrufe und andere nicht als direkte
+`-File`-Ausführung erkannte Formen können nur einmalig oder bewusst mit einem weiterreichenden
+Freigabeumfang bestätigt werden.
+
+Wird bei anderen Interpretern kein direktes Skript mit Pfad und SHA-256-Hash angezeigt, bindet
+„Genau dieser Aufruf“ zwar Programmdatei, Argumente, Arbeitsverzeichnis und dieselbe Einstellung
+für einen sichtbaren oder verborgenen Start, aber kein weiteres Programm und keinen Skriptinhalt.
+Programme, Skripte und andere Dateien, die im Befehl genannt oder von ihm
 direkt oder indirekt aufgerufen werden, können ersetzt oder inhaltlich verändert werden, ohne
 dass die Freigabe dadurch ungültig wird. Das gilt beispielsweise für freien CMD-Befehlstext mit
-`SET` und `CALL`, für PowerShell `-Command` und für Programme, die ein gebundenes Zielprogramm
-oder Skript anschließend startet.
+`SET` und `CALL` sowie für Programme, die ein gebundenes Zielprogramm oder Skript anschließend
+startet.
 
 Kann dagegen ein austauschrelevanter Ordner verändert oder Pfad beziehungsweise Inhalt nicht
 sicher geprüft werden, ist eine wiederverwendbare Freigabe für „Genau dieser Aufruf“ nicht
@@ -945,6 +952,8 @@ lokale Befehlsübersicht.
 Meldet xucRun, dass ein erhöhter Start wegen fehlender UAC-Bestätigung blockiert wurde, ist für
 das ausgewählte andere Administratorkonto der Windows-Administratorbestätigungsmodus nicht
 wirksam. Das kann insbesondere das integrierte Konto `Administrator` betreffen.
+
+![Blockierter kontenübergreifender erhöhter Start wegen fehlender UAC-Bestätigung](docs/de/images/cross-account-elevation-blocked.png)
 
 | Laufzeitinformationen | Sicherheitsaudit |
 |:---:|:---:|
