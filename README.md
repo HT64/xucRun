@@ -224,7 +224,11 @@ privilege management, or systems requiring an elevated level of protection.
 > guarantee nor evidence of an independent security audit. Use xucRun at your own responsibility.
 > xucRun should be used only on trusted, self-managed systems that do not require an elevated level
 > of protection, and preferably with dedicated target accounts having the minimum
-> required privileges. To the extent permitted by law, the author and contributors accept
+> required privileges. When xucRun invocations are stored in scripts, shortcuts, tasks, or
+> configuration files, those files must also be protected against modification by untrusted
+> accounts. xucRun cannot generally verify the integrity of such calling files; modifying them
+> can affect the behavior of later program starts, particularly when reusable approvals are used.
+> To the extent permitted by law, the author and contributors accept
 > no liability for damage, data loss, or other consequences arising from the use or incorrect use
 > of xucRun, software defects or security vulnerabilities, malware, or a compromised system. This
 > includes, in particular, the loss, disclosure, or misuse of credentials. The disclaimer of
@@ -509,6 +513,13 @@ The invocations shown above that specify a target program can also be used in sc
 shortcuts. If xucRun can determine the target account unambiguously and automatically, the
 invocation does not need to name an account.
 
+Scripts, shortcuts, scheduled-task definitions, and configuration files that contain an xucRun
+invocation or determine its target, arguments, or working directory thereby become part of the
+security boundary themselves. xucRun verifies the requested program start but cannot generally
+establish the integrity or trustworthiness of these calling files. They should therefore be
+writable only by trusted users and should not be used from shared or insufficiently protected
+writable locations.
+
 Shell replacement without parameters, in contrast, is intended for interactive invocation from a
 supported shell. It should be used in a script only when closing the existing console and
 interactively starting a replacement shell is explicitly intended. An invocation without
@@ -693,6 +704,13 @@ therefore explains that a reusable approval is not bound to the displayed argume
 verify the target, arguments, and working directory, and use a one-time approval whenever
 possible. For PowerShell, an administratively enforced `AllSigned` policy can additionally protect
 script files, but does not protect against direct or interactive commands.
+
+Calling scripts and configuration files are not part of a reusable approval and are not hashed for
+that purpose. xucRun verifies the hash of the target program; if that program remains unchanged,
+modifications to the calling file can still cause different arguments, working directories,
+script contents, or program inputs without being detected by the target-program hash. The other
+broker checks, particularly the binding to the account, token mode, target path, and target-program
+hash, remain effective.
 
 ![xucRun approval dialog on separate desktop](docs/en/images/approval-dialog.png)
 

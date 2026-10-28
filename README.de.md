@@ -241,6 +241,11 @@ Rechteerhöhung, zentrale Rechteverwaltung oder Systeme mit erhöhtem Schutzbeda
 > Sicherheitsprüfung. Der Einsatz erfolgt eigenverantwortlich. xucRun sollte nur auf
 > vertrauenswürdigen, selbst verwalteten Systemen ohne erhöhten Schutzbedarf sowie
 > möglichst mit dedizierten, minimal berechtigten Zielkonten eingesetzt werden.
+> Werden xucRun-Aufrufe in Skripten, Verknüpfungen, Aufgaben oder Konfigurationsdateien
+> hinterlegt, müssen auch diese Dateien gegen Änderungen durch nicht vertrauenswürdige Konten
+> geschützt werden. xucRun kann die Integrität solcher aufrufenden Dateien nicht allgemein prüfen;
+> ihre Manipulation kann insbesondere bei wiederverwendbaren Freigaben das Verhalten späterer
+> Programmstarts beeinflussen.
 > Soweit gesetzlich zulässig, übernehmen der Autor und die Mitwirkenden keine Haftung für Schäden,
 > Datenverluste oder sonstige Folgen, die aus der Nutzung oder fehlerhaften Anwendung von xucRun,
 > aus Softwarefehlern oder Sicherheitslücken sowie durch Malware oder ein kompromittiertes System
@@ -549,6 +554,13 @@ Die oben gezeigten Aufrufe mit einem Zielprogramm können auch in Skripten und
 Desktop-Verknüpfungen verwendet werden. Kann xucRun das Zielkonto eindeutig automatisch bestimmen,
 muss im Aufruf kein Kontoname stehen.
 
+Skripte, Verknüpfungen, Aufgabenplanungsdefinitionen und Konfigurationsdateien, die einen
+xucRun-Aufruf enthalten oder dessen Ziel, Argumente oder Arbeitsverzeichnis bestimmen, werden
+damit selbst Teil der Sicherheitsgrenze. xucRun prüft den angeforderten Programmstart, kann jedoch
+die Integrität und Vertrauenswürdigkeit dieser aufrufenden Dateien nicht allgemein feststellen.
+Sie sollten deshalb nur für vertrauenswürdige Benutzer beschreibbar sein und nicht aus gemeinsam
+oder ungeschützt beschreibbaren Verzeichnissen verwendet werden.
+
 Die parameterlose Shell-Ersetzung ist dagegen für den interaktiven Aufruf aus einer unterstützten
 Shell bestimmt. In einem Skript sollte sie nur verwendet werden, wenn das Schließen der bisherigen
 Konsole und der interaktive Start einer Ersatz-Shell ausdrücklich beabsichtigt sind. Für eine
@@ -741,6 +753,13 @@ gebunden ist. Ziel, Argumente und Arbeitsverzeichnis sollten besonders sorgfält
 Möglichkeit nur einmalig freigegeben werden. Bei PowerShell kann eine administrativ erzwungene
 Richtlinie `AllSigned` Skriptdateien zusätzlich absichern, schützt jedoch nicht vor direkten oder
 interaktiven Befehlen.
+
+Aufrufende Skripte und Konfigurationsdateien sind nicht Bestandteil einer wiederverwendbaren
+Freigabe und werden dafür nicht gehasht. xucRun prüft den Hash des Zielprogramms; bleibt dieses
+unverändert, können Änderungen an der aufrufenden Datei dennoch andere Argumente,
+Arbeitsverzeichnisse, Skriptinhalte oder Programmeingaben bewirken, ohne dass der
+Zielprogrammhash dies erkennen kann. Die übrigen Brokerprüfungen, insbesondere die Bindung an
+Konto, Tokenmodus, Zielpfad und Zielprogrammhash, bleiben dabei wirksam.
 
 ![xucRun-Freigabedialog auf separatem Desktop](docs/de/images/approval-dialog.png)
 
