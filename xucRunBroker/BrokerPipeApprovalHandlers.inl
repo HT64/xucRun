@@ -192,6 +192,7 @@
 					result.executableSignatureTrusted = pending->executableSignatureTrusted;
 					result.argumentTail = pending->argumentTail;
 					result.workingDirectory = pending->workingDirectory;
+					PopulateApprovalHelperDirectScriptBinding(*pending, result);
 					result.elevationMode = pending->elevationMode;
 					result.visibility = pending->visibility;
 					result.helperStartMode = pending->helperStartMode;

@@ -340,6 +340,15 @@ namespace
 		}
 	};
 
+	// Shows the observed path but exposes a hash only when reusable binding is safe.
+	void PopulateApprovalHelperDirectScriptBinding(
+		const PendingApprovalChallenge& pending,
+		xucrun::broker::ApprovalChallengeResult& result)
+	{
+		result.directScriptPath = pending.directScriptPath;
+		result.directScriptSha256 = pending.scriptSha256;
+	}
+
 	std::shared_ptr<void> OwnHandle(HANDLE handle)
 	{
 		return std::shared_ptr<void>(handle, [](void* value) {
@@ -2693,6 +2702,28 @@ namespace
 		DeleteFileW(scriptPath);
 		return passed;
 	}
+
+	bool RunApprovalHelperDirectScriptBindingSelfTest()
+	{
+		PendingApprovalChallenge pending;
+		pending.directScriptPath = L"C:\\Scripts\\task.cmd";
+		pending.directScriptSha256[0] = 0x11;
+		xucrun::broker::ApprovalChallengeResult result;
+		PopulateApprovalHelperDirectScriptBinding(pending, result);
+		if (result.directScriptPath != pending.directScriptPath ||
+			std::any_of(result.directScriptSha256.begin(),
+				result.directScriptSha256.end(),
+				[](std::uint8_t value) { return value != 0; }))
+		{
+			return false;
+		}
+
+		pending.scriptPath = pending.directScriptPath;
+		pending.scriptSha256[0] = 0x22;
+		PopulateApprovalHelperDirectScriptBinding(pending, result);
+		return result.directScriptPath == pending.directScriptPath &&
+			result.directScriptSha256 == pending.scriptSha256;
+	}
 }
 
 // Tests that approval challenges cannot be transferred between clients, sessions, or image identities.
@@ -2701,7 +2732,8 @@ bool RunApprovalChallengeIdentitySelfTest()
 	if (!RunEmptyPasswordCommitHostSelfTest() ||
 		!RunDirectScriptArgumentSelfTest() ||
 		!RunUnboundScriptPersistenceSelfTest() ||
-		!RunDirectScriptLockSelfTest())
+		!RunDirectScriptLockSelfTest() ||
+		!RunApprovalHelperDirectScriptBindingSelfTest())
 		return false;
 
 	xucrun::broker::ApprovalChallengeRequest inventoryRequest;

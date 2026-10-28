@@ -871,8 +871,14 @@ namespace
 				? ApprovalInterpreterLayoutOffset : 0;
 			if (showInterpreterWarning)
 			{
-				const std::wstring warning = context->interpreterWarningType ==
-					InterpreterWarningType::PowerShell
+				const std::wstring warning = !context->reusableApprovalAllowed
+					? Text(
+						L"WARNUNG: Dieser Interpreter kann beliebige Befehle und Skripte "
+						L"ausführen. Prüfen Sie den angezeigten Aufruf sorgfältig.",
+						L"WARNING: This interpreter can run arbitrary commands and scripts. "
+						L"Carefully verify the displayed invocation.")
+					: context->interpreterWarningType ==
+						InterpreterWarningType::PowerShell
 					? Text(
 						L"WARNUNG: PowerShell kann beliebige Befehle und Skripte ausführen. "
 						L"Eine normale wiederverwendbare Programmfreigabe ist nicht an die hier "
