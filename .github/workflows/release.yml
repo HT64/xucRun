@@ -1,4 +1,4 @@
-# Purpose: Builds, attests, and stages unsigned xucRun assets as a draft GitHub Release.
+# Purpose: Builds and attests unsigned xucRun release assets and stages unpublished releases as drafts.
 name: xucRun Release
 
 on:
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   create-draft-release:
-    name: Build and create draft release
+    name: Build and stage release
     runs-on: windows-latest
     timeout-minutes: 30
 
@@ -102,7 +102,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Create draft GitHub Release
+      - name: Create or update draft GitHub Release
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
@@ -131,7 +131,8 @@ jobs:
             throw "Multiple GitHub Releases exist for tag '$tag'."
           }
           if ($existingReleases.Count -eq 1 -and -not $existingReleases[0].draft) {
-            throw "A published GitHub Release already exists for tag '$tag'."
+            Write-Host "::notice title=Published release retained::A published GitHub Release already exists for tag '$tag'. The validated assets remain available as the workflow artifact; the published release was not modified."
+            exit 0
           }
           if ($existingReleases.Count -eq 1) {
             gh release edit $tag `
