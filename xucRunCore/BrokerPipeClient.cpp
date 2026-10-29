@@ -414,6 +414,50 @@ namespace xucrun::broker
 		return { PipeLaunchStatus::Succeeded, NO_ERROR, std::move(result) };
 	}
 
+	PipeSystemLaunchResponse SubmitSystemLaunchRequest(
+		const SystemLaunchRequest& request,
+		std::uint32_t timeoutMilliseconds)
+	{
+		std::vector<std::uint8_t> requestFrame =
+			SerializeSystemLaunchRequest(request);
+		if (requestFrame.empty())
+			return { PipeLaunchStatus::InvalidResponse, ERROR_INVALID_DATA, {} };
+
+		DWORD connectError = NO_ERROR;
+		HANDLE pipe = ConnectAuthenticatedBrokerPipe(timeoutMilliseconds, connectError);
+		if (pipe == INVALID_HANDLE_VALUE)
+			return { PipeLaunchStatus::Unavailable, connectError, {} };
+
+		DWORD transferred = 0;
+		if (!TransferWithTimeout(pipe, true, requestFrame.data(),
+			static_cast<DWORD>(requestFrame.size()), timeoutMilliseconds, transferred) ||
+			transferred != requestFrame.size())
+		{
+			const DWORD error = GetLastError();
+			CloseHandle(pipe);
+			return { PipeLaunchStatus::IoError, error, {} };
+		}
+
+		std::vector<std::uint8_t> resultFrame(MaximumSystemLaunchResultSize);
+		if (!TransferWithTimeout(pipe, false, resultFrame.data(),
+			static_cast<DWORD>(resultFrame.size()), timeoutMilliseconds, transferred))
+		{
+			const DWORD error = GetLastError();
+			CloseHandle(pipe);
+			return { PipeLaunchStatus::IoError, error, {} };
+		}
+		CloseHandle(pipe);
+		resultFrame.resize(transferred);
+
+		SystemLaunchResult result;
+		if (!DeserializeSystemLaunchResult(resultFrame, result) ||
+			result.requestId != request.requestId)
+		{
+			return { PipeLaunchStatus::InvalidResponse, ERROR_INVALID_DATA, {} };
+		}
+		return { PipeLaunchStatus::Succeeded, NO_ERROR, std::move(result) };
+	}
+
 	// Sends a metadata request and accepts only the correlated valid result.
 	PipeCredentialMetadataResponse SubmitCredentialMetadataRequest(
 		const CredentialMetadataRequest& request,

@@ -122,6 +122,10 @@ namespace
 	constexpr std::uint8_t StatusIconListResultMessageType = 56;
 	constexpr std::uint8_t BrokerPolicyRejectionMagic[] = { 'X', 'U', 'E', 'R' };
 	constexpr std::uint8_t BrokerPolicyRejectionMessageType = 57;
+	constexpr std::uint8_t SystemLaunchRequestMagic[] = { 'X', 'U', 'E', 'S' };
+	constexpr std::uint8_t SystemLaunchRequestMessageType = 58;
+	constexpr std::uint8_t SystemLaunchResultMagic[] = { 'X', 'U', 'E', 'T' };
+	constexpr std::uint8_t SystemLaunchResultMessageType = 59;
 
 	// Checks whether a nonce contains at least one nonzero byte.
 	bool HasNonce(const xucrun::broker::RequestNonce& nonce)

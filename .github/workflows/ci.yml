@@ -59,6 +59,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
               throw "Tests failed with exit code $LASTEXITCODE."
           }
+          if ('${{ matrix.configuration }}' -eq 'Debug') {
+              & .\xucRunBroker\x64\Debug\xucRunBroker.exe `
+                /approval-challenge-identity-test
+              if ($LASTEXITCODE -ne 0) {
+                  throw "Broker challenge tests failed with exit code $LASTEXITCODE."
+              }
+          }
           & .\Test-InstallerGuiSecurity.ps1
 
       - name: Verify client version
@@ -67,12 +74,12 @@ jobs:
           $version = (Get-Item -LiteralPath `
             '.\xucRun\x64\${{ matrix.configuration }}\xucRun.exe').
             VersionInfo.ProductVersion
-          if ($version -ne '0.9.0.2') {
-              throw "Expected xucRun.exe version 0.9.0.2, found '$version'."
+          if ($version -ne '0.9.0.3') {
+              throw "Expected xucRun.exe version 0.9.0.3, found '$version'."
           }
           $installer = Get-Item -LiteralPath `
               '.\xucRun\x64\${{ matrix.configuration }}\Installer.exe'
-          if ($installer.VersionInfo.ProductVersion -ne '0.9.0.2') {
+          if ($installer.VersionInfo.ProductVersion -ne '0.9.0.3') {
               throw "Installer.exe has unexpected version '$($installer.VersionInfo.ProductVersion)'."
           }
           if ($installer.VersionInfo.FileDescription -ne 'xucRun Installer') {
@@ -105,7 +112,7 @@ jobs:
               $_.FullName.Substring($package.Length).TrimStart('\')
             } |
             Sort-Object)
-          $installerName = 'xucRun-Installer-0.9.0.2-x64.exe'
+          $installerName = 'xucRun-Installer-0.9.0.3-x64.exe'
           $expected = @(
             'Install-xucRun.ps1'
             $installerName
@@ -123,7 +130,7 @@ jobs:
           }
           $publishedInstaller = Get-Item -LiteralPath (
             Join-Path $package $installerName)
-          if ($publishedInstaller.VersionInfo.ProductVersion -ne '0.9.0.2') {
+          if ($publishedInstaller.VersionInfo.ProductVersion -ne '0.9.0.3') {
             throw "Published installer name and product version do not match."
           }
 
@@ -133,15 +140,15 @@ jobs:
         run: |
           powershell.exe -NoProfile -ExecutionPolicy Bypass `
             -File .\New-xucRun-Release.ps1 `
-            -ExpectedVersion 0.9.0.2
+            -ExpectedVersion 0.9.0.3
           if ($LASTEXITCODE -ne 0) {
             throw "Release packaging failed with exit code $LASTEXITCODE."
           }
-          $releaseDirectory = '.\artifacts\Release\0.9.0.2'
+          $releaseDirectory = '.\artifacts\Release\0.9.0.3'
           $expected = @(
             'SHA256SUMS.txt'
-            'xucRun-0.9.0.2-x64.zip'
-            'xucRun-Installer-0.9.0.2-x64.exe'
+            'xucRun-0.9.0.3-x64.zip'
+            'xucRun-Installer-0.9.0.3-x64.exe'
           ) | Sort-Object
           $actual = @(Get-ChildItem -LiteralPath $releaseDirectory -File |
             ForEach-Object Name |
@@ -154,7 +161,7 @@ jobs:
       - name: Upload unsigned ${{ matrix.configuration }} package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: xucRun-0.9.0.2-unsigned-${{ matrix.artifact-suffix }}
+          name: xucRun-0.9.0.3-unsigned-${{ matrix.artifact-suffix }}
           path: artifacts/Package/${{ matrix.configuration }}
           if-no-files-found: error
           retention-days: 7
@@ -172,7 +179,7 @@ jobs:
       - name: Download unsigned Release package
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: xucRun-0.9.0.2-unsigned-release
+          name: xucRun-0.9.0.3-unsigned-release
           path: artifacts/Package/Release
 
       - name: Run installer smoke test

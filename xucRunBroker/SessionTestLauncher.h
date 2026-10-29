@@ -18,6 +18,16 @@ bool LaunchSessionTestProcess(
 	DWORD& error,
 	std::wstring& failedStage);
 
+bool LaunchSystemProcess(
+	DWORD sessionId,
+	const std::wstring& executablePath,
+	const std::wstring& argumentTail,
+	const std::wstring& workingDirectory,
+	DWORD& processId,
+	std::wstring& effectiveWorkingDirectory,
+	DWORD& error,
+	std::wstring& failedStage);
+
 bool LaunchCredentialTestProcess(
 	HANDLE clientProcess,
 	const AccountIdentity& identity,

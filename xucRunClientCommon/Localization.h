@@ -129,6 +129,8 @@ namespace xucrun::localization
 		ApprovalProcessLimitReached = IDS_APPROVAL_PROCESS_LIMIT_REACHED,
 		ApprovalCrossAccountUacUnavailable =
 			IDS_APPROVAL_CROSS_ACCOUNT_UAC_UNAVAILABLE,
+		SystemAdminRequired = IDS_SYSTEM_ADMIN_REQUIRED,
+		SystemLaunchFailed = IDS_SYSTEM_LAUNCH_FAILED,
 		ResetTitle = IDS_RESET_TITLE,
 		ResetHeader = IDS_RESET_HEADER,
 		ResetSelectionHint = IDS_RESET_SELECTION_HINT,

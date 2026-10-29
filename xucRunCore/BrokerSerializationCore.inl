@@ -137,6 +137,120 @@
 		return true;
 	}
 
+	std::vector<std::uint8_t> SerializeSystemLaunchRequest(
+		const SystemLaunchRequest& request)
+	{
+		if (ValidateSystemLaunchRequest(request) != ContractValidationError::None ||
+			HasEmbeddedNull(request.executablePath) ||
+			HasEmbeddedNull(request.argumentTail) ||
+			HasEmbeddedNull(request.workingDirectory))
+		{
+			return {};
+		}
+		const std::size_t characterCount = request.executablePath.size() +
+			request.argumentTail.size() + request.workingDirectory.size();
+		std::vector<std::uint8_t> frame;
+		frame.reserve(SystemLaunchRequestHeaderSize + characterCount * 2);
+		frame.insert(frame.end(), std::begin(SystemLaunchRequestMagic),
+			std::end(SystemLaunchRequestMagic));
+		frame.push_back(SystemLaunchRequestMessageType);
+		frame.push_back(0);
+		frame.push_back(0);
+		frame.push_back(0);
+		WriteUint32(frame, request.protocolVersion);
+		WriteUint64(frame, request.requestId);
+		WriteUint32(frame, static_cast<std::uint32_t>(request.executablePath.size()));
+		WriteUint32(frame, static_cast<std::uint32_t>(request.argumentTail.size()));
+		WriteUint32(frame, static_cast<std::uint32_t>(request.workingDirectory.size()));
+		WriteString(frame, request.executablePath);
+		WriteString(frame, request.argumentTail);
+		WriteString(frame, request.workingDirectory);
+		return frame;
+	}
+
+	bool DeserializeSystemLaunchRequest(
+		std::span<const std::uint8_t> frame,
+		SystemLaunchRequest& request)
+	{
+		if (frame.size() < SystemLaunchRequestHeaderSize ||
+			!std::equal(std::begin(SystemLaunchRequestMagic),
+				std::end(SystemLaunchRequestMagic), frame.begin()) ||
+			frame[4] != SystemLaunchRequestMessageType ||
+			frame[5] != 0 || frame[6] != 0 || frame[7] != 0)
+		{
+			return false;
+		}
+		const std::size_t executableLength = ReadUint32(frame, 20);
+		const std::size_t argumentLength = ReadUint32(frame, 24);
+		const std::size_t workingDirectoryLength = ReadUint32(frame, 28);
+		if (executableLength > MaximumPathLength ||
+			argumentLength > MaximumArgumentLength ||
+			workingDirectoryLength > MaximumPathLength ||
+			frame.size() != SystemLaunchRequestHeaderSize +
+				(executableLength + argumentLength + workingDirectoryLength) * 2)
+		{
+			return false;
+		}
+		SystemLaunchRequest parsed;
+		parsed.protocolVersion = ReadUint32(frame, 8);
+		parsed.requestId = ReadUint64(frame, 12);
+		std::size_t offset = SystemLaunchRequestHeaderSize;
+		if (!ReadString(frame, offset, executableLength, parsed.executablePath) ||
+			!ReadString(frame, offset, argumentLength, parsed.argumentTail) ||
+			!ReadString(frame, offset, workingDirectoryLength,
+				parsed.workingDirectory) ||
+			ValidateSystemLaunchRequest(parsed) != ContractValidationError::None)
+		{
+			return false;
+		}
+		request = std::move(parsed);
+		return true;
+	}
+
+	std::vector<std::uint8_t> SerializeSystemLaunchResult(
+		const SystemLaunchResult& result)
+	{
+		if (ValidateSystemLaunchResult(result) != ResultValidationError::None)
+			return {};
+		std::vector<std::uint8_t> frame;
+		frame.reserve(SystemLaunchResultSize);
+		frame.insert(frame.end(), std::begin(SystemLaunchResultMagic),
+			std::end(SystemLaunchResultMagic));
+		frame.push_back(SystemLaunchResultMessageType);
+		frame.push_back(static_cast<std::uint8_t>(result.status));
+		frame.push_back(0);
+		frame.push_back(0);
+		WriteUint32(frame, result.protocolVersion);
+		WriteUint64(frame, result.requestId);
+		WriteUint32(frame, result.windowsError);
+		WriteUint32(frame, result.processId);
+		return frame;
+	}
+
+	bool DeserializeSystemLaunchResult(
+		std::span<const std::uint8_t> frame,
+		SystemLaunchResult& result)
+	{
+		if (frame.size() != SystemLaunchResultSize ||
+			!std::equal(std::begin(SystemLaunchResultMagic),
+				std::end(SystemLaunchResultMagic), frame.begin()) ||
+			frame[4] != SystemLaunchResultMessageType ||
+			frame[6] != 0 || frame[7] != 0)
+		{
+			return false;
+		}
+		SystemLaunchResult parsed;
+		parsed.protocolVersion = ReadUint32(frame, 8);
+		parsed.requestId = ReadUint64(frame, 12);
+		parsed.status = static_cast<SystemLaunchStatus>(frame[5]);
+		parsed.windowsError = ReadUint32(frame, 20);
+		parsed.processId = ReadUint32(frame, 24);
+		if (ValidateSystemLaunchResult(parsed) != ResultValidationError::None)
+			return false;
+		result = std::move(parsed);
+		return true;
+	}
+
 // Serializes a valid health request into the fixed protocol format.
 	std::vector<std::uint8_t> SerializeHealthRequest(const HealthRequest& request)
 	{

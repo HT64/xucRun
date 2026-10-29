@@ -42,14 +42,14 @@ installer, complete ZIP archive, and public SHA-256 file:
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\New-xucRun-Release.ps1 `
-  -ExpectedVersion 0.9.0.2
+  -ExpectedVersion 0.9.0.3
 ```
 
-The files are created under `artifacts\Release\0.9.0.2`:
+The files are created under `artifacts\Release\0.9.0.3`:
 
 ```text
-xucRun-Installer-0.9.0.2-x64.exe
-xucRun-0.9.0.2-x64.zip
+xucRun-Installer-0.9.0.3-x64.exe
+xucRun-0.9.0.3-x64.zip
 SHA256SUMS.txt
 ```
 

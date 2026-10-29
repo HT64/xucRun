@@ -369,6 +369,166 @@
 			static_cast<DWORD>(response.size()), transferred);
 	}
 
+	bool IsElevatedAdministratorProcess(HANDLE process, DWORD integrityRid,
+		DWORD& error)
+	{
+		if (integrityRid < SECURITY_MANDATORY_HIGH_RID)
+		{
+			error = ERROR_ELEVATION_REQUIRED;
+			return false;
+		}
+		HANDLE token = nullptr;
+		if (!OpenProcessToken(process, TOKEN_QUERY | TOKEN_DUPLICATE, &token))
+		{
+			error = GetLastError();
+			return false;
+		}
+		TOKEN_ELEVATION elevation = {};
+		DWORD elevationSize = 0;
+		BYTE administratorsSid[SECURITY_MAX_SID_SIZE] = {};
+		DWORD administratorsSidSize = sizeof(administratorsSid);
+		BOOL isAdministrator = FALSE;
+		if (!GetTokenInformation(token, TokenElevation, &elevation,
+			sizeof(elevation), &elevationSize) ||
+			elevation.TokenIsElevated == 0)
+		{
+			error = GetLastError();
+			if (error == NO_ERROR)
+				error = ERROR_ELEVATION_REQUIRED;
+			CloseHandle(token);
+			return false;
+		}
+		if (!CreateWellKnownSid(WinBuiltinAdministratorsSid, nullptr,
+			administratorsSid, &administratorsSidSize))
+		{
+			error = GetLastError();
+			CloseHandle(token);
+			return false;
+		}
+		HANDLE membershipToken = nullptr;
+		if (!DuplicateToken(token, SecurityIdentification, &membershipToken))
+		{
+			error = GetLastError();
+			CloseHandle(token);
+			return false;
+		}
+		const bool membershipRead =
+			CheckTokenMembership(
+				membershipToken, administratorsSid, &isAdministrator) != FALSE;
+		error = membershipRead
+			? (isAdministrator != FALSE ? NO_ERROR : ERROR_ACCESS_DENIED)
+			: GetLastError();
+		CloseHandle(membershipToken);
+		CloseHandle(token);
+		return membershipRead && isAdministrator != FALSE;
+	}
+
+	void CloseSystemLaunchLocks(std::vector<HANDLE>& locks) noexcept
+	{
+		for (HANDLE handle : locks)
+		{
+			if (handle != nullptr && handle != INVALID_HANDLE_VALUE)
+				CloseHandle(handle);
+		}
+		locks.clear();
+	}
+
+	bool LockAndRevalidateSystemTarget(
+		const TargetImageIdentity& expected,
+		std::vector<HANDLE>& locks,
+		DWORD& error)
+	{
+		locks.clear();
+		std::filesystem::path current =
+			std::filesystem::path(expected.path).parent_path();
+		while (!current.empty())
+		{
+			HANDLE directory = CreateFileW(current.c_str(), FILE_READ_ATTRIBUTES,
+				FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+				FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+			if (directory == INVALID_HANDLE_VALUE)
+			{
+				error = GetLastError();
+				CloseSystemLaunchLocks(locks);
+				return false;
+			}
+			BY_HANDLE_FILE_INFORMATION information = {};
+			if (!GetFileInformationByHandle(directory, &information) ||
+				(information.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0 ||
+				(information.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+			{
+				error = GetLastError();
+				if (error == NO_ERROR)
+					error = ERROR_REPARSE_TAG_INVALID;
+				CloseHandle(directory);
+				CloseSystemLaunchLocks(locks);
+				return false;
+			}
+			locks.push_back(directory);
+			const std::filesystem::path parent = current.parent_path();
+			if (parent == current)
+				break;
+			current = parent;
+		}
+
+		HANDLE executable = CreateFileW(expected.path.c_str(), GENERIC_READ,
+			FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+			FILE_FLAG_SEQUENTIAL_SCAN | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+		if (executable == INVALID_HANDLE_VALUE)
+		{
+			error = GetLastError();
+			CloseSystemLaunchLocks(locks);
+			return false;
+		}
+		locks.push_back(executable);
+		BY_HANDLE_FILE_INFORMATION information = {};
+		std::wstring finalPath;
+		std::vector<std::uint8_t> sha256;
+		if (!GetFileInformationByHandle(executable, &information) ||
+			(information.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 ||
+			(information.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0 ||
+			!xucrun::files::ResolveFinalFilePathFromHandle(executable, finalPath) ||
+			!xucrun::files::ComputeFileSHA256FromHandle(executable, sha256) ||
+			_wcsicmp(finalPath.c_str(), expected.path.c_str()) != 0 ||
+			sha256 != expected.sha256)
+		{
+			error = GetLastError();
+			if (error == NO_ERROR)
+				error = ERROR_FILE_INVALID;
+			CloseSystemLaunchLocks(locks);
+			return false;
+		}
+		error = NO_ERROR;
+		return true;
+	}
+
+	xucrun::broker::SystemLaunchResult BuildLegacySystemLaunchRejection(
+		std::uint64_t requestId)
+	{
+		xucrun::broker::SystemLaunchResult result;
+		result.requestId = requestId;
+		result.status = xucrun::broker::SystemLaunchStatus::AccessDenied;
+		result.windowsError = ERROR_ACCESS_DENIED;
+		return result;
+	}
+
+	void HandleSystemLaunchRequest(HANDLE pipe, HANDLE stopEvent,
+		HANDLE, DWORD, DWORD, const ClientImageIdentity&, const std::wstring&,
+		const xucrun::broker::SystemLaunchRequest& request,
+		BrokerLogCallback log, DWORD& transferred)
+	{
+		const xucrun::broker::SystemLaunchResult result =
+			BuildLegacySystemLaunchRejection(request.requestId);
+		if (log)
+			log(EVENTLOG_WARNING_TYPE,
+				L"Legacy direct SYSTEM launch request rejected; a protected "
+				L"single-use challenge is required.");
+		std::vector<std::uint8_t> challengeRequiredResponse =
+			xucrun::broker::SerializeSystemLaunchResult(result);
+		RunOverlappedIo(pipe, stopEvent, true, challengeRequiredResponse.data(),
+			static_cast<DWORD>(challengeRequiredResponse.size()), transferred);
+	}
+
 // Validates the account and target image of the diagnostic contract without launching a process.
 	void HandleLaunchRequest(HANDLE pipe, HANDLE stopEvent,
 		const xucrun::broker::LaunchRequest& request,

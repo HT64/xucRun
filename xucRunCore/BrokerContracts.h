@@ -111,6 +111,14 @@ namespace xucrun::broker
 		Failed
 	};
 
+	enum class SystemLaunchStatus : std::uint8_t
+	{
+		Succeeded,
+		InvalidRequest,
+		AccessDenied,
+		Failed
+	};
+
 	enum class CredentialMetadataStatus : std::uint8_t
 	{
 		Succeeded,
@@ -394,6 +402,24 @@ namespace xucrun::broker
 		std::uint64_t requestId = 0;
 		LaunchStatus status = LaunchStatus::Failed;
 		std::uint32_t windowsError = 0;
+	};
+
+	struct SystemLaunchRequest
+	{
+		std::uint32_t protocolVersion = ProtocolVersion;
+		std::uint64_t requestId = 0;
+		std::wstring executablePath;
+		std::wstring argumentTail;
+		std::wstring workingDirectory;
+	};
+
+	struct SystemLaunchResult
+	{
+		std::uint32_t protocolVersion = ProtocolVersion;
+		std::uint64_t requestId = 0;
+		SystemLaunchStatus status = SystemLaunchStatus::Failed;
+		std::uint32_t windowsError = 0;
+		std::uint32_t processId = 0;
 	};
 
 	struct CredentialMetadataRequest
@@ -782,6 +808,7 @@ namespace xucrun::broker
 		std::wstring workingDirectory;
 		ElevationMode elevationMode = ElevationMode::PreserveToken;
 		LaunchVisibility visibility = LaunchVisibility::Normal;
+		bool systemLaunch = false;
 	};
 
 	struct ApprovalChallengeResult
@@ -812,6 +839,7 @@ namespace xucrun::broker
 		bool programUpdateAvailable = false;
 		ApprovalHelperStartMode helperStartMode = ApprovalHelperStartMode::None;
 		bool approvalHelperView = false;
+		bool systemLaunchConfirmation = false;
 		bool storedApprovalPresenceConfirmation = false;
 		ApprovalFailureReason writableElevatedTargetReason = ApprovalFailureReason::None;
 		std::uint64_t approvalHelperProcessHandle = 0;
@@ -913,6 +941,10 @@ namespace xucrun::broker
 		ElevationMode elevationMode);
 	ContractValidationError ValidateLaunchRequest(const LaunchRequest& request) noexcept;
 	ResultValidationError ValidateLaunchResult(const LaunchResult& result) noexcept;
+	ContractValidationError ValidateSystemLaunchRequest(
+		const SystemLaunchRequest& request) noexcept;
+	ResultValidationError ValidateSystemLaunchResult(
+		const SystemLaunchResult& result) noexcept;
 	ContractValidationError ValidateCredentialMetadataRequest(
 		const CredentialMetadataRequest& request) noexcept;
 	ResultValidationError ValidateCredentialMetadataResult(

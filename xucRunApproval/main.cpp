@@ -27,6 +27,7 @@ namespace
 	constexpr int UpdateAllButton = 131;
 	constexpr int WritableTargetApproveButton = 132;
 	constexpr int BroadInterpreterApprovalButton = 133;
+	constexpr int SystemLaunchApproveButton = 134;
 	constexpr UINT_PTR ApprovalCountdownTimer = 1;
 	constexpr int ApprovalDetailsControl = 1250;
 	constexpr int ApprovalDurationFirst = 1300;
@@ -1362,6 +1363,41 @@ namespace
 		const std::wstring displayedClientName =
 			xucrun::documentation_names::DisplayAccount(
 				challenge.canonicalClientName);
+		if (challenge.systemLaunchConfirmation)
+		{
+			std::wstring command = L"\"" + challenge.finalExecutablePath + L"\"";
+			if (!challenge.argumentTail.empty())
+				command += L" " + challenge.argumentTail;
+			const std::wstring content = std::wstring(Text(
+				L"Der folgende Befehl erhält vollständige LocalSystem-Rechte:\n\n",
+				L"The following command will receive full LocalSystem privileges:\n\n")) +
+				command + Text(L"\n\nArbeitsverzeichnis:\n",
+					L"\n\nWorking directory:\n") +
+				challenge.workingDirectory;
+			const TASKDIALOG_BUTTON buttons[] = {
+				{ SystemLaunchApproveButton, Text(
+					L"Einmal als LocalSystem starten",
+					L"Start once as LocalSystem") }
+			};
+			const int selected = ShowChoice(challenge.challengeId,
+				challenge.authenticityMarker, displayedClientName,
+				Text(L"LocalSystem-Start bestätigen",
+					L"Confirm LocalSystem launch"),
+				content, buttons, static_cast<UINT>(std::size(buttons)),
+				timedOut, Text(L"Ablehnen", L"Deny"));
+			decision.persistence =
+				xucrun::broker::ApprovalPersistence::Once;
+			decision.programScope =
+				xucrun::broker::ApprovalProgramScope::TargetProgram;
+			decision.accountScope =
+				xucrun::broker::ApprovalAccountScope::CurrentAccount;
+			decision.updateScope =
+				xucrun::broker::ApprovalUpdateScope::None;
+			decision.decision = selected == SystemLaunchApproveButton
+				? xucrun::broker::ApprovalDecision::ApproveOnce
+				: xucrun::broker::ApprovalDecision::Deny;
+			return selected == SystemLaunchApproveButton;
+		}
 		const std::wstring displayedAccountName =
 			xucrun::documentation_names::DisplayAccount(
 				challenge.canonicalAccountName);

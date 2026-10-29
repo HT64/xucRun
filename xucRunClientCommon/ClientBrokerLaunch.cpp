@@ -57,6 +57,104 @@ namespace xucrun::broker_launch
 		return true;
 	}
 
+	BrokerLaunchOutcome LaunchSystemWithProtectedConfirmation(
+		const std::wstring& executablePath,
+		const std::wstring& argumentTail,
+		const std::wstring& workingDirectory,
+		DWORD& processId, DWORD& error)
+	{
+		processId = 0;
+		error = NO_ERROR;
+		std::wstring currentUserSid;
+		if (!account_identity::GetCurrentUserSID(currentUserSid))
+		{
+			error = GetLastError();
+			if (error == NO_ERROR)
+				error = ERROR_NO_SUCH_USER;
+			return BrokerLaunchOutcome::Failed;
+		}
+
+		broker::ApprovalChallengeRequest request;
+		request.requestId = broker::GenerateBrokerRequestId();
+		request.requestedAccountSid = currentUserSid;
+		request.executablePath = executablePath;
+		request.argumentTail = argumentTail;
+		request.workingDirectory = workingDirectory;
+		request.elevationMode = broker::ElevationMode::RequireElevated;
+		request.visibility = broker::LaunchVisibility::Normal;
+		request.systemLaunch = true;
+		if (request.requestId == 0)
+		{
+			error = ERROR_GEN_FAILURE;
+			return BrokerLaunchOutcome::Failed;
+		}
+		const broker::PipeApprovalChallengeResponse challenge =
+			broker::SubmitApprovalChallengeRequest(request,
+				broker::ApprovalChallengeRequestTimeoutMilliseconds);
+		if (challenge.status != broker::PipeApprovalChallengeStatus::Succeeded)
+		{
+			error = challenge.windowsError == NO_ERROR
+				? ERROR_BROKEN_PIPE : challenge.windowsError;
+			return BrokerLaunchOutcome::Failed;
+		}
+		if (challenge.result.status != broker::ApprovalChallengeStatus::Issued ||
+			!challenge.result.systemLaunchConfirmation ||
+			challenge.result.helperStartMode !=
+				broker::ApprovalHelperStartMode::BrokerStarted ||
+			challenge.result.approvalHelperProcessHandle == 0)
+		{
+			error = challenge.result.windowsError == NO_ERROR
+				? ERROR_ACCESS_DENIED : challenge.result.windowsError;
+			return BrokerLaunchOutcome::Failed;
+		}
+
+		HANDLE helperProcess = reinterpret_cast<HANDLE>(static_cast<ULONG_PTR>(
+			challenge.result.approvalHelperProcessHandle));
+		DWORD helperError = NO_ERROR;
+		if (!WaitForApprovalHelper(helperProcess, helperError))
+		{
+			error = helperError == NO_ERROR ? ERROR_CANCELLED : helperError;
+			return error == ERROR_CANCELLED
+				? BrokerLaunchOutcome::Cancelled
+				: BrokerLaunchOutcome::Failed;
+		}
+
+		broker::ApprovalConfirmationRequest confirmation;
+		confirmation.requestId = broker::GenerateBrokerRequestId();
+		confirmation.challengeId = challenge.result.challengeId;
+		confirmation.decision = broker::ApprovalDecision::ApproveOnce;
+		if (confirmation.requestId == 0)
+		{
+			error = ERROR_GEN_FAILURE;
+			return BrokerLaunchOutcome::Failed;
+		}
+		const broker::PipeApprovalConfirmationResponse response =
+			broker::SubmitApprovalConfirmationRequest(confirmation,
+				broker::ApprovalConfirmationRequestTimeoutMilliseconds);
+		if (response.status != broker::PipeApprovalConfirmationStatus::Succeeded)
+		{
+			error = response.windowsError == NO_ERROR
+				? ERROR_BROKEN_PIPE : response.windowsError;
+			return BrokerLaunchOutcome::Failed;
+		}
+		if (response.result.status == broker::ApprovalConfirmationStatus::Denied &&
+			response.result.windowsError == ERROR_CANCELLED)
+		{
+			error = ERROR_CANCELLED;
+			return BrokerLaunchOutcome::Cancelled;
+		}
+		if (response.result.status !=
+				broker::ApprovalConfirmationStatus::Confirmed ||
+			response.result.processId == 0)
+		{
+			error = response.result.windowsError == NO_ERROR
+				? ERROR_ACCESS_DENIED : response.result.windowsError;
+			return BrokerLaunchOutcome::Failed;
+		}
+		processId = response.result.processId;
+		return BrokerLaunchOutcome::Succeeded;
+	}
+
 	namespace
 	{
 		// Starts only the installed sibling helper and passes no data beyond the opaque challenge ID.

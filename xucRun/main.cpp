@@ -228,6 +228,7 @@
 //   ClientBrokerCredentialManagement.h Creation and deletion of broker-stored credentials.
 //   ClientBrokerCredentialSelection.h Retrieval and selection of broker credential metadata.
 //   ClientConsoleReplacement.h        Replacement of an invoking console under the chosen account.
+//   ClientConsoleSession.h            Detection, arguments, and closure of the invoking console.
 //   ClientCredentialFormatting.h      Localized formatting of credential and broker status data.
 //   ClientCredentialInfo.h            Client-side metadata for broker-reported credentials.
 //   ClientCredentialSelectionDialog.h Selection UI for stored credential accounts.
@@ -246,6 +247,7 @@
 //   ClientTextDialog.h                 Console-aware display of long read-only text.
 //   ClientUiCommon.h                   Shared window ownership, icons, titles, and notifications.
 //   ClientWindowsError.h               Localized formatting of Windows error codes.
+//   ClientWindowActivation.h           PID-bound activation of launched process windows.
 //   DocumentationNameMapping.h         Optional display-only names for documentation screenshots.
 //   Localization.h                     Language-resource loading, lookup, and formatting.
 //   ClientResourceIds.h                Shared resource identifiers for dialogs, icons, and text.
@@ -283,6 +285,7 @@
 #include "ClientBrokerCredentialManagement.h"
 #include "ClientBrokerCredentialSelection.h"
 #include "ClientConsoleReplacement.h"
+#include "ClientConsoleSession.h"
 #include "ClientCredentialFormatting.h"
 #include "ClientCredentialInfo.h"
 #include "ClientCredentialSelectionDialog.h"
@@ -299,6 +302,7 @@
 #include "ClientSameUserLaunch.h"
 #include "ClientTextDialog.h"
 #include "ClientUiCommon.h"
+#include "ClientWindowActivation.h"
 #include "ClientWindowsError.h"
 #include "DocumentationNameMapping.h"
 #include "Localization.h"
@@ -525,6 +529,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		processMode = L"approval management command";
 	else if (initialArgument == L"/clear-all")
 		processMode = L"broker store purge command";
+	else if (initialArgument == L"/system")
+		processMode = L"LocalSystem launch";
 	writeModeStart(processMode);
 
 	if (argc == 2 && _wcsicmp(argv[1], L"/enable-broker") == 0)
@@ -765,6 +771,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		isInternalBrokerTestSwitch ||
 		firstArg == L"/help" || firstArg == L"--help" || firstArg == L"/?" ||
 		firstArg == L"/info" ||
+		firstArg == L"/system" ||
 		firstArg == L"/admin-status" ||
 		firstArg == L"/backup" || firstArg == L"/backup-create" ||
 		firstArg == L"/backup-list" || firstArg == L"/backup-delete-all" ||
@@ -802,6 +809,13 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 			result ? L"Elevated launch wrapper finished. Status: 0"
 				: L"Elevated launch wrapper finished. Status: 1");
 		return result ? 0 : 1;
+	}
+
+	if (firstArg == L"/system")
+	{
+		const int result = RunSystemProgramLaunch(argc, argv);
+		LocalFree(argv);
+		return result;
 	}
 
 	if (firstArg == L"/clear-all")

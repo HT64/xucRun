@@ -13,6 +13,8 @@ namespace xucrun::broker
 {
 	inline constexpr std::size_t LaunchRequestHeaderSize = 36;
 	inline constexpr std::size_t LaunchResultSize = 24;
+	inline constexpr std::size_t SystemLaunchRequestHeaderSize = 32;
+	inline constexpr std::size_t SystemLaunchResultSize = 28;
 	inline constexpr std::size_t HealthRequestSize = 36;
 	inline constexpr std::size_t HealthResultSize = 60;
 	inline constexpr std::size_t HealthAcknowledgementSize = 36;
@@ -93,6 +95,10 @@ namespace xucrun::broker
 		2 * (MaximumAccountSidLength + MaximumPathLength +
 			MaximumArgumentLength + MaximumPathLength);
 	inline constexpr std::size_t MaximumLaunchResultSize = LaunchResultSize;
+	inline constexpr std::size_t MaximumSystemLaunchRequestSize =
+		SystemLaunchRequestHeaderSize + 2 *
+		(MaximumPathLength + MaximumArgumentLength + MaximumPathLength);
+	inline constexpr std::size_t MaximumSystemLaunchResultSize = SystemLaunchResultSize;
 	inline constexpr std::size_t MaximumApprovalChallengeRequestSize =
 		ApprovalChallengeRequestHeaderSize + 2 * (2 * MaximumAccountSidLength +
 			MaximumPathLength + MaximumArgumentLength + MaximumPathLength);
@@ -139,6 +145,16 @@ namespace xucrun::broker
 	bool DeserializeLaunchResult(
 		std::span<const std::uint8_t> frame,
 		LaunchResult& result);
+	std::vector<std::uint8_t> SerializeSystemLaunchRequest(
+		const SystemLaunchRequest& request);
+	bool DeserializeSystemLaunchRequest(
+		std::span<const std::uint8_t> frame,
+		SystemLaunchRequest& request);
+	std::vector<std::uint8_t> SerializeSystemLaunchResult(
+		const SystemLaunchResult& result);
+	bool DeserializeSystemLaunchResult(
+		std::span<const std::uint8_t> frame,
+		SystemLaunchResult& result);
 	std::vector<std::uint8_t> SerializeHealthRequest(const HealthRequest& request);
 	bool DeserializeHealthRequest(
 		std::span<const std::uint8_t> frame,

@@ -37,6 +37,11 @@ bool DispatchBrokerRequest(DecodedBrokerRequest& decoded,
 		HandleBackupRequest(pipe, stopEvent, clientProcess,
 			imageIdentity, decoded.backup, transferred);
 		break;
+	case BrokerRequestKind::SystemLaunch:
+		HandleSystemLaunchRequest(pipe, stopEvent, clientProcess,
+			clientSessionId, clientIntegrityRid, imageIdentity, clientSid,
+			decoded.systemLaunch, log, transferred);
+		break;
 	case BrokerRequestKind::Health:
 		HandleHealthRequest(pipe, stopEvent, decoded.health,
 			trackedElevatedProcesses, trackedElevatedProcessJobs,
@@ -112,7 +117,8 @@ bool DispatchBrokerRequest(DecodedBrokerRequest& decoded,
 	case BrokerRequestKind::ApprovalChallenge:
 		HandleApprovalChallengeRequest(pipe, stopEvent, clientProcess,
 			clientProcessId, imageIdentity, clientSid, clientLogonSid,
-			clientSessionId, decoded.approvalChallenge, pendingApprovalChallenges,
+			clientSessionId, clientIntegrityRid, decoded.approvalChallenge,
+			pendingApprovalChallenges,
 			pendingCredentialCaptureChallenges, log, transferred);
 		break;
 	case BrokerRequestKind::CredentialDelete:

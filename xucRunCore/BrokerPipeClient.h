@@ -49,6 +49,13 @@ namespace xucrun::broker
 		LaunchResult result;
 	};
 
+	struct PipeSystemLaunchResponse
+	{
+		PipeLaunchStatus status = PipeLaunchStatus::Unavailable;
+		std::uint32_t windowsError = 0;
+		SystemLaunchResult result;
+	};
+
 	enum class PipeCredentialMetadataStatus : std::uint8_t
 	{
 		Succeeded,
@@ -301,6 +308,9 @@ namespace xucrun::broker
 	PipeHealthCheck QueryBrokerPipeHealth(std::uint32_t timeoutMilliseconds = 3000);
 	PipeLaunchResponse SubmitBrokerLaunchRequest(
 		const LaunchRequest& request,
+		std::uint32_t timeoutMilliseconds = DefaultBrokerRequestTimeoutMilliseconds);
+	PipeSystemLaunchResponse SubmitSystemLaunchRequest(
+		const SystemLaunchRequest& request,
 		std::uint32_t timeoutMilliseconds = DefaultBrokerRequestTimeoutMilliseconds);
 	PipeCredentialMetadataResponse SubmitCredentialMetadataRequest(
 		const CredentialMetadataRequest& request,

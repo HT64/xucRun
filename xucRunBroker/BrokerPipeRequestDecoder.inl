@@ -12,6 +12,7 @@ struct DecodedBrokerRequest
 	xucrun::broker::CredentialCaptureCommitRequest credentialCaptureCommit;
 	xucrun::broker::HealthRequest health;
 	xucrun::broker::LaunchRequest launch;
+	xucrun::broker::SystemLaunchRequest systemLaunch;
 	xucrun::broker::CredentialMetadataRequest credentialMetadata;
 	xucrun::broker::SessionTestRequest sessionTest;
 	xucrun::broker::CredentialStoreTestRequest credentialStoreTest;
@@ -204,6 +205,11 @@ bool DecodeBrokerRequest(std::span<const std::uint8_t> frame,
 		decoded.kind = BrokerRequestKind::Backup;
 		return true;
 	}
+	if (xucrun::broker::DeserializeSystemLaunchRequest(frame, decoded.systemLaunch))
+	{
+		decoded.kind = BrokerRequestKind::SystemLaunch;
+		return true;
+	}
 	return false;
 }
 
@@ -245,6 +251,7 @@ std::uint64_t GetBrokerRequestId(const DecodedBrokerRequest& decoded)
 	case BrokerRequestKind::AdministrativeDelete:
 		return decoded.administrativeDelete.requestId;
 	case BrokerRequestKind::Backup: return decoded.backup.requestId;
+	case BrokerRequestKind::SystemLaunch: return decoded.systemLaunch.requestId;
 	default: return 0;
 	}
 }
@@ -293,6 +300,7 @@ bool UsesGeneralClientAuditLog(BrokerRequestKind kind)
 	case BrokerRequestKind::TrackedProcessList:
 	case BrokerRequestKind::TrackedProcessRegistration:
 	case BrokerRequestKind::BrokerStop:
+	case BrokerRequestKind::SystemLaunch:
 		return true;
 	default:
 		return false;

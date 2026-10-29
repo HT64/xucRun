@@ -66,6 +66,87 @@ bool LaunchSessionTestProcess(
 	return started;
 }
 
+bool LaunchSystemProcess(
+	DWORD sessionId,
+	const std::wstring& executablePath,
+	const std::wstring& argumentTail,
+	const std::wstring& workingDirectory,
+	DWORD& processId,
+	std::wstring& effectiveWorkingDirectory,
+	DWORD& error,
+	std::wstring& failedStage)
+{
+	processId = 0;
+	effectiveWorkingDirectory.clear();
+	error = NO_ERROR;
+	failedStage = L"SYSTEM launch privilege";
+	if (!EnablePrivilege(SE_ASSIGNPRIMARYTOKEN_NAME, error) ||
+		!EnablePrivilege(SE_INCREASE_QUOTA_NAME, error))
+	{
+		return false;
+	}
+
+	HANDLE processToken = nullptr;
+	failedStage = L"SYSTEM process token";
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_DUPLICATE,
+		&processToken))
+	{
+		error = GetLastError();
+		return false;
+	}
+	std::wstring processSid;
+	DWORD processSessionId = 0;
+	if (!ReadTokenIdentity(processToken, processSid, processSessionId, error) ||
+		_wcsicmp(processSid.c_str(), L"S-1-5-18") != 0)
+	{
+		if (error == NO_ERROR)
+			error = ERROR_ACCESS_DENIED;
+		CloseHandle(processToken);
+		return false;
+	}
+
+	HANDLE launchToken = nullptr;
+	failedStage = L"SYSTEM DuplicateTokenEx";
+	if (!DuplicatePrimaryLaunchToken(processToken, launchToken, error))
+	{
+		CloseHandle(processToken);
+		return false;
+	}
+	CloseHandle(processToken);
+
+	failedStage = L"SYSTEM TokenSessionId";
+	if (!SetTokenInformation(launchToken, TokenSessionId,
+		&sessionId, sizeof(sessionId)))
+	{
+		error = GetLastError();
+		CloseHandle(launchToken);
+		return false;
+	}
+	std::wstring launchSid;
+	DWORD launchSessionId = 0;
+	if (!ReadTokenIdentity(launchToken, launchSid, launchSessionId, error) ||
+		_wcsicmp(launchSid.c_str(), L"S-1-5-18") != 0 ||
+		launchSessionId != sessionId)
+	{
+		if (error == NO_ERROR)
+			error = ERROR_ACCESS_DENIED;
+		CloseHandle(launchToken);
+		return false;
+	}
+	if (!GrantInteractiveDesktopAccessInSession(
+		launchToken, sessionId, error, failedStage))
+	{
+		CloseHandle(launchToken);
+		return false;
+	}
+
+	const bool started = LaunchBoundProcess(launchToken, executablePath,
+		argumentTail, workingDirectory, xucrun::broker::LaunchVisibility::Normal,
+		processId, &effectiveWorkingDirectory, error, failedStage);
+	CloseHandle(launchToken);
+	return started;
+}
+
 // Logs on the target account and launches only after SID, session, and object access validation.
 bool LaunchCredentialTestProcess(
 	HANDLE clientProcess,

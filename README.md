@@ -395,7 +395,7 @@ it is first started.
 
 The easiest installation method is
 `xucRun-Installer-<Version>-x64.exe`, for example
-`xucRun-Installer-0.9.0.2-x64.exe`. Before starting it, obtain the file only from the
+`xucRun-Installer-0.9.0.3-x64.exe`. Before starting it, obtain the file only from the
 [official xucRun releases](https://github.com/HT64/xucRun/releases), compare its SHA-256 checksum
 with the checksum published there, and verify any available Authenticode signature.
 
@@ -625,9 +625,10 @@ directly.
 
 ### Total Commander integration
 
-The following examples were tested with Total Commander 11.58 (64-bit). They may also work with
-other versions, but their compatibility has not been verified. For general information about
-Total Commander, visit the [official Total Commander website](https://www.ghisler.com/).
+The following examples show excerpts from Total Commander's `usercmd.ini` configuration file.
+They were tested with Total Commander 11.58 (64-bit). They may also work with other versions, but
+their compatibility has not been verified. For general information about Total Commander, visit
+the [official Total Commander website](https://www.ghisler.com/).
 
 xucRun can start a new elevated Total Commander instance according to its automatic account
 strategy. Members of the Administrators group retain their account and are elevated through UAC
@@ -655,14 +656,41 @@ For a standard-user account switch, at least one administrator account must be s
 If several matching administrator accounts are stored, the account selection dialog is shown. Any
 required Windows UAC prompt must be confirmed.
 
+The following command starts a new Total Commander instance as `LocalSystem`. It preserves the
+left path, right path, and active file panel:
+
+```ini
+[em_TCStart_System]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd="%ProgramFiles%\xucRun\xucRun.exe"
+param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /system "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
+menu=Start Total Commander as LocalSystem through xucRun
+iconic=1
+```
+
+This command must invoke xucRun twice because `/system` is available only from an elevated
+administrator context. The outer invocation uses the automatic account strategy described above
+to start an elevated intermediate Command Prompt and hides it through `/hidden-monitor`. The inner
+xucRun invocation therefore runs with elevated administrator rights and starts Total Commander as
+`LocalSystem`. Every SYSTEM launch must be confirmed separately on xucRun's protected private
+desktop.
+
+The intermediate `cmd.exe /v:on /c` first stores the paths supplied by Total Commander in
+environment variables and then passes them to the inner xucRun invocation through delayed
+variable expansion. This handles paths containing spaces and special characters reliably.
+Comparing the paths additionally determines whether the left or right panel is active.
+
+Total Commander then has unrestricted `LocalSystem` access. Use this command only for deliberate
+maintenance and diagnostic work.
+
 xucRun can also start Total Commander under an explicitly selected different Windows account
 without that account already being signed in interactively. This allows file operations to be
 performed in another account context from a standard user session. For elevated administrative
 file operations, the target account must have administrator privileges and the Windows UAC prompt
 must be confirmed.
 
-Create a user-defined command in `usercmd.ini`. Replace `<Account>` with the configured account
-name and keep the Total Commander variables and quoting unchanged:
+For this example, replace `<Account>` with the configured account name and keep the Total
+Commander variables and quoting unchanged:
 
 ```ini
 [em_TCStart_Account]
@@ -673,25 +701,18 @@ menu=Launch Total Commander as <Account>
 iconic=1
 ```
 
-The command deliberately invokes xucRun twice so that an administrator account can act as the
-central authorized principal for the credentials of additional target accounts. This cascade is
-not required for the launch itself; this is a specific design decision about how the credentials
-are stored. The example also shows how xucRun can be used in a nested process chain with complex
-path and command-line arguments. The outer invocation first starts the `cmd.exe` hidden by
-`/hidden-monitor` under that administrator account according to xucRun's default strategy. The
-inner xucRun invocation therefore runs with the administrator's SID and can use the credentials
-that administrator stored for `<Account>`. This avoids storing the credentials of every additional
-target account separately for every standard user; each standard user needs only the credentials
-stored for the central administrator account. A single xucRun invocation by the standard user
-could instead use only that user's own SID-bound credentials. The inner invocation processes
-`/user:<Account>` and starts the visible Total Commander instance under the target account.
-Elevation of the outer intermediate stage is not transferred to the target account; its
-privileges remain unchanged.
-
-The intermediate `cmd.exe /v:on /c` first stores the paths supplied by Total Commander in
-environment variables and then passes them to the inner xucRun invocation through delayed
-variable expansion. This also handles paths containing spaces and special characters reliably.
-Comparing the paths additionally determines whether the left or right panel is active.
+The command again invokes xucRun twice so that an administrator account can act as the central
+authorized principal for the credentials of additional target accounts. In this example, unlike
+in the LocalSystem example above, the cascade is not required for the launch itself; here it is a
+deliberate design decision about how the credentials are stored. The outer invocation uses the
+same hidden, elevated administrator stage described above. The inner xucRun invocation therefore
+runs with the administrator's SID and can use the credentials that administrator stored for
+`<Account>`. This avoids storing the credentials of every additional target account separately
+for every standard user; each standard user needs only the credentials stored for the central
+administrator account. A single xucRun invocation by the standard user could instead use only
+that user's own SID-bound credentials. The inner invocation processes `/user:<Account>` and
+starts the visible Total Commander instance under the target account. Elevation of the outer
+intermediate stage is not transferred to the target account; its privileges remain unchanged.
 
 For example, the command can be added to a custom menu:
 
@@ -870,6 +891,7 @@ authorization.
 | `xucRun.exe /showcred` | show accounts for which xucRun credentials are stored |
 | `xucRun.exe /showapprovals` | show stored approvals |
 | `xucRun.exe /resetapprovals[:<Account>]` | reset approvals |
+| `xucRun.exe /system [<Application> [Arguments...]]` | start a local application or replacement shell as `LocalSystem` |
 | `xucRun.exe /info` | show version, copyright, signing certificate, broker status, and current configuration |
 | `xucRun.exe /admin-status` | show and manage data for all Windows users with elevation |
 | `xucRun.exe /backup` | manage local backups |
@@ -881,6 +903,43 @@ authorization.
 `/hidden` hides the directly started target program. `/hidden-monitor` also monitors its exit code
 and displays a notice when it fails. Dialogs and child processes are not hidden or monitored by
 these options.
+
+### Starting an application or replacement shell as LocalSystem
+
+`xucRun.exe /system [<Application> [Arguments...]]` starts the specified local application, or a
+replacement shell when no application is specified, as the Windows `LocalSystem` account in the
+caller's interactive session. This mode is available only to members of the local Administrators
+group. An administrator who is not already elevated receives one Windows UAC consent prompt; an
+already elevated administrator performs the launch without another UAC prompt. Standard users are
+rejected before an elevation request.
+
+Without an application, `xucRun.exe /system` replaces an invoking TCC, Command Prompt, Windows
+PowerShell, or PowerShell Core shell with the same shell running as `LocalSystem`. It preserves
+the current working directory, brings the new shell to the foreground, and closes the previous
+shell only after the replacement started successfully.
+
+The elevated administrator account may differ from the account signed in to the interactive
+session. This allows `/system` to be invoked from an elevated replacement shell in another user's
+session.
+
+`/system` does not use stored credentials or approvals. Every launch must be confirmed separately
+in the signed xucRun approval helper. The dialog appears on xucRun's protected private desktop and
+shows the exact executable, all arguments, and the working directory. The confirmation applies
+only to that invocation and cannot be stored. xucRun revalidates the executable immediately
+before starting it.
+
+The private desktop protects the confirmation from ordinary applications on the normal desktop.
+It cannot protect against malicious software that is already running with elevated administrator
+rights in the same logon session. Use `/system` only from a trusted elevated administrator
+session.
+
+```cmd
+xucRun.exe /system "%SystemRoot%\regedit.exe" /m
+```
+
+Applications running as `LocalSystem` have extensive control over the computer. In particular,
+`HKEY_CURRENT_USER` refers to the `LocalSystem` profile rather than the signed-in user's profile.
+Use this mode only for deliberate maintenance and diagnostic work.
 
 ## Managing credentials and approvals
 

@@ -33,7 +33,8 @@
 	X(CredentialCaptureSubmit, false) \
 	X(AdministrativeInventory, false) \
 	X(AdministrativeDelete, false) \
-	X(Backup, false)
+	X(Backup, false) \
+	X(SystemLaunch, false)
 
 enum class BrokerRequestKind
 {
@@ -120,7 +121,7 @@ constexpr bool RunBrokerRequestPolicySelfTest() noexcept
 	return trayAllowedCount == 6;
 }
 
-static_assert(static_cast<std::size_t>(BrokerRequestKind::Count) == 29);
+static_assert(static_cast<std::size_t>(BrokerRequestKind::Count) == 30);
 static_assert(RunBrokerRequestPolicySelfTest());
 static_assert(IsTrayRequestAllowed(BrokerRequestKind::Health));
 static_assert(IsTrayRequestAllowed(BrokerRequestKind::CredentialList));
@@ -131,6 +132,7 @@ static_assert(IsTrayRequestAllowed(BrokerRequestKind::BrokerStop));
 static_assert(!IsTrayRequestAllowed(BrokerRequestKind::Launch));
 static_assert(!IsTrayRequestAllowed(BrokerRequestKind::CredentialSave));
 static_assert(!IsTrayRequestAllowed(BrokerRequestKind::AdministrativeInventory));
+static_assert(!IsTrayRequestAllowed(BrokerRequestKind::SystemLaunch));
 static_assert(std::wstring_view(
 	GetBrokerRequestKindName(BrokerRequestKind::ApprovalChallenge)) ==
 	L"ApprovalChallenge");

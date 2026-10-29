@@ -292,6 +292,7 @@ namespace
 			xucrun::broker::ApprovalFailureReason::None;
 		bool diagnosticProfile = false;
 		bool trustedAdministrativeClientLaunch = false;
+		bool systemLaunch = false;
 		bool userConfirmationRequired = true;
 		bool storedApprovalPresenceConfirmation = false;
 		bool clientAccountPresenceConfirmation = false;
@@ -854,8 +855,9 @@ namespace
 			error = NO_ERROR;
 			return true;
 		}
-		if (ShouldUseClientTokenForApprovalHelper(pending.elevationMode,
-			targetMembershipResolved, targetIsAdministrator, clientIsHighIntegrity))
+		if (pending.systemLaunch ||
+			ShouldUseClientTokenForApprovalHelper(pending.elevationMode,
+				targetMembershipResolved, targetIsAdministrator, clientIsHighIntegrity))
 		{
 			std::wstring cancellationEventName;
 			if (!CreateSecureHostCancellationSignal(pending.challengeId,
@@ -2593,8 +2595,8 @@ namespace
 		// through public headers. The fragments are grouped by request domain only.
 #include "BrokerPipeControlHandlers.inl"
 #include "BrokerPipeCredentialHandlers.inl"
-#include "BrokerPipeApprovalHandlers.inl"
 #include "BrokerPipeProcessHandlers.inl"
+#include "BrokerPipeApprovalHandlers.inl"
 #include "BrokerPipeRequestDecoder.inl"
 
 #include "BrokerPipeRequestDispatcher.inl"
@@ -2850,6 +2852,177 @@ namespace
 		pending.executablePath = L"C:\\Windows\\System32\\notepad.exe";
 		return !RequiresBroadInterpreterApprovalConfirmation(pending, request);
 	}
+
+	bool RunSystemApprovalChallengeLifecycleSelfTest()
+	{
+		const std::uint64_t legacyRequestId = 0x1122334455667788ULL;
+		const xucrun::broker::SystemLaunchResult legacyResult =
+			BuildLegacySystemLaunchRejection(legacyRequestId);
+		if (legacyResult.requestId != legacyRequestId ||
+			legacyResult.status !=
+				xucrun::broker::SystemLaunchStatus::AccessDenied ||
+			legacyResult.windowsError != ERROR_ACCESS_DENIED ||
+			legacyResult.processId != 0)
+		{
+			return false;
+		}
+
+		PendingApprovalChallenge pending;
+		pending.challengeId[0] = 0x5A;
+		pending.expiresAt = GetTickCount64() + 60000;
+		pending.clientSid = L"S-1-5-21-1";
+		pending.clientLogonSid = L"S-1-5-5-1-2";
+		pending.clientProcessId = 1234;
+		pending.clientSessionId = 7;
+		pending.clientPath = L"C:\\Program Files\\xucRun\\xucRun.exe";
+		pending.clientSha256 = { 1, 2, 3, 4 };
+		pending.executablePath = L"C:\\Windows\\System32\\cmd.exe";
+		pending.executableSha256[0] = 0xA5;
+		pending.argumentTail = L"/d /c echo bound";
+		pending.workingDirectory = L"C:\\Windows";
+		pending.systemLaunch = true;
+		pending.userConfirmationRequired = true;
+		pending.helperProcessId = 4321;
+
+		ClientImageIdentity clientIdentity;
+		clientIdentity.path = pending.clientPath;
+		clientIdentity.sha256 = pending.clientSha256;
+		if (!MatchesPendingChallengeClient(pending, pending.clientSid,
+			pending.clientLogonSid, pending.clientProcessId,
+			pending.clientSessionId, clientIdentity))
+		{
+			return false;
+		}
+		ClientImageIdentity mismatchedIdentity = clientIdentity;
+		mismatchedIdentity.path = L"C:\\Other\\xucRun.exe";
+		if (MatchesPendingChallengeClient(pending, pending.clientSid,
+			pending.clientLogonSid, pending.clientProcessId,
+			pending.clientSessionId, mismatchedIdentity))
+		{
+			return false;
+		}
+		mismatchedIdentity = clientIdentity;
+		mismatchedIdentity.sha256[0] ^= 0xFF;
+		if (MatchesPendingChallengeClient(pending, pending.clientSid,
+			pending.clientLogonSid, pending.clientProcessId,
+			pending.clientSessionId, mismatchedIdentity) ||
+			MatchesPendingChallengeClient(pending, L"S-1-5-21-2",
+				pending.clientLogonSid, pending.clientProcessId,
+				pending.clientSessionId, clientIdentity) ||
+			MatchesPendingChallengeClient(pending, pending.clientSid,
+				L"S-1-5-5-3-4", pending.clientProcessId,
+				pending.clientSessionId, clientIdentity) ||
+			MatchesPendingChallengeClient(pending, pending.clientSid,
+				pending.clientLogonSid, pending.clientProcessId + 1,
+				pending.clientSessionId, clientIdentity) ||
+			MatchesPendingChallengeClient(pending, pending.clientSid,
+				pending.clientLogonSid, pending.clientProcessId,
+				pending.clientSessionId + 1, clientIdentity))
+		{
+			return false;
+		}
+
+		xucrun::broker::ApprovalHelperDecisionRequest decision;
+		decision.challengeId = pending.challengeId;
+		decision.decision = xucrun::broker::ApprovalDecision::ApproveOnce;
+		decision.persistence = xucrun::broker::ApprovalPersistence::Once;
+		decision.programScope =
+			xucrun::broker::ApprovalProgramScope::TargetProgram;
+		decision.accountScope =
+			xucrun::broker::ApprovalAccountScope::CurrentAccount;
+		decision.updateScope = xucrun::broker::ApprovalUpdateScope::None;
+		if (!MatchesApprovalHelperDecisionBinding(
+			pending, pending.helperProcessId, pending.clientSessionId, decision) ||
+			MatchesApprovalHelperDecisionBinding(
+				pending, pending.helperProcessId + 1,
+				pending.clientSessionId, decision) ||
+			MatchesApprovalHelperDecisionBinding(
+				pending, pending.helperProcessId,
+				pending.clientSessionId + 1, decision))
+		{
+			return false;
+		}
+		xucrun::broker::ApprovalHelperDecisionRequest reusableDecision = decision;
+		reusableDecision.persistence =
+			xucrun::broker::ApprovalPersistence::TenMinutes;
+		if (MatchesApprovalHelperDecisionBinding(
+			pending, pending.helperProcessId,
+			pending.clientSessionId, reusableDecision))
+		{
+			return false;
+		}
+
+		std::deque<PendingApprovalChallenge> approvalChallenges = { pending };
+		PendingApprovalChallenge consumed;
+		if (!ConsumePendingApprovalChallenge(
+				approvalChallenges, pending.challengeId, consumed) ||
+			!approvalChallenges.empty() ||
+			ConsumePendingApprovalChallenge(
+				approvalChallenges, pending.challengeId, consumed) ||
+			!consumed.systemLaunch ||
+			consumed.executablePath != pending.executablePath ||
+			consumed.executableSha256 != pending.executableSha256 ||
+			consumed.argumentTail != pending.argumentTail ||
+			consumed.workingDirectory != pending.workingDirectory)
+		{
+			return false;
+		}
+
+		PendingApprovalChallenge deniedPending = pending;
+		decision.decision = xucrun::broker::ApprovalDecision::Deny;
+		approvalChallenges.push_back(deniedPending);
+		bool denied = false;
+		if (!ApplyApprovalHelperDecision(
+			approvalChallenges, decision, denied) ||
+			!denied || !approvalChallenges.empty() ||
+			ApplyApprovalHelperDecision(approvalChallenges, decision, denied))
+		{
+			return false;
+		}
+
+		PendingApprovalChallenge approvedPending = pending;
+		decision.decision = xucrun::broker::ApprovalDecision::ApproveOnce;
+		approvalChallenges.push_back(approvedPending);
+		denied = true;
+		if (!ApplyApprovalHelperDecision(
+			approvalChallenges, decision, denied) ||
+			denied || approvalChallenges.size() != 1 ||
+			!approvalChallenges.front().helperDecisionRecorded ||
+			MatchesApprovalHelperDecisionBinding(
+				approvalChallenges.front(), pending.helperProcessId,
+				pending.clientSessionId, decision))
+		{
+			return false;
+		}
+		approvalChallenges.clear();
+
+		HANDLE cancellationEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+		HANDLE pendingCancellationEvent = nullptr;
+		if (!cancellationEvent || !DuplicateHandle(
+			GetCurrentProcess(), cancellationEvent, GetCurrentProcess(),
+			&pendingCancellationEvent, 0, FALSE, DUPLICATE_SAME_ACCESS))
+		{
+			if (cancellationEvent)
+				CloseHandle(cancellationEvent);
+			return false;
+		}
+		PendingApprovalChallenge expiredPending = pending;
+		expiredPending.expiresAt = GetTickCount64();
+		expiredPending.secureHostCancellationSignal =
+			OwnHandle(pendingCancellationEvent);
+		PendingApprovalChallenge activePending = pending;
+		activePending.challengeId[0] = 0x5B;
+		activePending.expiresAt = GetTickCount64() + 60000;
+		approvalChallenges.push_back(std::move(expiredPending));
+		approvalChallenges.push_back(std::move(activePending));
+		PrunePendingApprovalChallenges(approvalChallenges);
+		const bool timeoutCleaned =
+			approvalChallenges.size() == 1 &&
+			approvalChallenges.front().challengeId[0] == 0x5B &&
+			WaitForSingleObject(cancellationEvent, 0) == WAIT_OBJECT_0;
+		CloseHandle(cancellationEvent);
+		return timeoutCleaned;
+	}
 }
 
 // Tests that approval challenges cannot be transferred between clients, sessions, or image identities.
@@ -2862,6 +3035,7 @@ bool RunApprovalChallengeIdentitySelfTest()
 		!RunApprovalHelperDirectScriptBindingSelfTest() ||
 		!RunWindowsCommandTrustSelfTest() ||
 		!RunBroadInterpreterApprovalConfirmationSelfTest() ||
+		!RunSystemApprovalChallengeLifecycleSelfTest() ||
 		!ShouldRejectPreElevatedCrossAccountLaunch(
 			xucrun::broker::ElevationMode::RequireElevated, true, true) ||
 		ShouldRejectPreElevatedCrossAccountLaunch(
@@ -3442,7 +3616,8 @@ DWORD RunBrokerPipeServer(HANDLE stopEvent,
 
 		std::vector<std::uint8_t> requestFrame((std::max)(
 			(std::max)(xucrun::broker::MaximumLaunchRequestSize,
-				xucrun::broker::MaximumApprovalChallengeRequestSize),
+				(std::max)(xucrun::broker::MaximumSystemLaunchRequestSize,
+					xucrun::broker::MaximumApprovalChallengeRequestSize)),
 			xucrun::broker::MaximumApprovalResetRequestSize));
 		DWORD transferred = 0;
 		if (!RunOverlappedIo(pipe, stopEvent, false, requestFrame.data(),

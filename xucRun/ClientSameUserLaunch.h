@@ -2,6 +2,8 @@
 // Behavior: Prepares batch targets and launches them with the current or elevated token.
 #pragma once
 
+#include <Windows.h>
+
 #include <string>
 
 namespace xucrun::same_user_launch
@@ -22,5 +24,6 @@ namespace xucrun::same_user_launch
 		const std::wstring& arguments,
 		bool elevateCurrentToken,
 		bool hiddenLaunch,
-		bool monitorHiddenLaunch);
+		bool monitorHiddenLaunch,
+		HANDLE* launchedProcess = nullptr);
 }

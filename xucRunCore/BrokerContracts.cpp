@@ -140,6 +140,49 @@ namespace xucrun::broker
 		return ResultValidationError::None;
 	}
 
+	ContractValidationError ValidateSystemLaunchRequest(
+		const SystemLaunchRequest& request) noexcept
+	{
+		if (request.protocolVersion != ProtocolVersion)
+			return ContractValidationError::UnsupportedProtocolVersion;
+		if (request.requestId == 0)
+			return ContractValidationError::MissingRequestId;
+		if (request.executablePath.empty())
+			return ContractValidationError::MissingExecutablePath;
+		if (request.executablePath.size() > MaximumPathLength)
+			return ContractValidationError::ExecutablePathTooLong;
+		if (request.argumentTail.size() > MaximumArgumentLength)
+			return ContractValidationError::ArgumentsTooLong;
+		if (request.workingDirectory.size() > MaximumPathLength)
+			return ContractValidationError::WorkingDirectoryTooLong;
+		return ContractValidationError::None;
+	}
+
+	ResultValidationError ValidateSystemLaunchResult(
+		const SystemLaunchResult& result) noexcept
+	{
+		if (result.protocolVersion != ProtocolVersion)
+			return ResultValidationError::UnsupportedProtocolVersion;
+		if (result.requestId == 0)
+			return ResultValidationError::MissingRequestId;
+		switch (result.status)
+		{
+		case SystemLaunchStatus::Succeeded:
+			if (result.processId == 0 || result.windowsError != NO_ERROR)
+				return ResultValidationError::InvalidStatus;
+			break;
+		case SystemLaunchStatus::InvalidRequest:
+		case SystemLaunchStatus::AccessDenied:
+		case SystemLaunchStatus::Failed:
+			if (result.processId != 0 || result.windowsError == NO_ERROR)
+				return ResultValidationError::InvalidStatus;
+			break;
+		default:
+			return ResultValidationError::InvalidStatus;
+		}
+		return ResultValidationError::None;
+	}
+
 	// Accepts metadata requests only with a valid version, identifier, and bounded account SID.
 	ContractValidationError ValidateCredentialMetadataRequest(
 		const CredentialMetadataRequest& request) noexcept

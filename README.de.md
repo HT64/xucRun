@@ -431,7 +431,7 @@ deshalb beim ersten Start einen unbekannten Herausgeber melden.
 
 Der einfachste Installationsweg ist
 `xucRun-Installer-<Version>-x64.exe`, beispielsweise
-`xucRun-Installer-0.9.0.2-x64.exe`. Vor dem Start sollte die Datei nur aus den
+`xucRun-Installer-0.9.0.3-x64.exe`. Vor dem Start sollte die Datei nur aus den
 [offiziellen xucRun-Veröffentlichungen](https://github.com/HT64/xucRun/releases) bezogen, ihre
 SHA-256-Prüfsumme mit der dort veröffentlichten Prüfsumme verglichen und eine vorhandene
 Authenticode-Signatur geprüft werden.
@@ -673,9 +673,10 @@ Kontextmenü verwendet, erscheinen sie unmittelbar.
 
 ### Integration in Total Commander
 
-Die folgenden Beispiele wurden mit Total Commander 11.58 (64 Bit) getestet. Sie können auch mit
-anderen Versionen funktionieren; deren Kompatibilität wurde jedoch nicht geprüft. Allgemeine
-Informationen zu Total Commander bietet die
+Die folgenden Beispiele zeigen Ausschnitte der Total-Commander-Konfigurationsdatei `usercmd.ini`.
+Sie wurden mit Total Commander 11.58 (64 Bit) getestet. Sie können auch mit anderen Versionen
+funktionieren; deren Kompatibilität wurde jedoch nicht geprüft. Allgemeine Informationen zu Total
+Commander bietet die
 [offizielle Total-Commander-Webseite](https://www.ghisler.com/deutsch.htm).
 
 xucRun kann eine neue erhöhte Total-Commander-Instanz nach seiner automatischen Kontostrategie
@@ -704,15 +705,42 @@ Befehl auf. Für den Kontowechsel eines Standardbenutzers muss mindestens ein Ad
 xucRun gespeichert sein. Sind mehrere passende Administratorkonten gespeichert, erscheint die
 Kontoauswahl. Eine erforderliche Windows-UAC-Abfrage muss bestätigt werden.
 
+Der folgende Befehl startet eine neue Total-Commander-Instanz als `LocalSystem`. Dabei bleiben der
+linke Pfad, der rechte Pfad und das aktive Dateipanel erhalten:
+
+```ini
+[em_TCStart_System]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd="%ProgramFiles%\xucRun\xucRun.exe"
+param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /system "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
+menu=Total Commander über xucRun als LocalSystem starten
+iconic=1
+```
+
+Dieser Befehl muss xucRun zweimal aufrufen, weil `/system` nur aus einem erhöhten
+Administratorkontext verfügbar ist. Der äußere Aufruf startet nach der zuvor beschriebenen
+automatischen Kontostrategie eine erhöhte zwischengeschaltete Eingabeaufforderung und verbirgt sie
+durch `/hidden-monitor`. Der innere xucRun-Aufruf läuft dadurch mit erhöhten Administratorrechten
+und startet Total Commander als `LocalSystem`. Jeder SYSTEM-Start muss separat auf dem geschützten
+privaten xucRun-Desktop bestätigt werden.
+
+Die zwischengeschaltete `cmd.exe /v:on /c` speichert die von Total Commander gelieferten Pfade
+zuerst in Umgebungsvariablen und übergibt sie danach per verzögerter Variablenerweiterung an den
+inneren xucRun-Aufruf. Dadurch werden auch Pfade mit Leer- und Sonderzeichen zuverlässig
+verarbeitet. Der Vergleich der Pfade bestimmt zusätzlich, ob das linke oder rechte Panel aktiv
+ist.
+
+Total Commander besitzt anschließend uneingeschränkte `LocalSystem`-Rechte. Verwenden Sie diesen
+Befehl nur bewusst für Wartung und Diagnose.
+
 xucRun kann Total Commander außerdem unter einem ausdrücklich ausgewählten anderen Windows-Konto
 starten, ohne dass dieses bereits interaktiv angemeldet ist. So lassen sich Dateioperationen aus
 einer normalen Benutzersitzung heraus in einem anderen Kontokontext ausführen. Für erhöhte
 administrative Dateioperationen muss das Zielkonto über Administratorrechte verfügen und die
 Windows-UAC-Abfrage bestätigt werden.
 
-In `usercmd.ini` wird dafür ein benutzerdefinierter Befehl angelegt. `<Konto>` ist durch den
-eingerichteten Kontonamen zu ersetzen; die Total-Commander-Variablen und das Quoting müssen
-unverändert übernommen werden:
+Für dieses Beispiel ist `<Konto>` durch den eingerichteten Kontonamen zu ersetzen; die
+Total-Commander-Variablen und das Quoting müssen unverändert übernommen werden:
 
 ```ini
 [em_TCStart_Konto]
@@ -723,27 +751,20 @@ menu=Total Commander als <Konto> starten
 iconic=1
 ```
 
-Der Befehl verwendet xucRun bewusst zweimal, damit ein Administratorkonto als zentraler
-Bevollmächtigter für die Anmeldedaten weiterer Zielkonten dienen kann. Für die eigentliche
-Startfunktion ist diese Kaskade nicht erforderlich; das hier ist eine spezielle Designentscheidung
-für die Art und Weise, wie die Anmeldedaten gespeichert werden. Das Beispiel zeigt zugleich, wie
-xucRun auch in einer verschachtelten Prozesskette mit komplexen Pfad- und Befehlszeilenargumenten
-eingesetzt werden kann. Der äußere Aufruf startet die mit
-`/hidden-monitor` verborgene `cmd.exe` nach der xucRun-Standardstrategie zunächst unter diesem
-Administratorkonto. Der darin ausgeführte innere xucRun-Aufruf läuft deshalb mit der SID des
-Administrators und kann dessen für `<Konto>` gespeicherte Anmeldedaten verwenden. Dadurch müssen
-die Anmeldedaten der weiteren Zielkonten nicht für jeden Standardbenutzer erneut gespeichert
-werden; jeder Standardbenutzer benötigt nur die für ihn gespeicherten Anmeldedaten des zentralen
-Administratorkontos. Ein einzelner xucRun-Aufruf des Standardbenutzers könnte dagegen nur dessen
-eigene, an seine SID gebundenen Anmeldedaten verwenden. Der innere Aufruf verarbeitet
+Der Befehl verwendet xucRun erneut zweimal, damit ein Administratorkonto als zentraler
+Bevollmächtigter für die Anmeldedaten weiterer Zielkonten dienen kann. Bei diesem Beispiel ist die
+Kaskade im Unterschied zum zuvor beschriebenen LocalSystem-Beispiel für die eigentliche
+Startfunktion nicht erforderlich; sie ist hier eine bewusste Designentscheidung für die
+Speicherung der Anmeldedaten. Der äußere Aufruf verwendet dieselbe zuvor beschriebene verborgene,
+erhöhte Administrator-Zwischenstufe. Der darin ausgeführte innere xucRun-Aufruf läuft deshalb mit
+der SID des Administrators und kann dessen für `<Konto>` gespeicherte Anmeldedaten verwenden.
+Dadurch müssen die Anmeldedaten der weiteren Zielkonten nicht für jeden Standardbenutzer erneut
+gespeichert werden; jeder Standardbenutzer benötigt nur die für ihn gespeicherten Anmeldedaten des
+zentralen Administratorkontos. Ein einzelner xucRun-Aufruf des Standardbenutzers könnte dagegen
+nur dessen eigene, an seine SID gebundenen Anmeldedaten verwenden. Der innere Aufruf verarbeitet
 `/user:<Konto>` und startet die sichtbare Total-Commander-Instanz unter dem Zielkonto. Die
 Erhöhung der äußeren Zwischenstufe wird nicht auf das Zielkonto übertragen; dessen Rechte bleiben
 unverändert.
-
-Die vorgeschaltete `cmd.exe /v:on /c` speichert die von Total Commander gelieferten Pfade zuerst
-in Umgebungsvariablen und übergibt sie danach per verzögerter Variablenerweiterung an den inneren
-xucRun-Aufruf. Dadurch werden auch Pfade mit Leer- und Sonderzeichen zuverlässig verarbeitet. Der
-Vergleich der Pfade bestimmt zusätzlich, ob das linke oder rechte Panel aktiv ist.
 
 Der Befehl kann beispielsweise in ein benutzerdefiniertes Menü aufgenommen werden:
 
@@ -931,6 +952,7 @@ Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
 | `xucRun.exe /showcred` | Konten anzeigen, für die xucRun-Anmeldedaten gespeichert sind |
 | `xucRun.exe /showapprovals` | gespeicherte Freigaben anzeigen |
 | `xucRun.exe /resetapprovals[:<Konto>]` | Freigaben zurücksetzen |
+| `xucRun.exe /system [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell als `LocalSystem` starten |
 | `xucRun.exe /info` | Version, Copyright, Signierzertifikat, Brokerstatus und aktuelle Konfiguration anzeigen |
 | `xucRun.exe /admin-status` | Daten aller Windows-Benutzer erhöht anzeigen und verwalten |
 | `xucRun.exe /backup` | lokale Datensicherungen verwalten |
@@ -942,6 +964,43 @@ Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
 `/hidden` verbirgt das unmittelbar gestartete Zielprogramm. `/hidden-monitor` überwacht zusätzlich
 dessen Exitcode und zeigt bei einem Fehler einen Hinweis. Dialoge und Kindprozesse werden dadurch
 nicht verborgen oder überwacht.
+
+### Anwendung oder Ersatz-Shell als LocalSystem starten
+
+`xucRun.exe /system [<Anwendung> [Argumente...]]` startet die angegebene lokale Anwendung oder
+ohne angegebene Anwendung eine Ersatz-Shell unter dem Windows-Konto `LocalSystem` in der
+interaktiven Sitzung des Aufrufers. Dieser Modus steht nur Mitgliedern der lokalen
+Administratorengruppe zur Verfügung. Ein noch nicht erhöht gestarteter Administrator erhält eine
+Windows-UAC-Abfrage; ein bereits erhöhter Administrator führt den Start ohne weitere UAC-Abfrage
+aus. Standardbenutzer werden vor einer Erhöhungsanforderung abgewiesen.
+
+Ohne Anwendung ersetzt `xucRun.exe /system` eine aufrufende TCC-, Eingabeaufforderungs-, Windows-
+PowerShell- oder PowerShell-Core-Shell durch dieselbe Shell unter `LocalSystem`. Das aktuelle
+Arbeitsverzeichnis bleibt erhalten, die neue Shell wird in den Vordergrund gebracht und die
+bisherige Shell erst nach erfolgreichem Start des Ersatzes geschlossen.
+
+Das erhöhte Administratorkonto darf vom in der interaktiven Sitzung angemeldeten Konto abweichen.
+Dadurch kann `/system` aus einer erhöhten Ersatz-Shell in der Sitzung eines anderen Benutzers
+aufgerufen werden.
+
+`/system` verwendet keine gespeicherten Anmeldedaten oder Freigaben. Jeder Start muss separat im
+signierten xucRun-Freigabehelper bestätigt werden. Der Dialog erscheint auf dem geschützten
+privaten xucRun-Desktop und zeigt die genaue Programmdatei, alle Argumente und das
+Arbeitsverzeichnis. Die Bestätigung gilt nur für diesen einen Aufruf und kann nicht gespeichert
+werden. xucRun prüft die Programmdatei unmittelbar vor dem Start erneut.
+
+Der private Desktop schützt die Bestätigung vor normalen Anwendungen auf dem normalen Desktop. Er
+kann jedoch nicht vor Schadsoftware schützen, die bereits mit erhöhten Administratorrechten in
+derselben Anmeldesitzung ausgeführt wird. Verwenden Sie `/system` deshalb nur aus einer
+vertrauenswürdigen erhöhten Administratorsitzung.
+
+```cmd
+xucRun.exe /system "%SystemRoot%\regedit.exe" /m
+```
+
+Als `LocalSystem` ausgeführte Anwendungen besitzen weitreichende Kontrolle über den Rechner.
+Insbesondere bezeichnet `HKEY_CURRENT_USER` das Profil von `LocalSystem` und nicht das Profil des
+angemeldeten Benutzers. Verwenden Sie diesen Modus nur bewusst für Wartung und Diagnose.
 
 ## Anmeldedaten und Freigaben verwalten
 

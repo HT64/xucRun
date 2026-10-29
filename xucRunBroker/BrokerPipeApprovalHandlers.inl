@@ -180,7 +180,9 @@
 					result.userConfirmationRequired = false;
 					result.challengeId = pending->challengeId;
 					result.canonicalClientName = clientAccount.canonicalName;
-					result.canonicalAccountName = account.canonicalName;
+					result.canonicalAccountName = pending->systemLaunch
+						? L"NT AUTHORITY\\SYSTEM"
+						: account.canonicalName;
 					result.clientPath = pending->clientPath;
 					std::copy_n(pending->clientSha256.begin(), result.clientSha256.size(),
 						result.clientSha256.begin());
@@ -197,6 +199,7 @@
 					result.visibility = pending->visibility;
 					result.helperStartMode = pending->helperStartMode;
 					result.approvalHelperView = true;
+					result.systemLaunchConfirmation = pending->systemLaunch;
 					result.storedApprovalPresenceConfirmation =
 						pending->storedApprovalPresenceConfirmation;
 					result.writableElevatedTargetReason =
@@ -275,6 +278,48 @@
 			static_cast<DWORD>(response.size()), transferred);
 	}
 
+	bool MatchesApprovalHelperDecisionBinding(
+		const PendingApprovalChallenge& pending,
+		DWORD helperProcessId, DWORD helperSessionId,
+		const xucrun::broker::ApprovalHelperDecisionRequest& request)
+	{
+		return pending.userConfirmationRequired &&
+			pending.clientSessionId == helperSessionId &&
+			pending.helperProcessId == helperProcessId &&
+			!pending.helperDecisionRecorded &&
+			(!pending.storedApprovalPresenceConfirmation ||
+				IsSingleUseApprovalDecision(request)) &&
+			(pending.writableElevatedTargetReason ==
+				xucrun::broker::ApprovalFailureReason::None ||
+				IsSingleUseApprovalDecision(request)) &&
+			(!pending.systemLaunch || IsSingleUseApprovalDecision(request)) &&
+			(request.updateScope == xucrun::broker::ApprovalUpdateScope::None ||
+				pending.programUpdate.available) &&
+			request.broadInterpreterApprovalConfirmed ==
+				RequiresBroadInterpreterApprovalConfirmation(pending, request);
+	}
+
+	bool ApplyApprovalHelperDecision(
+		std::deque<PendingApprovalChallenge>& pendingChallenges,
+		const xucrun::broker::ApprovalHelperDecisionRequest& request,
+		bool& denied)
+	{
+		const auto pending = std::find_if(
+			pendingChallenges.begin(), pendingChallenges.end(),
+			[&request](const PendingApprovalChallenge& value) {
+				return value.challengeId == request.challengeId;
+			});
+		if (pending == pendingChallenges.end())
+			return false;
+
+		pending->helperDecision = request;
+		pending->helperDecisionRecorded = true;
+		denied = request.decision == xucrun::broker::ApprovalDecision::Deny;
+		if (denied)
+			pendingChallenges.erase(pending);
+		return true;
+	}
+
 	// Records exactly one decision from the helper process associated with the challenge.
 	void HandleApprovalHelperDecisionRequest(HANDLE pipe, HANDLE stopEvent,
 		DWORD helperProcessId, DWORD helperSessionId, DWORD helperIntegrityRid,
@@ -306,39 +351,42 @@
 			result.status = xucrun::broker::ApprovalConfirmationStatus::Expired;
 			result.windowsError = ERROR_TIMEOUT;
 		}
-		else if (!pending->userConfirmationRequired ||
-			pending->clientSessionId != helperSessionId ||
-			pending->helperProcessId != helperProcessId ||
-			pending->helperDecisionRecorded ||
-			(pending->storedApprovalPresenceConfirmation &&
-			 !IsSingleUseApprovalDecision(request)) ||
-			(pending->writableElevatedTargetReason !=
-				xucrun::broker::ApprovalFailureReason::None &&
-			 !IsSingleUseApprovalDecision(request)) ||
-			(request.updateScope != xucrun::broker::ApprovalUpdateScope::None &&
-			 !pending->programUpdate.available) ||
-			request.broadInterpreterApprovalConfirmed !=
-				RequiresBroadInterpreterApprovalConfirmation(*pending, request))
+		else if (!MatchesApprovalHelperDecisionBinding(
+			*pending, helperProcessId, helperSessionId, request))
 		{
 			result.status = xucrun::broker::ApprovalConfirmationStatus::Denied;
 			result.windowsError = ERROR_ACCESS_DENIED;
 		}
 		else
 		{
-			pending->helperDecision = request;
-			pending->helperDecisionRecorded = true;
-			const bool denied = request.decision == xucrun::broker::ApprovalDecision::Deny;
+			bool denied = false;
+			ApplyApprovalHelperDecision(pendingChallenges, request, denied);
 			result.status = denied
 				? xucrun::broker::ApprovalConfirmationStatus::Denied
 				: xucrun::broker::ApprovalConfirmationStatus::Confirmed;
 			result.windowsError = denied ? ERROR_CANCELLED : NO_ERROR;
-			if (denied)
-				pendingChallenges.erase(pending);
 		}
 		const std::vector<std::uint8_t> response =
 			xucrun::broker::SerializeApprovalHelperDecisionResult(result);
 		RunOverlappedIo(pipe, stopEvent, true, const_cast<std::uint8_t*>(response.data()),
 			static_cast<DWORD>(response.size()), transferred);
+	}
+
+	bool ConsumePendingApprovalChallenge(
+		std::deque<PendingApprovalChallenge>& pendingChallenges,
+		const xucrun::broker::RequestNonce& challengeId,
+		PendingApprovalChallenge& consumed)
+	{
+		const auto pending = std::find_if(
+			pendingChallenges.begin(), pendingChallenges.end(),
+			[&challengeId](const PendingApprovalChallenge& value) {
+				return value.challengeId == challengeId;
+			});
+		if (pending == pendingChallenges.end())
+			return false;
+		consumed = std::move(*pending);
+		pendingChallenges.erase(pending);
+		return true;
 	}
 
 // Consumes a challenge once, revalidates its bindings, and launches the confirmed target.
@@ -363,12 +411,10 @@
 		else
 		{
 			const DWORD clientProcessId = GetProcessId(clientProcess);
-			const auto pendingIterator = std::find_if(
-				pendingApprovalChallenges.begin(), pendingApprovalChallenges.end(),
-				[&approvalConfirmationRequest](const PendingApprovalChallenge& pending) {
-					return pending.challengeId == approvalConfirmationRequest.challengeId;
-				});
-			if (pendingIterator == pendingApprovalChallenges.end())
+			PendingApprovalChallenge pending;
+			if (!ConsumePendingApprovalChallenge(
+				pendingApprovalChallenges,
+				approvalConfirmationRequest.challengeId, pending))
 			{
 				confirmationResult.status =
 					xucrun::broker::ApprovalConfirmationStatus::InvalidRequest;
@@ -376,8 +422,6 @@
 			}
 			else
 			{
-				PendingApprovalChallenge pending = std::move(*pendingIterator);
-				pendingApprovalChallenges.erase(pendingIterator);
 				xucrun::broker::ApprovalConfirmationRequest effectiveRequest =
 					approvalConfirmationRequest;
 				if (pending.helperDecisionRecorded)
@@ -435,9 +479,68 @@
 				}
 				else
 				{
-					AccountIdentity accountIdentity;
-					LaunchObjectLocks launchObjectLocks;
-					if (!ResolveUserAccountIdentity(
+					if (pending.systemLaunch)
+					{
+						TargetImageIdentity targetIdentity;
+						targetIdentity.path = pending.executablePath;
+						targetIdentity.sha256.assign(
+							pending.executableSha256.begin(),
+							pending.executableSha256.end());
+						std::vector<HANDLE> launchLocks;
+						DWORD launchedProcessId = 0;
+						std::wstring effectiveWorkingDirectory;
+						std::wstring failedStage;
+						if (effectiveRequest.decision !=
+								xucrun::broker::ApprovalDecision::ApproveOnce ||
+							effectiveRequest.persistence !=
+								xucrun::broker::ApprovalPersistence::Once ||
+							effectiveRequest.updateScope !=
+								xucrun::broker::ApprovalUpdateScope::None ||
+							!LockAndRevalidateSystemTarget(
+								targetIdentity, launchLocks, confirmationError))
+						{
+							confirmationResult.status =
+								xucrun::broker::ApprovalConfirmationStatus::Denied;
+							confirmationResult.windowsError =
+								confirmationError == NO_ERROR
+									? ERROR_FILE_INVALID : confirmationError;
+						}
+						else if (LaunchSystemProcess(clientSessionId,
+							targetIdentity.path, pending.argumentTail,
+							pending.workingDirectory, launchedProcessId,
+							effectiveWorkingDirectory, confirmationError, failedStage))
+						{
+							confirmationResult.status =
+								xucrun::broker::ApprovalConfirmationStatus::Confirmed;
+							confirmationResult.processId = launchedProcessId;
+							if (log)
+								log(EVENTLOG_INFORMATION_TYPE,
+									L"Protected SYSTEM launch challenge confirmed and "
+									L"consumed; process started. PID " +
+									std::to_wstring(launchedProcessId) + L", target " +
+									SanitizeLogValue(targetIdentity.path) + L".");
+						}
+						else
+						{
+							confirmationResult.status =
+								xucrun::broker::ApprovalConfirmationStatus::Failed;
+							confirmationResult.windowsError =
+								confirmationError == NO_ERROR
+									? ERROR_GEN_FAILURE : confirmationError;
+							if (log)
+								log(EVENTLOG_ERROR_TYPE,
+									L"Confirmed SYSTEM launch failed at stage " +
+									SanitizeLogValue(failedStage) + L". Error " +
+									std::to_wstring(
+										confirmationResult.windowsError));
+						}
+						CloseSystemLaunchLocks(launchLocks);
+					}
+					else
+					{
+						AccountIdentity accountIdentity;
+						LaunchObjectLocks launchObjectLocks;
+						if (!ResolveUserAccountIdentity(
 						pending.accountSid, accountIdentity, confirmationError) ||
 						accountIdentity.sid != pending.accountSid ||
 						(pending.elevationMode ==
@@ -512,7 +615,7 @@
 									std::to_wstring(updatedCount) +
 									L" approval(s) updated after confirmed program update: " +
 									SanitizeLogValue(pending.programUpdate.changedPath));
-							}
+								}
 						}
 						else if (!StoreApproval(pending, effectiveRequest,
 							storedApproval, approvalStored, confirmationError))
@@ -642,6 +745,7 @@
 				}
 			}
 		}
+		}
 		std::vector<std::uint8_t> response =
 			xucrun::broker::SerializeApprovalConfirmationResult(confirmationResult);
 		RunOverlappedIo(pipe, stopEvent, true, response.data(),
@@ -649,15 +753,184 @@
 	}
 
 // Issues a short-lived challenge and starts its fixed approval helper when required.
-	void HandleApprovalChallengeRequest(HANDLE pipe, HANDLE stopEvent,
-		HANDLE clientProcess, DWORD clientProcessId, const ClientImageIdentity& imageIdentity,
-		const std::wstring& clientSid,
-		const std::wstring& clientLogonSid, DWORD clientSessionId,
+	bool HandleSystemLaunchChallengeRequest(HANDLE pipe, HANDLE stopEvent,
+		HANDLE clientProcess, DWORD clientProcessId,
+		const ClientImageIdentity& imageIdentity,
+		const std::wstring& clientSid, const std::wstring& clientLogonSid,
+		DWORD clientSessionId, DWORD clientIntegrityRid,
 		const xucrun::broker::ApprovalChallengeRequest& request,
 		std::deque<PendingApprovalChallenge>& pendingChallenges,
 		std::deque<PendingCredentialCaptureChallenge>& pendingCredentialChallenges,
 		BrokerLogCallback log, DWORD& transferred)
 	{
+		if (!request.systemLaunch)
+			return false;
+
+		xucrun::broker::ApprovalChallengeResult result;
+		result.requestId = request.requestId;
+		result.elevationMode = xucrun::broker::ElevationMode::RequireElevated;
+		result.visibility = request.visibility;
+		result.systemLaunchConfirmation = true;
+		DWORD error = NO_ERROR;
+		AccountIdentity clientAccount;
+		TargetImageIdentity targetIdentity;
+		ClientImageIdentity targetImageIdentity;
+		std::wstring workingDirectory;
+		PrunePendingApprovalChallenges(pendingChallenges);
+		PrunePendingCredentialCaptureChallenges(pendingCredentialChallenges);
+		if (_wcsicmp(clientSid.c_str(), L"S-1-5-18") == 0 ||
+			!IsCoreClientAuthorized(imageIdentity, error) ||
+			!IsElevatedAdministratorProcess(clientProcess, clientIntegrityRid, error))
+		{
+			result.status = xucrun::broker::ApprovalChallengeStatus::Denied;
+			result.windowsError = error == NO_ERROR ? ERROR_ACCESS_DENIED : error;
+		}
+		else if (_wcsicmp(request.requestedAccountSid.c_str(), clientSid.c_str()) != 0 ||
+			!request.approvalAccountSid.empty() ||
+			request.elevationMode != xucrun::broker::ElevationMode::RequireElevated ||
+			request.visibility != xucrun::broker::LaunchVisibility::Normal)
+		{
+			result.status = xucrun::broker::ApprovalChallengeStatus::InvalidRequest;
+			result.windowsError = ERROR_INVALID_DATA;
+		}
+		else if (!ResolveUserAccountIdentity(clientSid, clientAccount, error) ||
+			!ReadTargetImageIdentity(request.executablePath, targetIdentity, error) ||
+			!ReadFileImageIdentity(
+				targetIdentity.path, targetImageIdentity, error, false) ||
+			targetImageIdentity.sha256 != targetIdentity.sha256 ||
+			targetIdentity.sha256.size() != result.executableSha256.size() ||
+			!ResolveWorkingDirectory(
+				request.workingDirectory, workingDirectory, error))
+		{
+			result.status = xucrun::broker::ApprovalChallengeStatus::InvalidRequest;
+			result.windowsError = error == NO_ERROR ? ERROR_INVALID_DATA : error;
+		}
+		else if (HasPendingSecureDesktopChallenge(pendingChallenges,
+			pendingCredentialChallenges, clientSessionId))
+		{
+			result.status = xucrun::broker::ApprovalChallengeStatus::Failed;
+			result.windowsError = ERROR_BUSY;
+		}
+		else if (!HasPendingApprovalChallengeCapacity(pendingChallenges,
+			clientSid, clientSessionId, clientProcessId, result.failureReason))
+		{
+			result.status = xucrun::broker::ApprovalChallengeStatus::Failed;
+			result.windowsError = ERROR_TOO_MANY_CMDS;
+		}
+		else if (!GenerateChallengeId(pendingChallenges, result.challengeId))
+		{
+			result.status = xucrun::broker::ApprovalChallengeStatus::Failed;
+			result.windowsError = ERROR_GEN_FAILURE;
+		}
+		else
+		{
+			result.status = xucrun::broker::ApprovalChallengeStatus::Issued;
+			result.canonicalClientName = clientAccount.canonicalName;
+			result.canonicalAccountName = L"NT AUTHORITY\\SYSTEM";
+			result.clientPath = imageIdentity.path;
+			std::copy_n(imageIdentity.sha256.begin(), result.clientSha256.size(),
+				result.clientSha256.begin());
+			result.clientTrustStatus = imageIdentity.trustStatus;
+			result.clientSignatureTrusted = imageIdentity.signatureTrusted;
+			result.finalExecutablePath = targetIdentity.path;
+			std::copy(targetIdentity.sha256.begin(), targetIdentity.sha256.end(),
+				result.executableSha256.begin());
+			result.executableTrustStatus = targetImageIdentity.trustStatus;
+			result.executableSignatureTrusted = targetImageIdentity.signatureTrusted;
+			result.argumentTail = request.argumentTail;
+			result.workingDirectory = workingDirectory;
+			result.userConfirmationRequired = true;
+
+			PendingApprovalChallenge pending;
+			pending.challengeId = result.challengeId;
+			pending.expiresAt = GetTickCount64() +
+				xucrun::broker::ApprovalChallengeLifetimeMilliseconds;
+			pending.clientSid = clientSid;
+			pending.clientLogonSid = clientLogonSid;
+			pending.clientProcessId = clientProcessId;
+			pending.clientSessionId = clientSessionId;
+			pending.accountSid = clientSid;
+			pending.clientPath = imageIdentity.path;
+			pending.clientSha256 = imageIdentity.sha256;
+			pending.clientTrustStatus = imageIdentity.trustStatus;
+			pending.clientSignatureTrusted = imageIdentity.signatureTrusted;
+			pending.executablePath = result.finalExecutablePath;
+			pending.executableSha256 = result.executableSha256;
+			pending.executableTrustStatus = targetImageIdentity.trustStatus;
+			pending.executableSignatureTrusted =
+				targetImageIdentity.signatureTrusted;
+			pending.argumentTail = result.argumentTail;
+			pending.workingDirectory = result.workingDirectory;
+			pending.elevationMode =
+				xucrun::broker::ElevationMode::RequireElevated;
+			pending.visibility = xucrun::broker::LaunchVisibility::Normal;
+			pending.systemLaunch = true;
+			pending.userConfirmationRequired = true;
+			if (!ComputeUtf16Sha256(pending.argumentTail, pending.argumentHash))
+			{
+				result = {};
+				result.requestId = request.requestId;
+				result.status = xucrun::broker::ApprovalChallengeStatus::Failed;
+				result.windowsError = ERROR_GEN_FAILURE;
+			}
+			else
+			{
+				std::wstring failedStage;
+				xucrun::broker::ApprovalFailureReason helperFailureReason =
+					xucrun::broker::ApprovalFailureReason::None;
+				if (!LaunchApprovalHelperForChallenge(clientProcess, clientAccount,
+					pending, result.approvalHelperProcessHandle,
+					helperFailureReason, error, failedStage))
+				{
+					result = {};
+					result.requestId = request.requestId;
+					result.status = xucrun::broker::ApprovalChallengeStatus::Failed;
+					result.failureReason = helperFailureReason;
+					result.windowsError = error == NO_ERROR
+						? ERROR_GEN_FAILURE : error;
+					if (log)
+						log(EVENTLOG_ERROR_TYPE,
+							L"SYSTEM approval helper launch failed at stage " +
+							failedStage + L". Error " +
+							std::to_wstring(result.windowsError));
+				}
+				else
+				{
+					result.helperStartMode = pending.helperStartMode;
+					pendingChallenges.push_back(std::move(pending));
+					if (log)
+						log(EVENTLOG_INFORMATION_TYPE,
+							L"Short-lived SYSTEM launch challenge issued for client SID " +
+							clientSid + L" and target " +
+							SanitizeLogValue(targetIdentity.path) + L".");
+				}
+			}
+		}
+		const std::vector<std::uint8_t> response =
+			xucrun::broker::SerializeApprovalChallengeResult(result);
+		RunOverlappedIo(pipe, stopEvent, true,
+			const_cast<std::uint8_t*>(response.data()),
+			static_cast<DWORD>(response.size()), transferred);
+		return true;
+	}
+
+	void HandleApprovalChallengeRequest(HANDLE pipe, HANDLE stopEvent,
+		HANDLE clientProcess, DWORD clientProcessId, const ClientImageIdentity& imageIdentity,
+		const std::wstring& clientSid,
+		const std::wstring& clientLogonSid, DWORD clientSessionId,
+		DWORD clientIntegrityRid,
+		const xucrun::broker::ApprovalChallengeRequest& request,
+		std::deque<PendingApprovalChallenge>& pendingChallenges,
+		std::deque<PendingCredentialCaptureChallenge>& pendingCredentialChallenges,
+		BrokerLogCallback log, DWORD& transferred)
+	{
+		if (HandleSystemLaunchChallengeRequest(pipe, stopEvent, clientProcess,
+			clientProcessId, imageIdentity, clientSid, clientLogonSid,
+			clientSessionId, clientIntegrityRid, request, pendingChallenges,
+			pendingCredentialChallenges, log, transferred))
+		{
+			return;
+		}
 		xucrun::broker::ApprovalChallengeResult result;
 		result.requestId = request.requestId;
 		result.elevationMode = request.elevationMode;

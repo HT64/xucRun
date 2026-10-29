@@ -56,8 +56,11 @@ namespace xucrun::same_user_launch
 		const std::wstring& arguments,
 		bool elevateCurrentToken,
 		bool hiddenLaunch,
-		bool monitorHiddenLaunch)
+		bool monitorHiddenLaunch,
+		HANDLE* launchedProcess)
 	{
+		if (launchedProcess)
+			*launchedProcess = nullptr;
 		// Also start batch targets explicitly via cmd.exe in the direct same-user path.
 		// A quoted first parameter ending with a trailing backslash can collapse
 		// remaining arguments and is reconstructed first.
@@ -162,7 +165,10 @@ namespace xucrun::same_user_launch
 						L"Windows error: " + std::to_wstring(monitorError));
 				}
 			}
-			CloseHandle(sei.hProcess);
+			if (launchedProcess)
+				*launchedProcess = sei.hProcess;
+			else
+				CloseHandle(sei.hProcess);
 		}
 
 		return true;

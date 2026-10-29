@@ -695,6 +695,82 @@ namespace
 		}
 	}
 
+	void ExpectSystemLaunchSerialization()
+	{
+		xucrun::broker::SystemLaunchRequest request;
+		request.requestId = 0x0102030405060708ULL;
+		request.executablePath = L"E";
+		request.argumentTail = L"A";
+		request.workingDirectory = L"W";
+		const std::vector<std::uint8_t> requestFrame =
+			xucrun::broker::SerializeSystemLaunchRequest(request);
+		const std::vector<std::uint8_t> expectedRequestFrame = {
+			'X', 'U', 'E', 'S', 58, 0, 0, 0,
+			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,
+			'E', 0, 'A', 0, 'W', 0
+		};
+		xucrun::broker::SystemLaunchRequest parsedRequest;
+		if (requestFrame != expectedRequestFrame ||
+			!xucrun::broker::DeserializeSystemLaunchRequest(
+				requestFrame, parsedRequest) ||
+			parsedRequest.requestId != request.requestId ||
+			parsedRequest.executablePath != request.executablePath ||
+			parsedRequest.argumentTail != request.argumentTail ||
+			parsedRequest.workingDirectory != request.workingDirectory)
+		{
+			std::cerr << "SYSTEM launch request serialization failed\n";
+			failures++;
+		}
+		for (std::size_t size = 0; size < requestFrame.size(); size++)
+		{
+			if (xucrun::broker::DeserializeSystemLaunchRequest(
+				std::span<const std::uint8_t>(requestFrame.data(), size),
+				parsedRequest))
+			{
+				std::cerr << "truncated SYSTEM launch request accepted\n";
+				failures++;
+				break;
+			}
+		}
+
+		xucrun::broker::SystemLaunchResult result;
+		result.requestId = request.requestId;
+		result.status = xucrun::broker::SystemLaunchStatus::Succeeded;
+		result.processId = 1234;
+		const std::vector<std::uint8_t> resultFrame =
+			xucrun::broker::SerializeSystemLaunchResult(result);
+		const std::vector<std::uint8_t> expectedResultFrame = {
+			'X', 'U', 'E', 'T', 59, 0, 0, 0,
+			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			0, 0, 0, 0, 210, 4, 0, 0
+		};
+		xucrun::broker::SystemLaunchResult parsedResult;
+		if (resultFrame != expectedResultFrame ||
+			!xucrun::broker::DeserializeSystemLaunchResult(
+				resultFrame, parsedResult) ||
+			parsedResult.status != result.status ||
+			parsedResult.processId != result.processId)
+		{
+			std::cerr << "SYSTEM launch result serialization failed\n";
+			failures++;
+		}
+		result.windowsError = ERROR_ACCESS_DENIED;
+		if (!xucrun::broker::SerializeSystemLaunchResult(result).empty())
+		{
+			std::cerr << "inconsistent successful SYSTEM result serialized\n";
+			failures++;
+		}
+		result.status = xucrun::broker::SystemLaunchStatus::Failed;
+		result.windowsError = NO_ERROR;
+		result.processId = 0;
+		if (!xucrun::broker::SerializeSystemLaunchResult(result).empty())
+		{
+			std::cerr << "SYSTEM failure without error serialized\n";
+			failures++;
+		}
+	}
+
 	// Tests fixed frame sizes and identifier and nonce fidelity for all health messages.
 	void ExpectHealthSerialization()
 	{
@@ -1452,11 +1528,24 @@ namespace
 			failures++;
 		}
 		invalidRequest = requestFrame;
-		invalidRequest[7] = 1;
+		invalidRequest[7] = 2;
 		if (xucrun::broker::DeserializeApprovalChallengeRequest(
 			invalidRequest, parsedRequest))
 		{
-			std::cerr << "nonzero approval challenge reserved byte accepted\n";
+			std::cerr << "unknown approval challenge mode flag accepted\n";
+			failures++;
+		}
+		xucrun::broker::ApprovalChallengeRequest systemRequest = request;
+		systemRequest.approvalAccountSid.clear();
+		systemRequest.visibility = xucrun::broker::LaunchVisibility::Normal;
+		systemRequest.systemLaunch = true;
+		const std::vector<std::uint8_t> systemRequestFrame =
+			xucrun::broker::SerializeApprovalChallengeRequest(systemRequest);
+		if (!xucrun::broker::DeserializeApprovalChallengeRequest(
+				systemRequestFrame, parsedRequest) ||
+			!parsedRequest.systemLaunch)
+		{
+			std::cerr << "system approval challenge flag roundtrip failed\n";
 			failures++;
 		}
 
@@ -1690,6 +1779,17 @@ namespace
 			std::cerr << "client-started approval helper view roundtrip failed\n";
 			failures++;
 		}
+		result.systemLaunchConfirmation = true;
+		const std::vector<std::uint8_t> systemHelperViewFrame =
+			xucrun::broker::SerializeApprovalChallengeResult(result);
+		if (!xucrun::broker::DeserializeApprovalChallengeResult(
+				systemHelperViewFrame, parsedResult) ||
+			!parsedResult.systemLaunchConfirmation)
+		{
+			std::cerr << "system approval helper flag roundtrip failed\n";
+			failures++;
+		}
+		result.systemLaunchConfirmation = false;
 		result.helperStartMode = xucrun::broker::ApprovalHelperStartMode::BrokerStarted;
 		if (xucrun::broker::SerializeApprovalChallengeResult(result).empty())
 		{
@@ -3218,6 +3318,7 @@ namespace
 				{ xucrun::broker::Type value; acceptedFrames += \
 					xucrun::broker::Function(frame, value) ? 1 : 0; }
 				FUZZ_REQUEST(LaunchRequest, DeserializeLaunchRequest);
+				FUZZ_REQUEST(SystemLaunchRequest, DeserializeSystemLaunchRequest);
 				FUZZ_REQUEST(HealthRequest, DeserializeHealthRequest);
 				FUZZ_REQUEST(CredentialMetadataRequest,
 					DeserializeCredentialMetadataRequest);
@@ -3355,6 +3456,7 @@ int main()
 	ExpectLaunchRequestConstruction();
 	ExpectLaunchRequestSerialization();
 	ExpectLaunchResultSerialization();
+	ExpectSystemLaunchSerialization();
 	ExpectHealthSerialization();
 	ExpectCredentialMetadataSerialization();
 	ExpectSessionTestSerialization();
