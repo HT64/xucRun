@@ -13,11 +13,8 @@ and publication processes are not listed.
 
 - Added `/system [<Application> [Arguments...]]` for starting a local application as
   `LocalSystem` in the caller's interactive session.
-- Added parameterless `/system` shell replacement for TCC, Command Prompt, Windows PowerShell,
-  and PowerShell Core. The replacement preserves the working directory and closes the previous
-  shell only after the new shell started successfully.
-- Added a Total Commander `usercmd.ini` example that starts Total Commander as `LocalSystem`
-  while preserving both panel paths and the active panel.
+- Added parameterless `/system` shell replacement. The replacement preserves the working
+  directory and closes the previous shell only after the new shell started successfully.
 
 ### Security
 

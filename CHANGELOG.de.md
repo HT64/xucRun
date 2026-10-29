@@ -14,11 +14,9 @@ aufgeführt.
 
 - `/system [<Anwendung> [Argumente...]]` startet eine lokale Anwendung als `LocalSystem` in der
   interaktiven Sitzung des Aufrufers.
-- Der parameterlose `/system`-Aufruf ersetzt eine TCC-, Eingabeaufforderungs-, Windows-PowerShell-
-  oder PowerShell-Core-Shell. Der Ersatz übernimmt das Arbeitsverzeichnis und schließt die
-  bisherige Shell erst nach erfolgreichem Start der neuen Shell.
-- Ein Beispiel für die Total-Commander-`usercmd.ini` startet Total Commander als `LocalSystem` und
-  übernimmt beide Panelpfade sowie das aktive Panel.
+- Der parameterlose `/system`-Aufruf ersetzt die aktuelle Shell. Der Ersatz übernimmt das
+  Arbeitsverzeichnis und schließt die bisherige Shell erst nach erfolgreichem Start der neuen
+  Shell.
 
 ### Sicherheit
 
