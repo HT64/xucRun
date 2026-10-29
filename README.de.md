@@ -18,11 +18,12 @@
 xucRun deckt mehrere Anwendungsfälle ab, in denen ein Programm mit erhöhten Rechten oder unter
 einem anderen Benutzerkonto – wahlweise mit oder ohne Rechteerhöhung – ausgeführt werden soll.
 
-Das Programm richtet sich an Windows-Anwender, die ihren eigenen Rechner gelegentlich aus einem
-Standardbenutzerkonto heraus administrieren möchten, interaktiv oder mithilfe eigener Skripte,
-ohne dafür eine separate Anmeldung mit einem Administratorkonto oder bei jedem Vorgang erneut ein
-Kennwort zu benötigen. Die erforderliche Berechtigung für administrative Aufgaben soll sich aus
-einem Standardbenutzerkonto heraus möglichst mit einem einzigen Mausklick erteilen lassen.
+Das Programm richtet sich an erfahrene Windows-Anwender, die ihren eigenen Rechner gelegentlich
+aus einem Standardbenutzerkonto heraus administrieren möchten, interaktiv oder mithilfe eigener
+Skripte, ohne dafür eine separate Anmeldung mit einem Administratorkonto oder bei jedem Vorgang
+erneut ein Kennwort zu benötigen. Die erforderliche Berechtigung für administrative Aufgaben
+soll sich aus einem Standardbenutzerkonto heraus möglichst mit einem einzigen Mausklick erteilen
+lassen.
 
 Ein typischer Anwendungsfall entsteht, wenn der Anwender bewusst mit einem Standardbenutzerkonto
 angemeldet bleibt, mit einem Programm oder über einen Dateimanager bestimmte Aktionen ausführen

@@ -18,9 +18,10 @@
 xucRun covers several use cases in which a program needs to run with elevated privileges or under
 another user account, optionally with elevated privileges.
 
-The program is intended for Windows users who occasionally need to administer their own computer
-while remaining signed in with a standard user account, either interactively or through their own
-scripts, without signing in separately with an administrator account or entering a password again
+The program is intended for experienced Windows users who occasionally need to administer their
+own computer while remaining signed in with a standard user account, either interactively or
+through their own scripts, without signing in separately with an administrator account or entering
+a password again
 for every operation. The required permission for administrative tasks should be grantable from a
 standard user account with as little as a single mouse click.
 
