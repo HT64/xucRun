@@ -2716,7 +2716,7 @@ namespace
 			parsedRequest.requestId != request.requestId ||
 			parsedRequest.language != request.language)
 		{
-			std::cerr << "security audit request round trip failed\n";
+			std::cerr << "security diagnostics request round trip failed\n";
 			failures++;
 		}
 		auto invalidLanguageFrame = requestFrame;
@@ -2724,7 +2724,7 @@ namespace
 		if (xucrun::broker::DeserializeSecurityAuditRequest(
 			invalidLanguageFrame, parsedRequest))
 		{
-			std::cerr << "unknown security audit language accepted\n";
+			std::cerr << "unknown security diagnostics language accepted\n";
 			failures++;
 		}
 
@@ -2740,27 +2740,27 @@ namespace
 			parsedResult.findingCount != result.findingCount ||
 			parsedResult.report != result.report)
 		{
-			std::cerr << "security audit result round trip failed\n";
+			std::cerr << "security diagnostics result round trip failed\n";
 			failures++;
 		}
 		auto invalid = resultFrame;
 		invalid.pop_back();
 		if (xucrun::broker::DeserializeSecurityAuditResult(invalid, parsedResult))
 		{
-			std::cerr << "truncated security audit result accepted\n";
+			std::cerr << "truncated security diagnostics result accepted\n";
 			failures++;
 		}
 		invalid = resultFrame;
 		invalid[5] = 0xFF;
 		if (xucrun::broker::DeserializeSecurityAuditResult(invalid, parsedResult))
 		{
-			std::cerr << "unknown security audit status accepted\n";
+			std::cerr << "unknown security diagnostics status accepted\n";
 			failures++;
 		}
 		result.report.assign(xucrun::broker::MaximumSecurityAuditReportLength + 1, L'x');
 		if (!xucrun::broker::SerializeSecurityAuditResult(result).empty())
 		{
-			std::cerr << "oversized security audit report serialized\n";
+			std::cerr << "oversized security diagnostics report serialized\n";
 			failures++;
 		}
 	}

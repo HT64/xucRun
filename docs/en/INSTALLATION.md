@@ -133,8 +133,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 ```
 
 Use the [manual removal instructions](MANUAL_REMOVAL.md) only if the normal uninstaller is
-unavailable or cannot complete. They inventory all xucRun-owned artifacts and preserve the
-required order for purging broker-managed secrets before deleting the service and files.
+unavailable or cannot complete. They document the xucRun-owned artifacts covered by the procedure
+and preserve the required order for purging broker-managed secrets before deleting the service and
+files.
 
 > **Warning:** Uninstall permanently deletes all credentials and approvals stored by xucRun for
 > every Windows user, together with all local xucRun backups, security markers, and associated

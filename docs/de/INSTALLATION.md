@@ -140,9 +140,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 ```
 
 Verwenden Sie die Anleitung zur [manuellen Entfernung](MANUAL_REMOVAL.md) nur, wenn die normale
-Deinstallation nicht verfügbar ist oder nicht abgeschlossen werden kann. Sie inventarisiert alle
-xucRun-eigenen Artefakte und erhält die erforderliche Reihenfolge, in der die vom Broker
-verwalteten Geheimnisse vor Dienst und Dateien gelöscht werden.
+Deinstallation nicht verfügbar ist oder nicht abgeschlossen werden kann. Sie dokumentiert die vom
+Verfahren erfassten xucRun-eigenen Artefakte und erhält die erforderliche Reihenfolge, in der die
+vom Broker verwalteten Geheimnisse vor Dienst und Dateien gelöscht werden.
 
 > **Achtung:** Die Deinstallation löscht unwiderruflich alle von xucRun gespeicherten
 > Anmeldedaten und Freigaben aller Windows-Benutzer sowie sämtliche lokalen xucRun-Sicherungen,

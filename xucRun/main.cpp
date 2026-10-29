@@ -509,7 +509,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	else if (initialArgument == L"/info")
 		processMode = L"runtime information command";
 	else if (initialArgument == L"/audit")
-		processMode = L"security audit command";
+		processMode = L"security diagnostics command";
 	else if (initialArgument == L"/admin-status")
 		processMode = L"administrative status launcher";
 	else if (initialArgument == L"/backup" ||

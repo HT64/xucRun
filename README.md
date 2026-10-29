@@ -854,7 +854,7 @@ authorization.
 | `xucRun.exe /backup` | manage local backups |
 | `xucRun.exe /audit` | run security diagnostics |
 | `xucRun.exe /enable-broker` | re-enable a disabled broker |
-| `xucRun.exe /clear-all` | delete all stored xucRun data |
+| `xucRun.exe /clear-all` | delete stored credentials, approvals, security identifiers, and associated metadata |
 | `xucRun.exe /help` | show complete help |
 
 `/hidden` hides the directly started target program. `/hidden-monitor` also monitors its exit code
@@ -881,9 +881,10 @@ deletion. Deleting an account also removes approvals bound to that account. Prof
 for all accounts remain in place.
 
 Use `/resetapprovals` to select and remove individual or multiple approvals. `/clear-all` is the
-administrative full cleanup command. It must be run elevated and, after explicit confirmation,
-deletes all xucRun credentials, approvals, security identifiers, and associated metadata for every
-Windows user on the computer.
+administrative cleanup command for active broker-managed data. It must be run elevated and, after
+explicit confirmation, deletes all xucRun credentials, approvals, security identifiers, and
+associated metadata for every Windows user on the computer. Local backups are retained and can be
+removed separately with `/backup-delete-all`.
 
 | Delete stored credentials | Reset approvals |
 |:---:|:---:|
@@ -923,7 +924,7 @@ Uninstalling xucRun also removes locally stored xucRun backups.
 SHA-256 fingerprint and validity period, broker status, current account, and effective
 configuration. `xucRun.exe /audit` checks security-relevant properties of the running installation
 and also identifies the verified certificate when the client signature is valid. If xucRun Tray
-is installed separately, the audit also checks its installed
+is installed separately, the diagnostics also check its installed
 files and signatures, uninstall registration, and per-user autostart tasks. If the broker service
 was disabled,
 `xucRun.exe /enable-broker` enables it again. `xucRun.exe /help` displays the complete local
@@ -935,9 +936,9 @@ This can particularly affect the built-in `Administrator` account.
 
 ![Elevated cross-account launch blocked because UAC confirmation is unavailable](docs/en/images/cross-account-elevation-blocked.png)
 
-| Runtime information | Security audit |
+| Runtime information | Security diagnostics |
 |:---:|:---:|
-| ![xucRun runtime information](docs/en/images/runtime-information.png) | ![xucRun security audit](docs/en/images/security-audit.png) |
+| ![xucRun runtime information](docs/en/images/runtime-information.png) | ![xucRun security diagnostics](docs/en/images/security-audit.png) |
 
 For additional diagnostics, `ClientLogDirectory` can be configured to enable client log files
 named `xucRun_YYYYMMDD.log`. Broker warnings and errors are always written to the Windows
@@ -1079,8 +1080,8 @@ process and supported versions are documented in [SECURITY.md](SECURITY.md).
 The [build instructions](docs/en/BUILDING.md) describe how to create an xucRun package from source.
 The [installation instructions](docs/en/INSTALLATION.md) cover local test signing, installation,
 updates, and uninstall. If the normal uninstaller is unavailable, the
-[manual removal instructions](docs/en/MANUAL_REMOVAL.md) list all xucRun-owned artifacts and the
-safe removal order.
+[manual removal instructions](docs/en/MANUAL_REMOVAL.md) document the xucRun-owned artifacts
+covered by the procedure and the required removal sequence.
 
 ## License
 

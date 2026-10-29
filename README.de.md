@@ -913,7 +913,7 @@ Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
 | `xucRun.exe /backup` | lokale Datensicherungen verwalten |
 | `xucRun.exe /audit` | Sicherheitsdiagnose ausführen |
 | `xucRun.exe /enable-broker` | einen deaktivierten Broker wieder aktivieren |
-| `xucRun.exe /clear-all` | alle gespeicherten xucRun-Daten löschen |
+| `xucRun.exe /clear-all` | gespeicherte Anmeldedaten, Freigaben, Sicherheitsmerkmale und zugehörige Metadaten löschen |
 | `xucRun.exe /help` | vollständige Hilfe anzeigen |
 
 `/hidden` verbirgt das unmittelbar gestartete Zielprogramm. `/hidden-monitor` überwacht zusätzlich
@@ -941,9 +941,11 @@ Beim Löschen eines Kontos entfernt xucRun auch dessen kontogebundene Freigaben.
 Freigaben für alle Konten bleiben bestehen.
 
 Mit `/resetapprovals` können einzelne oder mehrere Freigaben ausgewählt und entfernt werden.
-`/clear-all` ist die administrative Gesamtbereinigung. Der Befehl muss erhöht gestartet werden und
-löscht nach ausdrücklicher Bestätigung alle xucRun-Anmeldedaten, Freigaben, Sicherheitsmerkmale und
-zugehörigen Metadaten aller Windows-Benutzer dieses Rechners.
+`/clear-all` ist der administrative Bereinigungsbefehl für aktive, vom Broker verwaltete Daten. Der
+Befehl muss erhöht gestartet werden und löscht nach ausdrücklicher Bestätigung alle
+xucRun-Anmeldedaten, Freigaben, Sicherheitsmerkmale und zugehörigen Metadaten aller
+Windows-Benutzer dieses Rechners. Lokale Sicherungen bleiben erhalten und können separat mit
+`/backup-delete-all` gelöscht werden.
 
 | Gespeicherte Anmeldedaten löschen | Freigaben zurücksetzen |
 |:---:|:---:|
@@ -983,7 +985,7 @@ Die Deinstallation entfernt auch die lokal gespeicherten xucRun-Datensicherungen
 Gültigkeitszeitraum des Signierzertifikats, Brokerstatus, aktuelles Konto und wirksame
 Konfiguration. `xucRun.exe /audit` prüft sicherheitsrelevante Eigenschaften der laufenden
 Installation und nennt bei gültiger Clientsignatur ebenfalls das geprüfte Zertifikat. Ist xucRun
-Tray separat installiert, prüft das Audit zusätzlich dessen
+Tray separat installiert, prüft die Diagnose zusätzlich dessen
 installierte Dateien und Signaturen, Deinstallationsregistrierung und benutzerbezogene
 Autostartaufgaben. Wurde der Brokerdienst deaktiviert, kann er mit
 `xucRun.exe /enable-broker` wieder aktiviert werden. `xucRun.exe /help` zeigt die vollständige
@@ -995,9 +997,9 @@ wirksam. Das kann insbesondere das integrierte Konto `Administrator` betreffen.
 
 ![Blockierter kontenübergreifender erhöhter Start wegen fehlender UAC-Bestätigung](docs/de/images/cross-account-elevation-blocked.png)
 
-| Laufzeitinformationen | Sicherheitsaudit |
+| Laufzeitinformationen | Sicherheitsdiagnose |
 |:---:|:---:|
-| ![xucRun-Laufzeitinformationen](docs/de/images/runtime-information.png) | ![xucRun-Sicherheitsaudit](docs/de/images/security-audit.png) |
+| ![xucRun-Laufzeitinformationen](docs/de/images/runtime-information.png) | ![xucRun-Sicherheitsdiagnose](docs/de/images/security-audit.png) |
 
 Für eine weitergehende Fehlerdiagnose kann über `ClientLogDirectory` das Client-Dateilog mit
 Dateien im Format `xucRun_YYYYMMDD.log` aktiviert werden. Warnungen und Fehler des Brokers werden
@@ -1154,8 +1156,8 @@ Die [Buildanleitung](docs/de/BUILDING.md) beschreibt die Erzeugung eines xucRun-
 Quellcode. Die anschließende lokale Testsignierung, Installation, Aktualisierung und Deinstallation
 stehen in der [Installationsanleitung](docs/de/INSTALLATION.md). Ist die normale Deinstallation
 nicht verfügbar, listet die Anleitung zur
-[manuellen Entfernung](docs/de/MANUAL_REMOVAL.md) alle xucRun-eigenen Artefakte und deren sichere
-Entfernungsreihenfolge auf.
+[manuellen Entfernung](docs/de/MANUAL_REMOVAL.md) die vom Verfahren erfassten xucRun-eigenen
+Artefakte und die erforderliche Entfernungsreihenfolge.
 
 ## Lizenz
 

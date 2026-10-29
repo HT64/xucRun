@@ -443,7 +443,7 @@ namespace
 		if (aclFindings.empty())
 		{
 			LogEvent(EVENTLOG_INFORMATION_TYPE,
-				L"Startup security audit for broker, client, installed Tray resources, "
+				L"Startup security diagnostics for broker, client, installed Tray resources, "
 				L"configuration, and broker store succeeded.");
 		}
 		else
