@@ -792,6 +792,28 @@ xucRun also supports batch files and carries common shell special characters acr
 process boundaries. Characters that `cmd.exe`, PowerShell, or another calling shell evaluates
 before xucRun starts remain subject to that shell's rules.
 
+### Relaunch a batch file with elevated privileges when needed
+
+A batch file can check at startup whether it is already running with elevated privileges.
+Otherwise, it relaunches itself through xucRun and ends the original non-elevated run. With
+`/user-elevated`, xucRun selects an administrator account and requests the required UAC
+confirmation:
+
+```cmd
+@echo off
+NET SESSION >nul 2>&1
+IF ERRORLEVEL 1 (
+  "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%~dpnx0" %*
+  GOTO :eof
+)
+
+REM Commands requiring elevated privileges follow here.
+```
+
+`%~dpnx0` returns the fully qualified path of the running batch file; `%*` forwards all original
+arguments. `GOTO :eof` prevents the non-elevated run from continuing after the relaunch. The
+`NET SESSION` check requires the Windows **Server** service to be available.
+
 For a broker-mediated launch of a `.bat` or `.cmd` file whose file name contains one of the CMD
 metacharacters `& | ( ) ! % ^`, the broker creates a temporary wrapper named
 `xucRun_wrapper_<128-bit-random-value>.bat`. It stores the wrapper preferably on a suitable volume

@@ -849,6 +849,29 @@ zusätzlichen Prozessgrenzen. Welche Zeichen von `cmd.exe`, PowerShell oder eine
 aufrufenden Shell schon vor dem Start von xucRun ausgewertet werden, richtet sich weiterhin nach
 dieser Shell.
 
+### Batchdatei bei Bedarf erhöht neu starten
+
+Eine Batchdatei kann am Anfang prüfen, ob sie bereits mit erhöhten Rechten läuft. Andernfalls
+startet sie sich über xucRun erneut und beendet den ursprünglichen, nicht erhöhten Durchlauf. Mit
+`/user-elevated` wählt xucRun ein Administratorkonto aus und fordert die erforderliche
+UAC-Bestätigung an:
+
+```cmd
+@echo off
+NET SESSION >nul 2>&1
+IF ERRORLEVEL 1 (
+  "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%~dpnx0" %*
+  GOTO :eof
+)
+
+REM Ab hier folgen die Befehle, die erhöhte Rechte benötigen.
+```
+
+`%~dpnx0` liefert den vollständig qualifizierten Pfad der laufenden Batchdatei; `%*` reicht alle
+ursprünglichen Argumente weiter. `GOTO :eof` verhindert, dass der nicht erhöhte Durchlauf nach dem
+erneuten Start fortgesetzt wird. Die Prüfung mit `NET SESSION` setzt voraus, dass der Windows-Dienst
+**Server** verfügbar ist.
+
 Bei einem brokervermittelten Start einer `.bat`- oder `.cmd`-Datei, deren Dateiname eines der
 CMD-Metazeichen `& | ( ) ! % ^` enthält, erzeugt der Broker einen temporären Wrapper mit dem Namen
 `xucRun_wrapper_<128-Bit-Zufall>.bat`. Er legt ihn bevorzugt auf einem geeigneten Volume namens
