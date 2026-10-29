@@ -244,6 +244,14 @@ Windows-Administratorbestätigungsmodus aktiviert sein. Das betrifft insbesonder
 Konto `Administrator`, für das dieser Modus deaktiviert sein kann. Andernfalls blockiert xucRun
 den Start, weil keine UAC-Bestätigung möglich wäre.
 
+Für das integrierte Konto `Administrator` kann dieser Modus über die Windows-Sicherheitsrichtlinie
+[Benutzerkontensteuerung: Administratorbestätigungsmodus für das integrierte Administratorkonto](https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/settings-and-configuration#user-account-control-settings-list)
+aktiviert werden. Die entsprechende Registry-Einstellung ist der DWORD-Wert
+`FilterAdministratorToken` unter
+`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`; der Wert `1`
+aktiviert den Modus. UAC muss systemweit aktiviert bleiben. Nach der Änderung ist eine erneute
+Anmeldung erforderlich.
+
 xucRun ist für erfahrene Privatanwender und Entwickler auf selbst verwalteten Rechnern sowie in
 persönlichen Entwicklungs- und Testsystemen vorgesehen. Es ist keine Lösung für unbeaufsichtigte
 Rechteerhöhung, zentrale Rechteverwaltung oder Systeme mit erhöhtem Schutzbedarf.
