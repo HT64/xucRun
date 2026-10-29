@@ -231,8 +231,11 @@ For the built-in `Administrator` account, this mode can be enabled through the W
 policy [User Account Control: Admin Approval Mode for the Built-in Administrator account](https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/settings-and-configuration#user-account-control-settings-list).
 The corresponding registry setting is the `FilterAdministratorToken` DWORD value under
 `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`; a value of `1`
-enables the mode. UAC must remain enabled system-wide. Sign out and back in after changing the
-setting.
+enables the mode. This changes the system-wide behavior of the built-in `Administrator` account,
+not only its behavior when used with xucRun. Applications run by this account generally start with
+a filtered token and use the configured Windows UAC elevation behavior when administrative
+privileges are required. UAC must remain enabled system-wide. Sign out and back in after changing
+the setting.
 
 xucRun is intended for experienced private users and developers on self-managed computers and in
 personal development and test systems. It is not a solution for unattended elevation, centralized

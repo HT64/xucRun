@@ -249,8 +249,11 @@ Für das integrierte Konto `Administrator` kann dieser Modus über die Windows-S
 aktiviert werden. Die entsprechende Registry-Einstellung ist der DWORD-Wert
 `FilterAdministratorToken` unter
 `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`; der Wert `1`
-aktiviert den Modus. UAC muss systemweit aktiviert bleiben. Nach der Änderung ist eine erneute
-Anmeldung erforderlich.
+aktiviert den Modus. Dadurch ändert sich das Verhalten des integrierten Kontos `Administrator`
+systemweit und nicht nur bei der Verwendung mit xucRun. Anwendungen dieses Kontos werden
+grundsätzlich mit einem gefilterten Token gestartet und verwenden bei benötigten
+Administratorrechten das konfigurierte Windows-UAC-Erhöhungsverhalten. UAC muss systemweit
+aktiviert bleiben. Nach der Änderung ist eine erneute Anmeldung erforderlich.
 
 xucRun ist für erfahrene Privatanwender und Entwickler auf selbst verwalteten Rechnern sowie in
 persönlichen Entwicklungs- und Testsystemen vorgesehen. Es ist keine Lösung für unbeaufsichtigte
