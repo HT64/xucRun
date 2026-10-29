@@ -529,6 +529,28 @@ parameters is not suitable for a normal desktop shortcut.
 
 Supported parent shells are `cmd.exe`, `powershell.exe`, `pwsh.exe`, and `tcc.exe`.
 
+### Relaunch a batch file with elevated privileges when needed
+
+A batch file can check at startup whether it is already running with elevated privileges.
+Otherwise, it relaunches itself through xucRun and ends the original non-elevated run. With
+`/user-elevated`, xucRun selects an administrator account and requests the required UAC
+confirmation:
+
+```cmd
+@echo off
+NET SESSION >nul 2>&1
+IF ERRORLEVEL 1 (
+  "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%~dpnx0" %*
+  GOTO :eof
+)
+
+REM Commands requiring elevated privileges follow here.
+```
+
+`%~dpnx0` returns the fully qualified path of the running batch file; `%*` forwards all original
+arguments. `GOTO :eof` prevents the non-elevated run from continuing after the relaunch. The
+`NET SESSION` check requires the Windows **Server** service to be available.
+
 ### Desktop shortcut for an elevated Explorer
 
 A desktop shortcut can open an Explorer window for a fixed directory directly under a specific
@@ -791,28 +813,6 @@ Enclose program paths and individual arguments containing spaces in quotation ma
 xucRun also supports batch files and carries common shell special characters across the additional
 process boundaries. Characters that `cmd.exe`, PowerShell, or another calling shell evaluates
 before xucRun starts remain subject to that shell's rules.
-
-### Relaunch a batch file with elevated privileges when needed
-
-A batch file can check at startup whether it is already running with elevated privileges.
-Otherwise, it relaunches itself through xucRun and ends the original non-elevated run. With
-`/user-elevated`, xucRun selects an administrator account and requests the required UAC
-confirmation:
-
-```cmd
-@echo off
-NET SESSION >nul 2>&1
-IF ERRORLEVEL 1 (
-  "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%~dpnx0" %*
-  GOTO :eof
-)
-
-REM Commands requiring elevated privileges follow here.
-```
-
-`%~dpnx0` returns the fully qualified path of the running batch file; `%*` forwards all original
-arguments. `GOTO :eof` prevents the non-elevated run from continuing after the relaunch. The
-`NET SESSION` check requires the Windows **Server** service to be available.
 
 For a broker-mediated launch of a `.bat` or `.cmd` file whose file name contains one of the CMD
 metacharacters `& | ( ) ! % ^`, the broker creates a temporary wrapper named
