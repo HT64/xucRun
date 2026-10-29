@@ -66,10 +66,14 @@ namespace xucrun::broker
 		L"/internal-set-language:de";
 	inline constexpr wchar_t SetLanguageEnglishArgumentTail[] =
 		L"/internal-set-language:en";
+	inline constexpr wchar_t SetLanguageAutomaticArgumentTail[] =
+		L"/internal-set-language:auto";
 	inline constexpr wchar_t RequestLanguageGermanArgumentTail[] =
 		L"/set-language:de";
 	inline constexpr wchar_t RequestLanguageEnglishArgumentTail[] =
 		L"/set-language:en";
+	inline constexpr wchar_t RequestLanguageAutomaticArgumentTail[] =
+		L"/set-language:auto";
 	inline constexpr std::size_t SetLanguagePipeTokenLength = 32;
 	inline constexpr wchar_t SetLanguagePipeNamePrefix[] =
 		L"\\\\.\\pipe\\xucRun.LanguageChange.";

@@ -13,6 +13,7 @@
 namespace
 {
 	bool g_useGermanResources = false;
+	bool g_useAutomaticLanguage = false;
 	HMODULE g_languageModule = nullptr;
 	xucrun::localization::Component g_component =
 		xucrun::localization::Component::Core;
@@ -22,6 +23,11 @@ namespace
 		return g_useGermanResources
 			? MAKELANGID(LANG_GERMAN, SUBLANG_GERMAN)
 			: MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US);
+	}
+
+	bool SystemUsesGerman()
+	{
+		return PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_GERMAN;
 	}
 
 	std::wstring LoadStringForLanguage(
@@ -139,16 +145,30 @@ namespace xucrun::localization
 		wchar_t language[16] = {};
 		GetPrivateProfileStringW(L"xucRun", L"Language", L"",
 			language, ARRAYSIZE(language), configPath.c_str());
-		if (language[0] == L'\0')
+		if (_wcsicmp(language, L"auto") == 0)
+		{
+			g_useAutomaticLanguage = true;
+			g_useGermanResources = SystemUsesGerman();
+		}
+		else if (language[0] == L'\0')
+		{
+			g_useAutomaticLanguage = false;
 			g_useGermanResources = false;
+		}
 		else if (_wcsicmp(language, L"de") == 0)
+		{
+			g_useAutomaticLanguage = false;
 			g_useGermanResources = true;
+		}
 		else if (_wcsicmp(language, L"en") == 0)
+		{
+			g_useAutomaticLanguage = false;
 			g_useGermanResources = false;
+		}
 		else
 		{
-			errorMessage = L"The configured UI language is invalid. Expected 'de' or "
-				L"'en'.\n\nConfiguration file: " + configPath;
+			errorMessage = L"The configured UI language is invalid. Expected 'auto', "
+				L"'de', or 'en'.\n\nConfiguration file: " + configPath;
 			return false;
 		}
 
@@ -183,8 +203,10 @@ namespace xucrun::localization
 			windowsError = ERROR_INVALID_STATE;
 			return false;
 		}
-		const bool useGermanResources = _wcsicmp(language, L"de") == 0;
-		if (!useGermanResources && _wcsicmp(language, L"en") != 0)
+		const bool automatic = _wcsicmp(language, L"auto") == 0;
+		const bool useGermanResources =
+			automatic ? SystemUsesGerman() : _wcsicmp(language, L"de") == 0;
+		if (!automatic && !useGermanResources && _wcsicmp(language, L"en") != 0)
 		{
 			windowsError = ERROR_INVALID_PARAMETER;
 			return false;
@@ -267,6 +289,11 @@ namespace xucrun::localization
 	bool UsesGermanResources()
 	{
 		return PRIMARYLANGID(GetPreferredResourceLanguage()) == LANG_GERMAN;
+	}
+
+	bool UsesAutomaticLanguage()
+	{
+		return g_useAutomaticLanguage;
 	}
 
 	std::wstring GetTextByResourceId(unsigned int resourceId)

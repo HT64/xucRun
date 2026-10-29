@@ -57,9 +57,10 @@ Gegenüber dem schnellen Benutzerwechsel bleibt der Anwender mit xucRun in seine
 und startet nur das benötigte Programm unter dem gewählten anderen Benutzerkonto, mit oder ohne
 erhöhte Rechte. Die Windows-Benutzerkontensteuerung (User Account Control, UAC) ist die
 Windows-Sicherheitsfunktion, über die ein Benutzer den Start mit Administratorrechten ausdrücklich
-bestätigt. Bei einem Kontowechsel mit xucRun ist eine UAC-Bestätigung bei jedem Aufruf erforderlich:
-Ohne Erhöhung bestätigt sie nur die Anwesenheit des Benutzers; bei einer Erhöhung bestätigt der
-Benutzer damit zusätzlich die Administratorrechte für das Zielprogramm.
+bestätigt. Abhängig vom konkreten Startpfad und der Windows-Konfiguration kann ein Kontowechsel mit
+xucRun eine UAC-Bestätigung erfordern. Bei einem Start ohne Erhöhung kann UAC über den
+xucRun-Helfer die Anwesenheit des Benutzers bestätigen; bei einer Erhöhung kann UAC stattdessen
+den Start des Zielprogramms bestätigen und ihm die angeforderten Administratorrechte erteilen.
 
 Eine weitere Windows-eigene Möglichkeit, die mehr Ähnlichkeit mit xucRun hat, ist `runas.exe`.
 Damit lassen sich einzelne Programme gezielt unter einem anderen Benutzerkonto starten. Mit dem
@@ -129,15 +130,13 @@ Sonderzeichen hinge außerdem vom konkreten Elevationswerkzeug und dessen Quotin
 
 Nach der erstmaligen Kennworteingabe kann `runas.exe /savecred /user:Administrator` dasselbe Konto,
 dessen Anmeldedaten gespeichert wurden, auch für andere Programme verwenden, ohne erneut das
-Kennwort oder eine obligatorische Bestätigung anzufordern. xucRun verlangt dagegen bei jedem
-solchen Kontowechsel eine interaktive Anwesenheitsbestätigung über UAC. Fehlt eine passende
-Freigabe, ist zusätzlich eine ausdrückliche xucRun-Freigabeentscheidung erforderlich.
+Kennwort oder eine obligatorische Bestätigung anzufordern. xucRun verlangt dagegen eine passende
+ausdrückliche Freigabe, bevor gespeicherte Anmeldedaten verwendet werden. Jede für den konkreten
+Start erforderliche Windows-UAC-Bestätigung bleibt interaktiv.
 
 `runas.exe /savecred` und xucRun verwenden voneinander getrennte, nicht kompatible Speicherungen
-für Anmeldedaten. Bevor xucRun ein Konto verwendet, für das xucRun-Anmeldedaten gespeichert sind,
-verlangt es eine ausdrückliche Freigabe. Diese kann eng an das aufrufende Benutzerkonto, das
-Zielkonto, die beteiligten Programme und deren Dateihashes gebunden sowie zeitlich begrenzt
-werden. Ändert sich
+für Anmeldedaten. Eine xucRun-Freigabe kann eng an das aufrufende Benutzerkonto, das Zielkonto, die
+beteiligten Programme und deren Dateihashes gebunden sowie zeitlich begrenzt werden. Ändert sich
 eines der gebundenen Programme, passt dessen SHA-256-Hash nicht mehr zur Freigabe. Vor einer
 Übernahme der Freigabe auf die geänderte Programmversion verlangt xucRun eine ausdrückliche
 Entscheidung.
@@ -156,10 +155,24 @@ fordert Windows die Zustimmung über die Benutzerkontensteuerung (UAC) an. In di
 xucRun keinen eigenen Freigabedialog; die Zustimmung erfolgt ausschließlich über Windows-UAC.
 
 xucRun-Programmfreigaben gelten für Starts mit den gespeicherten Anmeldedaten eines anderen
-Kontos. Sie ermöglichen keinen vollständig dialoglosen Kontowechsel: Ohne Erhöhung bestätigt UAC
-bei jedem Aufruf über das xucRun-Hilfsprogramm nur die Anwesenheit des Benutzers; das Zielprogramm
-läuft danach mit den nicht erhöhten Rechten des Zielkontos. Bei einer Erhöhung bestätigt UAC
-stattdessen den Start des Zielprogramms und erteilt ihm die angeforderten Administratorrechte.
+Kontos. Im vorgesehenen Ablauf aus einem nicht erhöhten Standardbenutzerkonto bleibt ein
+erforderlicher Kontowechsel beziehungsweise eine erforderliche Rechteerhöhung interaktiv. Bei
+einem Start ohne Erhöhung kann UAC über das xucRun-Hilfsprogramm die Anwesenheit des Benutzers
+bestätigen; das Zielprogramm läuft danach mit den nicht erhöhten Rechten des Zielkontos. Bei einer
+Erhöhung kann UAC stattdessen den Start des Zielprogramms bestätigen und ihm die angeforderten
+Administratorrechte erteilen. Welche UAC-Abfrage Windows tatsächlich zeigt, hängt vom konkreten
+Startpfad und der Windows-Konfiguration ab.
+
+Eine passende wiederverwendbare Freigabe verhindert nur einen erneuten xucRun-Freigabedialog. Sie
+ersetzt keine für den konkreten Start erforderliche Windows-UAC-Bestätigung. Beide Entscheidungen
+haben unterschiedliche Aufgaben: xucRun prüft, ob der Aufruf zur gespeicherten Freigabe passt;
+Windows-UAC bestätigt, soweit erforderlich, den konkreten Start beziehungsweise die
+Rechteerhöhung.
+
+Der Windows-UAC-Dialog zeigt nicht an, welche xucRun-Freigabe verwendet wird, wie lange sie gilt
+oder ob sie an den genauen Aufruf, ein Zielprogramm oder alle Programme gebunden ist. Diese
+Reichweite ist beim Anlegen der Freigabe im xucRun-Freigabedialog und später in der
+Freigabenverwaltung sichtbar.
 
 ![Windows-UAC-Anwesenheitsbestätigung für den xucRun Approval Helper](docs/de/images/approval-helper-uac.png)
 
@@ -519,12 +532,6 @@ Einen Windows-Dienst über `cmd.exe` stoppen:
 xucRun.exe cmd.exe /c "net stop MyService"
 ```
 
-Eine Firewallregel für ein Programm mit Leerzeichen im Pfad anlegen:
-
-```cmd
-xucRun.exe "%windir%\System32\netsh.exe" advfirewall firewall add rule name="Lokaler Beispielserver" dir=in action=allow program="C:\Program Files\Beispielserver\server.exe" enable=yes profile=private
-```
-
 Eine Datei mit einem Programm unter dem gewählten Zielkonto bearbeiten:
 
 ```powershell
@@ -761,10 +768,17 @@ wäre. Das kann insbesondere das integrierte Konto `Administrator` betreffen.
 
 ## Freigaben
 
-Vor einem noch nicht freigegebenen Start kann xucRun eine einmalige oder wiederverwendbare
-Freigabe anfordern. Der Dialog zeigt auch den Signaturstatus des Zielprogramms; xucRun erkennt
-dabei sowohl direkt eingebettete Authenticode-Signaturen als auch vertrauenswürdige
-Windows-Katalogsignaturen. Verfügbar sind:
+**Mit jeder Freigabe legt der Anwender das Verhältnis zwischen Bedienkomfort und enger Begrenzung
+selbst fest:** Je länger und weiter eine Freigabe gilt, desto mehr passende spätere Aufrufe kommen
+ohne erneute xucRun-Freigabeentscheidung aus. Eine kürzere oder genauer an Programm, Aufruf und
+Zielkonto gebundene Freigabe verlangt häufiger eine neue Entscheidung, begrenzt dafür aber ihre
+Wiederverwendung.
+
+Der differenzierte Freigabedialog ermöglicht es, Freigabedauer, Programm- und Aufrufbindung sowie
+die einbezogenen Zielkonten an den konkreten Anwendungsfall und das gewünschte Schutzniveau
+anzupassen. Er erklärt die Wirkung der aktuellen Auswahl und zeigt außerdem den Signaturstatus des
+Zielprogramms; xucRun erkennt dabei sowohl direkt eingebettete Authenticode-Signaturen als auch
+vertrauenswürdige Windows-Katalogsignaturen. Als Freigabedauer stehen zur Verfügung:
 
 - nur dieser eine Start,
 - 10 Minuten,
@@ -772,14 +786,17 @@ Windows-Katalogsignaturen. Verfügbar sind:
 - bis zur Abmeldung,
 - dauerhaft.
 
+Das Verhältnis einer wiederverwendbaren Freigabe zu einer weiterhin erforderlichen
+Windows-UAC-Bestätigung beschreibt der Abschnitt
+[Freigaben und UAC in xucRun](#freigaben-und-uac-in-xucrun).
+
 Bei „Nur dieses eine Mal“ gelten Freigabeumfang und Zielkontenauswahl nicht, weil die Freigabe
 ausschließlich für den aktuell angezeigten Start gilt. Die betreffenden Auswahlfelder sind deshalb
 deaktiviert. Eine wiederverwendbare Freigabe kann an ein bestimmtes Programm oder an alle Programme
 sowie an ein bestimmtes Zielkonto oder an alle gespeicherten Konten des aktuellen Windows-Benutzers
 gebunden werden. Programmspezifische Freigaben berücksichtigen den SHA-256-Hash der Startdatei.
 Ändert sich die Datei, muss die Übernahme der Freigabe auf die neue Version ausdrücklich bestätigt
-werden. Der Dialog erklärt rechts getrennt nach Freigabedauer, Freigabeumfang und Zielkonten die
-Wirkung der aktuellen Auswahl.
+werden.
 
 ![Freigabe nach Änderung eines Programmhashs](docs/de/images/program-hash-change-approval.png)
 
@@ -1001,7 +1018,7 @@ Die unterstützte Struktur ist:
 
 ```ini
 [xucRun]
-Language=de
+Language=auto
 
 [Logging]
 ClientLogDirectory=
@@ -1011,8 +1028,9 @@ BrokerInformationEvents=false
 Kommentarzeilen beginnen mit einem Semikolon (`;`). Kommentare sollten in eigenen Zeilen stehen
 und nicht an eine Einstellung angehängt werden.
 
-- `Language=de` verwendet Deutsch, `Language=en` Englisch. Die Änderung gilt für neu gestartete
-  xucRun-Prozesse.
+- `Language=auto` folgt der Windows-Anzeigesprache des aktuellen Benutzers und verwendet bei einer
+  deutschen Anzeigesprache Deutsch, andernfalls Englisch. `Language=de` wählt ausdrücklich Deutsch,
+  `Language=en` ausdrücklich Englisch. Die Änderung gilt für neu gestartete xucRun-Prozesse.
 - Ein fehlendes oder leeres `ClientLogDirectory` deaktiviert das Client-Dateilog. Ein eingetragener
   Pfad aktiviert es. Umgebungsvariablen werden im Kontext des jeweils startenden Clients
   aufgelöst. Der Pfad muss für jedes verwendete Client- und Wrapperkonto erreichbar und mit den
@@ -1040,7 +1058,10 @@ Das separat installierte optionale
 [xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) ergänzt eine Status- und
 Bedienoberfläche, deren Symbol im Benachrichtigungsbereich der Windows-Taskleiste neben der Uhr
 erscheint. Es ist ein eigenständiges Projekt, zeigt Informationen aus xucRun an und stellt den
-Zugriff auf dessen vorhandene Verwaltungsfunktionen bereit. Es ersetzt xucRun nicht.
+Zugriff auf dessen vorhandene Verwaltungsfunktionen bereit. Über sein Menü lässt sich die
+computerweite xucRun-Sprache auf Automatisch, Deutsch oder Englisch setzen. Laufende
+Tray-Instanzen werden nach der Änderung neu gestartet; für andere xucRun-Prozesse gilt sie beim
+nächsten Start. Das Tray-Add-on ersetzt xucRun nicht.
 
 ## Persönliche Notiz zur Entstehung von xucRun
 
@@ -1074,6 +1095,19 @@ erklären, mussten insbesondere das Sicherheitsmodell, die Funktionen zur Verwal
 gespeicherter Anmeldedaten und Programmfreigaben, die Konfigurations- und Diagnosefunktionen, die
 Benutzeroberflächen und ihre Dialoge, die Installer, die Lokalisierung, die Dokumentation und die
 automatisierten Tests systematisch weiterentwickelt und ausgearbeitet werden.
+
+Ein wesentlicher Teil dieses Aufwands entstand aus dem Ziel, den zusätzlichen Bedienkomfort nicht
+durch eine pauschale, weitreichende Freigabe zu erkaufen. Stattdessen wollte ich Anwendern
+ermöglichen, das Verhältnis zwischen Bedienkomfort und enger Begrenzung für ihren konkreten
+Anwendungsfall selbst festzulegen und die Wirkung ihrer Auswahl nachvollziehen zu können. Daraus
+entwickelte sich unter anderem der differenzierte Freigabedialog. Dieser mag auf den ersten Blick
+komplex wirken. Bei einer wiederverwendbaren Freigabe ist die differenzierte Auswahl jedoch in der
+Regel nur einmal zu treffen. Passende spätere Aufrufe verwenden die gespeicherte Entscheidung, bis
+sie abläuft, zurückgesetzt wird oder aufgrund einer Änderung nicht mehr passt. Die Erläuterungen
+im Dialog sollen diese Entscheidung unterstützen. Die zugrunde liegenden Zusammenhänge zwischen
+Windows-Benutzerkonten, UAC, Rechteerhöhung, Programmen, Interpretern und wiederverwendbaren
+Freigaben setzen dennoch entsprechende Kenntnisse der Windows-Mechanismen voraus; der Dialog kann
+dieses Verständnis nicht ersetzen.
 
 KI-gestützte Entwicklungswerkzeuge haben mir dabei geholfen, diesen zusätzlichen Aufwand als
 Einzelentwickler zu bewältigen. Dabei setzte ich sie in zahlreichen interaktiven Arbeitsschritten

@@ -52,9 +52,10 @@ complete interactive working environment of the other user is required.
 In contrast to Fast User Switching, xucRun keeps the user in the current session and starts only
 the required program under the selected other account, with or without elevated privileges.
 Windows User Account Control (UAC) is the Windows security feature through which a user explicitly
-confirms a start with administrator privileges. An account switch with xucRun requires UAC
-confirmation on every invocation: without elevation, it only confirms the user's presence; with
-elevation, the user also confirms the administrator privileges for the target program.
+confirms a start with administrator privileges. Depending on the specific launch path and Windows
+configuration, an account switch with xucRun can require UAC confirmation. For a launch without
+elevation, UAC can confirm the user's presence through the xucRun helper; with elevation, it can
+instead confirm the target program start and grant the requested administrator privileges.
 
 Another built-in Windows option with more similarity to xucRun is `runas.exe`. It can start
 individual programs under another account. With `/savecred`, the credentials used for this are
@@ -118,14 +119,13 @@ depend on the specific elevation tool and its quoting rules.
 
 After the password is entered once, `runas.exe /savecred /user:Administrator` can use the same
 account whose credentials were stored for other programs without requesting the password or a
-mandatory confirmation again. xucRun instead requires interactive presence confirmation through
-UAC for every such account switch. If no suitable approval exists, an explicit xucRun approval
-decision is also required.
+mandatory confirmation again. xucRun instead requires a suitable explicit approval before stored
+credentials are used. Any Windows UAC confirmation required for the specific launch remains
+interactive.
 
-`runas.exe /savecred` and xucRun use separate, incompatible credential storage. Before xucRun uses
-an account for which xucRun credentials are stored, it requires an explicit approval. That
-approval can be bound closely to the calling user account, the target account, the participating
-programs and their file hashes, and it can be time-limited. If one of the bound programs changes,
+`runas.exe /savecred` and xucRun use separate, incompatible credential storage. An xucRun approval
+can be bound closely to the calling user account, the target account, the participating programs
+and their file hashes, and it can be time-limited. If one of the bound programs changes,
 its SHA-256 hash no longer matches the approval. xucRun requires an explicit decision before
 transferring the approval to the changed program version.
 
@@ -143,11 +143,23 @@ for the started program by default. If the account is not yet elevated, Windows 
 through User Account Control (UAC). In this case, xucRun does not display its own approval dialog
 and consent is handled exclusively by Windows UAC.
 
-xucRun program approvals apply to starts using another account's stored credentials. They do not
-allow a completely unattended account switch: without elevation, UAC confirms the user's
-presence through the xucRun helper on every invocation, after which the target program runs with
-the target account's non-elevated privileges. With elevation, UAC instead confirms the target
-program start and grants it the requested administrator privileges.
+xucRun program approvals apply to starts using another account's stored credentials. In the
+intended workflow from a non-elevated standard user account, a required account switch or
+elevation remains interactive. For a launch without elevation, UAC can confirm the user's presence
+through the xucRun helper, after which the target program runs with the target account's
+non-elevated privileges. With elevation, UAC can instead confirm the target program start and
+grant it the requested administrator privileges. The UAC prompt that Windows actually displays
+depends on the specific launch path and Windows configuration.
+
+A matching reusable approval only avoids another xucRun approval dialog. It does not replace any
+Windows UAC confirmation required for the specific launch. The two decisions serve different
+purposes: xucRun verifies that the invocation matches the stored approval; Windows UAC, where
+required, confirms the specific launch or elevation.
+
+The Windows UAC dialog does not show which xucRun approval is being used, how long it remains
+valid, or whether it is bound to the exact invocation, one target program, or all programs. That
+scope is shown when the approval is created in the xucRun approval dialog and later in the
+approval management view.
 
 ![Windows UAC presence confirmation for the xucRun Approval Helper](docs/en/images/approval-helper-uac.png)
 
@@ -479,12 +491,6 @@ Stop a Windows service through `cmd.exe`:
 xucRun.exe cmd.exe /c "net stop MyService"
 ```
 
-Create a firewall rule for a program whose path contains spaces:
-
-```cmd
-xucRun.exe "%windir%\System32\netsh.exe" advfirewall firewall add rule name="Local example server" dir=in action=allow program="C:\Program Files\ExampleServer\server.exe" enable=yes profile=private
-```
-
 Edit a file with a program running under the selected target account:
 
 ```powershell
@@ -712,9 +718,17 @@ built-in `Administrator` account.
 
 ## Approvals
 
-Before a start that has not yet been approved, xucRun can request a one-time or reusable approval.
-The dialog also shows the target program's signature status; xucRun recognizes both embedded
-Authenticode signatures and trusted Windows catalog signatures. The available durations are:
+**With each approval, the user determines the balance between convenience and narrow scope:**
+The longer and broader an approval is, the more matching later invocations can proceed without
+another xucRun approval decision. A shorter approval or one bound more precisely to a program,
+invocation, and target account requires a new decision more often but limits how broadly it can
+be reused.
+
+The differentiated approval dialog allows the approval duration, program and invocation binding,
+and included target accounts to be adapted to the specific use case and desired level of
+protection. It explains the effect of the current selection and also shows the target program's
+signature status; xucRun recognizes both embedded Authenticode signatures and trusted Windows
+catalog signatures. The available approval durations are:
 
 - this start only,
 - 10 minutes,
@@ -722,13 +736,15 @@ Authenticode signatures and trusted Windows catalog signatures. The available du
 - until sign-out,
 - permanently.
 
+See [Approvals and UAC in xucRun](#approvals-and-uac-in-xucrun) for the relationship between a
+reusable approval and Windows UAC confirmation that remains required for a specific launch.
+
 For "This start only," approval scope and target accounts do not apply because the approval applies only to
 the currently displayed launch. The corresponding controls are therefore disabled. A reusable
 approval can be bound to one program or all programs and to one target account or all stored
 accounts of the current Windows user. Program-specific approvals include the SHA-256 hash of the
 executable. If the file changes, transferring the approval to the new version requires explicit
-confirmation. On the right, the dialog explains the effect of the current selection separately for
-approval duration, approval scope, and target accounts.
+confirmation.
 
 ![Approval after a program hash has changed](docs/en/images/program-hash-change-approval.png)
 
@@ -941,7 +957,7 @@ The supported structure is:
 
 ```ini
 [xucRun]
-Language=en
+Language=auto
 
 [Logging]
 ClientLogDirectory=
@@ -951,8 +967,9 @@ BrokerInformationEvents=false
 Comment lines begin with a semicolon (`;`). Comments should be placed on separate lines rather
 than appended to a setting.
 
-- `Language=de` selects German and `Language=en` selects English. The change applies to newly
-  started xucRun processes.
+- `Language=auto` follows the current user's Windows display language, selecting German for a
+  German display language and English otherwise. `Language=de` selects German explicitly, and
+  `Language=en` selects English explicitly. The change applies to newly started xucRun processes.
 - A missing or empty `ClientLogDirectory` disables client file logging. Specifying a path enables
   it. Environment variables are expanded in the context of each starting client. The path must
   be accessible to every client and wrapper account in use, with the permissions required to
@@ -977,7 +994,9 @@ The separately installed optional
 [xucRun Tray add-on](https://github.com/HT64/xucRun-Tray) provides a status and control
 interface whose icon appears in the notification area of the Windows taskbar next to the clock. It
 is a separate project that displays information from xucRun and provides access to existing xucRun
-management functions. It does not replace xucRun.
+management functions. Its menu can set the machine-wide xucRun language to Automatic, German, or
+English. Running Tray instances restart after the change, and the setting applies to newly started
+xucRun processes. The Tray add-on does not replace xucRun.
 
 ## A personal note on the origins of xucRun
 
@@ -1006,6 +1025,18 @@ preparing xucRun for use by others and clearly explaining its intended use, inte
 limitations required systematically developing and refining its security model, the management of
 stored credentials and program approvals, configuration and diagnostic functionality, user
 interfaces and their dialogs, installers, localization, documentation, and automated tests.
+
+A significant part of this effort resulted from the aim of not achieving the additional
+convenience through a blanket, broad approval. Instead, I wanted users to be able to determine the
+balance between convenience and narrow scope for their specific use case and to understand the
+effect of their selection. This led, among other things, to the differentiated approval dialog. It
+may appear complex at first. For a reusable approval, however, this differentiated selection
+generally needs to be made only once. Matching later invocations use the stored decision until it
+expires, is reset, or no longer matches because of a change. The explanations in the dialog are
+intended to support this decision. Nevertheless, understanding the underlying relationships
+between Windows user accounts, UAC, privilege elevation, programs, interpreters, and reusable
+approvals requires corresponding knowledge of the Windows mechanisms involved; the dialog cannot
+replace that understanding.
 
 AI-assisted development tools helped me manage this additional workload as a sole developer. I used
 them in a supporting role across numerous interactive development steps. Throughout this process, I

@@ -175,6 +175,21 @@ namespace xucrun::administrative_commands
 			}
 			return error == ERROR_SUCCESS ? 0 : 1;
 		}
+		if (firstArg == broker::SetLanguageAutomaticArgumentTail)
+		{
+			if (argc != 2)
+				return 1;
+			const DWORD error = SetConfiguredLanguage(L"auto");
+			if (error != ERROR_SUCCESS)
+			{
+				ui::ReportError(localization::Format(
+					localization::TextId::LanguageChangeFailed,
+					{ windows_error::FormatWindowsError(error) }),
+					L"Changing the UI language to automatic failed. Windows error: " +
+						std::to_wstring(error));
+			}
+			return error == ERROR_SUCCESS ? 0 : 1;
+		}
 		if (firstArg == broker::RequestLanguageGermanArgumentTail)
 		{
 			if (argc != 2)
@@ -188,6 +203,13 @@ namespace xucrun::administrative_commands
 				return 1;
 			return language_change::Request(
 				broker::SetLanguageEnglishArgumentTail) ? 0 : 1;
+		}
+		if (firstArg == broker::RequestLanguageAutomaticArgumentTail)
+		{
+			if (argc != 2)
+				return 1;
+			return language_change::Request(
+				broker::SetLanguageAutomaticArgumentTail) ? 0 : 1;
 		}
 		std::wstring language;
 		std::wstring languagePipeToken;

@@ -3001,6 +3001,14 @@ bool RunApprovalChallengeIdentitySelfTest()
 		return false;
 	}
 	inventoryRequest.argumentTail =
+		std::wstring(xucrun::broker::SetLanguageAutomaticArgumentTail) +
+		L":" + languagePipeToken;
+	if (!IsTrustedAdministrativeClientLaunch(
+		inventoryRequest, inventoryClient, inventoryTarget))
+	{
+		return false;
+	}
+	inventoryRequest.argumentTail =
 		L"/internal-set-language:fr:" + languagePipeToken;
 	if (IsTrustedAdministrativeClientLaunch(
 		inventoryRequest, inventoryClient, inventoryTarget))

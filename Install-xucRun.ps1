@@ -5,7 +5,7 @@ param(
     [string]$PackageDirectory,
 
     [Parameter(ParameterSetName = 'Install')]
-    [ValidateSet('de', 'en')]
+    [ValidateSet('auto', 'de', 'en')]
     [string]$Language,
 
     [Parameter(ParameterSetName = 'Install')]
@@ -504,7 +504,10 @@ function Set-ConfigurationLanguage {
     }
 
     if ($createConfiguration) {
-        $configurationLines = if ($SelectedLanguage -eq 'de') {
+        $configurationLines = if (
+            $SelectedLanguage -eq 'de' -or
+            ($SelectedLanguage -eq 'auto' -and
+                [Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName -eq 'de')) {
             @(
                 '; Diese Datei konfiguriert xucRun fuer alle Benutzer dieses Computers.'
                 '; Fehlt diese Datei, startet xucRun nicht.'
@@ -514,10 +517,11 @@ function Set-ConfigurationLanguage {
                 ''
                 '[xucRun]'
                 '; Legt die Sprache der Clientoberflaeche fest.'
-                '; Zulaessige Werte: Language=de oder Language=en'
+                '; Zulaessige Werte: Language=auto, Language=de oder Language=en'
+                '; Language=auto folgt der Windows-Anzeigesprache des jeweiligen Benutzers.'
                 '; Fehlt der Wert oder ist er leer, wird Englisch verwendet.'
                 '; Bei einem anderen Wert startet der Client nicht.'
-                'Language=de'
+                "Language=$SelectedLanguage"
                 ''
                 '[Logging]'
                 '; Bestimmt das Verzeichnis des Client-Dateilogs.'
@@ -549,10 +553,11 @@ function Set-ConfigurationLanguage {
                 ''
                 '[xucRun]'
                 '; Sets the language of the client user interface.'
-                '; Valid values: Language=de or Language=en'
+                '; Valid values: Language=auto, Language=de, or Language=en'
+                '; Language=auto follows each user''s Windows display language.'
                 '; English is used if the value is missing or empty.'
                 '; The client does not start for any other value.'
-                'Language=en'
+                "Language=$SelectedLanguage"
                 ''
                 '[Logging]'
                 '; Sets the directory for client log files.'

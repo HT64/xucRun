@@ -40,6 +40,7 @@ namespace
 	constexpr int ApprovalInterpreterWarningY = 167;
 	constexpr int ApprovalInterpreterWarningHeight = 52;
 	constexpr int ApprovalInterpreterLayoutOffset = 56;
+	constexpr int ApprovalUacMessageLayoutOffset = 30;
 	constexpr int ApprovalExistingContentBottom = 337;
 	constexpr int ApprovalMarkerY = 342;
 	constexpr int ApprovalMarkerHeight = 24;
@@ -210,6 +211,9 @@ namespace
 			language, ARRAYSIZE(language), configPath.c_str());
 		if (_wcsicmp(language, L"de") == 0)
 			g_useGerman = true;
+		else if (_wcsicmp(language, L"auto") == 0)
+			g_useGerman =
+				PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_GERMAN;
 		else if (_wcsicmp(language, L"en") != 0)
 			return false;
 		return true;
@@ -760,30 +764,38 @@ namespace
 			BM_GETCHECK, 0, 0) == BST_CHECKED)
 		{
 			explanation = Text(
-				L"Freigabedauer: Für 10 Minuten.\r\nIn diesem Zeitraum wiederverwendbar.",
-				L"Approval duration: For 10 minutes.\r\nReusable during this period.");
+				L"Freigabedauer: Für 10 Minuten.\r\nPassende spätere Aufrufe benötigen in "
+					L"diesem Zeitraum keine erneute xucRun-Freigabeentscheidung.",
+				L"Approval duration: For 10 minutes.\r\nMatching later invocations do not "
+					L"require another xucRun approval decision during this period.");
 		}
 		else if (SendMessageW(GetDlgItem(dialog, ApprovalDurationFirst + 2),
 			BM_GETCHECK, 0, 0) == BST_CHECKED)
 		{
 			explanation = Text(
-				L"Freigabedauer: Für einen Tag.\r\nIn diesem Zeitraum wiederverwendbar.",
-				L"Approval duration: For one day.\r\nReusable during this period.");
+				L"Freigabedauer: Für einen Tag.\r\nPassende spätere Aufrufe benötigen in "
+					L"diesem Zeitraum keine erneute xucRun-Freigabeentscheidung.",
+				L"Approval duration: For one day.\r\nMatching later invocations do not "
+					L"require another xucRun approval decision during this period.");
 		}
 		else if (SendMessageW(GetDlgItem(dialog, ApprovalDurationFirst + 3),
 			BM_GETCHECK, 0, 0) == BST_CHECKED)
 		{
 			explanation = Text(
-				L"Freigabedauer: Für diese Anmeldung.\r\nBis zur Abmeldung wiederverwendbar.",
-				L"Approval duration: For this logon session.\r\nReusable until sign-out.");
+				L"Freigabedauer: Für diese Anmeldung.\r\nPassende spätere Aufrufe benötigen "
+					L"bis zur Abmeldung keine erneute xucRun-Freigabeentscheidung.",
+				L"Approval duration: For this logon session.\r\nMatching later invocations do "
+					L"not require another xucRun approval decision until sign-out.");
 		}
 		else
 		{
 			explanation = Text(
 				L"Freigabedauer: Dauerhaft.\r\nGespeichert, bis die Freigabe zurückgesetzt wird "
-				L"oder ihre gebundene Identität nicht mehr passt.",
+				L"oder ihre gebundene Identität nicht mehr passt. Passende spätere Aufrufe "
+				L"benötigen bis dahin keine erneute xucRun-Freigabeentscheidung.",
 				L"Approval duration: Permanently.\r\nStored until the approval is reset or its "
-				L"bound identity no longer matches.");
+				L"bound identity no longer matches. Matching later invocations do not require "
+				L"another xucRun approval decision until then.");
 		}
 
 		if (SendMessageW(GetDlgItem(dialog, ApprovalExactInvocation),
@@ -942,14 +954,23 @@ namespace
 				L"Start unter einem anderen Benutzerkonto freigeben?",
 				L"Approve launch under another user account?"),
 				SS_LEFT, 8, 8, 374, 12, 0, font);
+			AddControl(dialog, L"STATIC", Text(
+				L"Die xucRun-Freigabe und Windows-UAC erfüllen unterschiedliche Aufgaben. "
+					L"Falls Windows eine UAC-Bestätigung verlangt, bleibt sie erforderlich; "
+					L"der UAC-Dialog zeigt den Umfang dieser Freigabe nicht an.",
+				L"The xucRun approval and Windows UAC serve different purposes. If Windows "
+					L"requires UAC confirmation, it remains required; the UAC dialog does not "
+					L"show the scope of this approval."),
+				SS_LEFT, 8, 24, 374, 25, 0, font);
 			const std::wstring formattedFixedDetails =
 				ToWindowsLineEndings(*context->fixedDetails);
 			AddControl(dialog, L"STATIC", formattedFixedDetails,
-				SS_LEFT, 8, 24, 374, 43, 0, font);
+				SS_LEFT, 8, 24 + ApprovalUacMessageLayoutOffset, 374, 43, 0, font);
 			const std::wstring formattedDetails = ToWindowsLineEndings(*context->details);
 			HWND detailsControl = AddControl(dialog, L"EDIT", formattedDetails,
 				ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
-				8, 69, 374, 92, ApprovalDetailsControl, font, WS_EX_CLIENTEDGE);
+				8, 69 + ApprovalUacMessageLayoutOffset, 374, 92,
+				ApprovalDetailsControl, font, WS_EX_CLIENTEDGE);
 			SendMessageW(detailsControl, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN,
 				MAKELPARAM(6, 6));
 
@@ -984,12 +1005,13 @@ namespace
 						L"approvals. Only this scope binds the displayed arguments and working "
 						L"directory.");
 				AddControl(dialog, L"STATIC", warning, SS_LEFT,
-					8, ApprovalInterpreterWarningY, 374,
+					8, ApprovalInterpreterWarningY + ApprovalUacMessageLayoutOffset, 374,
 					ApprovalInterpreterWarningHeight, 0, font);
 			}
 
 			AddControl(dialog, L"STATIC", Text(L"Freigabedauer:", L"Approval duration:"),
-				SS_LEFT, 8, 167 + layoutOffset, 180, 10, 0, font);
+				SS_LEFT, 8, 167 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				180, 10, 0, font);
 			const wchar_t* choices[] = {
 				Text(L"Nur dieses eine Mal", L"This time only"),
 				Text(L"Für 10 Minuten", L"For 10 minutes"),
@@ -1001,34 +1023,38 @@ namespace
 			{
 				AddControl(dialog, L"BUTTON", choices[index], BS_AUTORADIOBUTTON |
 					WS_TABSTOP | (index == 0 ? WS_GROUP : 0),
-					11, 179 + layoutOffset + index * 13,
+					11, 179 + ApprovalUacMessageLayoutOffset + layoutOffset + index * 13,
 					180, 11, ApprovalDurationFirst + index, font);
 			}
 			AddControl(dialog, L"STATIC", Text(L"Freigabeumfang:", L"Approval scope:"),
-				SS_LEFT, 8, 247 + layoutOffset, 180, 10, 0, font);
+				SS_LEFT, 8, 247 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				180, 10, 0, font);
 			AddControl(dialog, L"BUTTON", Text(L"Nur für dieses Zielprogramm",
 				L"Only for this target program"),
 				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
-				11, 259 + layoutOffset, 210, 11,
+				11, 259 + ApprovalUacMessageLayoutOffset + layoutOffset, 210, 11,
 				ApprovalTargetProgram, font);
 			AddControl(dialog, L"BUTTON", Text(L"Genau dieser Aufruf",
 				L"Exactly this invocation"),
 				BS_AUTORADIOBUTTON | WS_TABSTOP,
-				11, 272 + layoutOffset, 210, 11,
+				11, 272 + ApprovalUacMessageLayoutOffset + layoutOffset, 210, 11,
 				ApprovalExactInvocation, font);
 			AddControl(dialog, L"BUTTON", Text(L"Für alle Programme",
 				L"For all programs"), BS_AUTORADIOBUTTON | WS_TABSTOP,
-				11, 285 + layoutOffset, 210, 11, ApprovalProgramGeneral, font);
+				11, 285 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				210, 11, ApprovalProgramGeneral, font);
 			AddControl(dialog, L"STATIC", Text(L"Zielkonten:", L"Target accounts:"),
-				SS_LEFT, 8, 301 + layoutOffset, 180, 10, 0, font);
+				SS_LEFT, 8, 301 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				180, 10, 0, font);
 			AddControl(dialog, L"BUTTON", Text(L"Nur für dieses Zielkonto",
 				L"Only for this target account"),
 				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
-				11, 313 + layoutOffset, 210, 11,
+				11, 313 + ApprovalUacMessageLayoutOffset + layoutOffset, 210, 11,
 				ApprovalAccountCurrent, font);
 			AddControl(dialog, L"BUTTON", Text(L"Für alle gespeicherten Zielkonten",
 				L"For all stored target accounts"), BS_AUTORADIOBUTTON | WS_TABSTOP,
-				11, 326 + layoutOffset, 210, 11, ApprovalAccountAll, font);
+				11, 326 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				210, 11, ApprovalAccountAll, font);
 			const xucrun::broker::ApprovalPersistence initialPersistence =
 				context->restoreSelection
 				? context->decision->persistence
@@ -1056,10 +1082,11 @@ namespace
 
 			AddControl(dialog, L"STATIC",
 				Text(L"Wirkung der Auswahl:", L"Effect of this selection:"),
-				SS_LEFT, 228, 167 + layoutOffset, 154, 10, 0, font);
+				SS_LEFT, 228, 167 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				154, 10, 0, font);
 			HWND explanationControl = AddControl(dialog, L"EDIT", L"",
 				ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
-				228, 179 + layoutOffset, 154, 158,
+				228, 179 + ApprovalUacMessageLayoutOffset + layoutOffset, 154, 158,
 				ApprovalExplanationControl, font, WS_EX_CLIENTEDGE);
 			SendMessageW(explanationControl, EM_SETMARGINS,
 				EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(5, 5));
@@ -1067,18 +1094,18 @@ namespace
 
 			AddControl(dialog, L"STATIC", AuthenticityMarkerText(
 				*context->authenticityMarker, *context->clientName), SS_CENTER,
-				8, ApprovalMarkerY + layoutOffset, 374,
+				8, ApprovalMarkerY + ApprovalUacMessageLayoutOffset + layoutOffset, 374,
 				ApprovalMarkerHeight, 0, font);
 			AddControl(dialog, L"STATIC", L"", SS_LEFT,
-				11, 361 + layoutOffset, 130, 10,
+				11, 361 + ApprovalUacMessageLayoutOffset + layoutOffset, 130, 10,
 				ApprovalCountdownControl, font);
 			AddControl(dialog, L"BUTTON", Text(L"Freigeben", L"Approve"),
 				BS_DEFPUSHBUTTON | WS_TABSTOP,
-				278, ApprovalButtonY + layoutOffset, 50,
+				278, ApprovalButtonY + ApprovalUacMessageLayoutOffset + layoutOffset, 50,
 				ApprovalButtonHeight, IDOK, font);
 			AddControl(dialog, L"BUTTON", Text(L"Abbrechen", L"Cancel"),
 				BS_PUSHBUTTON | WS_TABSTOP,
-				332, ApprovalButtonY + layoutOffset, 50,
+				332, ApprovalButtonY + ApprovalUacMessageLayoutOffset + layoutOffset, 50,
 				ApprovalButtonHeight, IDCANCEL, font);
 
 			UpdateCountdown(dialog, 0);
@@ -1234,6 +1261,7 @@ namespace
 		const InterpreterWarningType interpreterWarningType =
 			GetInterpreterWarningType(challenge.finalExecutablePath);
 		dialogTemplate->height = ApprovalDialogHeight +
+			ApprovalUacMessageLayoutOffset +
 			(interpreterWarningType != InterpreterWarningType::None
 				? ApprovalInterpreterLayoutOffset : 0);
 		WORD* data = reinterpret_cast<WORD*>(buffer + sizeof(DialogTemplateHeader));

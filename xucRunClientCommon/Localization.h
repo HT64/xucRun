@@ -353,6 +353,7 @@ namespace xucrun::localization
 	bool ValidateLanguageResourceForSwitch(
 		const wchar_t* language, DWORD& windowsError);
 	bool UsesGermanResources();
+	bool UsesAutomaticLanguage();
 	std::wstring GetTextByResourceId(unsigned int resourceId);
 	std::wstring FormatResource(unsigned int resourceId,
 		std::initializer_list<std::wstring> arguments);

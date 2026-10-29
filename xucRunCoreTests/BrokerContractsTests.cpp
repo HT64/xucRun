@@ -195,6 +195,10 @@ namespace
 				std::wstring(SetLanguageEnglishArgumentTail) + L":" + validToken,
 				language, pipeToken) ||
 			language != L"en" || pipeToken != validToken ||
+			!ParseSetLanguageCommandArgument(
+				std::wstring(SetLanguageAutomaticArgumentTail) + L":" + validToken,
+				language, pipeToken) ||
+			language != L"auto" || pipeToken != validToken ||
 			ParseSetLanguageCommandArgument(
 				SetLanguageGermanArgumentTail, language, pipeToken) ||
 			ParseSetLanguageCommandArgument(

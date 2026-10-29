@@ -752,8 +752,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		firstArg == L"/internal-backup-restore-view" ||
 		firstArg == xucrun::broker::SetLanguageGermanArgumentTail ||
 		firstArg == xucrun::broker::SetLanguageEnglishArgumentTail ||
+		firstArg == xucrun::broker::SetLanguageAutomaticArgumentTail ||
 		firstArg == xucrun::broker::RequestLanguageGermanArgumentTail ||
 		firstArg == xucrun::broker::RequestLanguageEnglishArgumentTail ||
+		firstArg == xucrun::broker::RequestLanguageAutomaticArgumentTail ||
 		isInternalLanguageCommand ||
 		firstArg.starts_with(
 			xucrun::broker::AdministrativeInventoryConsoleArgumentPrefix) ||

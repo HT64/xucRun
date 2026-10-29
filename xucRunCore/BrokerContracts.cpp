@@ -571,8 +571,15 @@ namespace xucrun::broker
 			std::wstring(SetLanguageGermanArgumentTail) + L":";
 		const std::wstring englishPrefix =
 			std::wstring(SetLanguageEnglishArgumentTail) + L":";
+		const std::wstring automaticPrefix =
+			std::wstring(SetLanguageAutomaticArgumentTail) + L":";
 		const std::wstring* prefix = nullptr;
-		if (argumentTail.starts_with(germanPrefix))
+		if (argumentTail.starts_with(automaticPrefix))
+		{
+			language = L"auto";
+			prefix = &automaticPrefix;
+		}
+		else if (argumentTail.starts_with(germanPrefix))
 		{
 			language = L"de";
 			prefix = &germanPrefix;
