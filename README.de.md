@@ -576,11 +576,21 @@ Die oben gezeigten Aufrufe mit einem Zielprogramm können auch in Skripten und
 Desktop-Verknüpfungen verwendet werden. Kann xucRun das Zielkonto eindeutig automatisch bestimmen,
 muss im Aufruf kein Kontoname stehen.
 
+Für die Trennung zwischen Standardbenutzer und privilegiertem Zielkonto gilt der Grundsatz:
+**Der Standardbenutzer darf die privilegierte Aktion anfordern, aber nicht unbemerkt deren
+administrativ freigegebenen Inhalt verändern.**
+
+Das ist kein xucRun-spezifisches Problem, sondern gilt allgemein, wenn ein weniger privilegiertes
+Konto Dateien verändern kann, die das Verhalten eines höher privilegierten Prozesses bestimmen.
+
 Skripte, Verknüpfungen, geplante Aufgaben und Konfigurationsdateien, die einen xucRun-Aufruf
-enthalten oder dessen Ziel, Argumente oder Arbeitsverzeichnis bestimmen, müssen selbst
+enthalten oder dessen Ziel, Argumente oder Arbeitsverzeichnis bestimmen, müssen deshalb selbst
 vertrauenswürdig und vor unbefugten Änderungen geschützt sein. xucRun kann ihre Integrität nicht
-allgemein prüfen. Sie sollten nur für vertrauenswürdige Benutzer beschreibbar sein und nicht in
-gemeinsam oder unzureichend geschützten beschreibbaren Verzeichnissen liegen.
+allgemein prüfen. Konten, die solche Dateien verändern können, müssen bereits als berechtigt
+gelten, den betreffenden privilegierten Aufruf zu kontrollieren. Das gilt auch für übergeordnete
+Verzeichnisse, über die diese Dateien gelöscht, ersetzt, umbenannt oder umgeleitet werden könnten.
+Solche Dateien dürfen nicht in gemeinsam oder unzureichend geschützten beschreibbaren
+Verzeichnissen liegen.
 
 Die parameterlose Shell-Ersetzung ist dagegen für den interaktiven Aufruf aus einer unterstützten
 Shell bestimmt. In einem Skript sollte sie nur verwendet werden, wenn das Schließen der bisherigen
@@ -877,9 +887,10 @@ erzeugt wird, werden weiterhin nicht allgemein gehasht. Die Freigabe bindet den 
 entstehenden xucRun-Aufruf, nicht die Skript-, Verknüpfungs- oder Konfigurationsdatei, aus der er
 stammt. Nachgelagerte Programme und dynamisch nachgeladene Skripte, Module,
 Konfigurationsdateien, Plugins und Programmeingaben gehören ebenfalls nicht automatisch zur
-Bindung. Solche Programme und Dateien müssen deshalb weiterhin vertrauenswürdig und vor
-unbefugten Änderungen geschützt sein. Die übrigen Brokerprüfungen, insbesondere zu Konto,
-angeforderten Rechten, Sichtbarkeit, Zielpfad und Zielprogrammhash, bleiben wirksam.
+Bindung. Solche Programme und Dateien sowie die für ihren Austausch relevanten Verzeichnisse
+müssen deshalb weiterhin entsprechend geschützt sein. Eine vorhandene xucRun-Freigabe ist kein
+Ersatz für diesen Schutz. Die übrigen Brokerprüfungen, insbesondere zu Konto, angeforderten
+Rechten, Sichtbarkeit, Zielpfad und Zielprogrammhash, bleiben wirksam.
 
 ## Programme, Argumente und Sonderzeichen
 

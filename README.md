@@ -533,11 +533,20 @@ The invocations shown above that specify a target program can also be used in sc
 shortcuts. If xucRun can determine the target account unambiguously and automatically, the
 invocation does not need to name an account.
 
+The separation between the standard user and the privileged target account follows this
+principle: **A standard user may request the privileged action, but must not be able to change its
+administratively approved content without that change being detected.**
+
+This issue is not specific to xucRun. It applies generally whenever a less privileged account can
+modify files that determine the behavior of a more privileged process.
+
 Scripts, shortcuts, scheduled tasks, and configuration files that contain an xucRun invocation or
-determine its target, arguments, or working directory must themselves be trusted and protected
-against unauthorized modification. xucRun cannot generally verify their integrity. They should be
-writable only by trusted users and should not be stored in shared or insufficiently protected
-writable locations.
+determine its target, arguments, or working directory must therefore themselves be trusted and
+protected against unauthorized modification. xucRun cannot generally verify their integrity.
+Accounts that can modify such files must already be trusted to control the corresponding
+privileged invocation. This also applies to parent directories through which these files could be
+deleted, replaced, renamed, or redirected. Such files must not be stored in shared or
+insufficiently protected writable directories.
 
 Shell replacement without parameters, in contrast, is intended for interactive invocation from a
 supported shell. It should be used in a script only when closing the existing console and
@@ -818,8 +827,9 @@ Calling scripts, shortcuts, and configuration files from which the xucRun invoca
 generated are still not generally hashed. The approval binds the resulting xucRun invocation, not
 the script, shortcut, or configuration file from which it originated. Dynamically loaded scripts,
 modules, configuration files, plugins, program inputs, and downstream programs are likewise not
-automatically included. Such programs and files must therefore remain trusted and protected
-against unauthorized modification. The other broker checks, particularly those for the account,
+automatically included. Such programs and files, as well as directories through which they could
+be replaced, must therefore remain appropriately protected. An existing xucRun approval is not a
+substitute for this protection. The other broker checks, particularly those for the account,
 requested privileges, visibility, target path, and target-program hash, remain effective.
 
 ## Programs, arguments, and special characters
