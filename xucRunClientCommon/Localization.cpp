@@ -18,6 +18,13 @@ namespace
 	xucrun::localization::Component g_component =
 		xucrun::localization::Component::Core;
 
+	struct ConfiguredLanguage
+	{
+		bool automatic = false;
+		bool german = false;
+		const wchar_t* value = L"en";
+	};
+
 	LANGID GetPreferredResourceLanguage()
 	{
 		return g_useGermanResources
@@ -28,6 +35,64 @@ namespace
 	bool SystemUsesGerman()
 	{
 		return PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_GERMAN;
+	}
+
+	bool ReadConfiguredLanguage(
+		ConfiguredLanguage& configured, std::wstring& errorMessage)
+	{
+		errorMessage.clear();
+		wchar_t programFiles[MAX_PATH] = {};
+		const DWORD pathLength = GetEnvironmentVariableW(
+			L"ProgramFiles", programFiles, ARRAYSIZE(programFiles));
+		if (pathLength == 0 || pathLength >= ARRAYSIZE(programFiles))
+		{
+			errorMessage = L"The ProgramFiles directory could not be determined.";
+			return false;
+		}
+
+		const std::wstring configPath = std::wstring(programFiles) +
+			L"\\xucRun\\xucRun.ini";
+		const DWORD configAttributes = GetFileAttributesW(configPath.c_str());
+		if (configAttributes == INVALID_FILE_ATTRIBUTES ||
+			(configAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+		{
+			const DWORD error = configAttributes == INVALID_FILE_ATTRIBUTES
+				? GetLastError()
+				: ERROR_DIRECTORY;
+			errorMessage = L"The xucRun configuration file is missing or is not a "
+				L"regular file.\n\nFile: " + configPath +
+				L"\nError: " + std::to_wstring(error);
+			return false;
+		}
+
+		wchar_t language[16] = {};
+		GetPrivateProfileStringW(L"xucRun", L"Language", L"",
+			language, ARRAYSIZE(language), configPath.c_str());
+		if (_wcsicmp(language, L"auto") == 0)
+		{
+			configured.automatic = true;
+			configured.german = SystemUsesGerman();
+			configured.value = L"auto";
+		}
+		else if (language[0] == L'\0' || _wcsicmp(language, L"en") == 0)
+		{
+			configured.automatic = false;
+			configured.german = false;
+			configured.value = L"en";
+		}
+		else if (_wcsicmp(language, L"de") == 0)
+		{
+			configured.automatic = false;
+			configured.german = true;
+			configured.value = L"de";
+		}
+		else
+		{
+			errorMessage = L"The configured UI language is invalid. Expected 'auto', "
+				L"'de', or 'en'.\n\nConfiguration file: " + configPath;
+			return false;
+		}
+		return true;
 	}
 
 	std::wstring LoadStringForLanguage(
@@ -118,59 +183,11 @@ namespace xucrun::localization
 			return g_component == component;
 		g_component = component;
 
-		wchar_t programFiles[MAX_PATH] = {};
-		const DWORD pathLength = GetEnvironmentVariableW(
-			L"ProgramFiles", programFiles, ARRAYSIZE(programFiles));
-		if (pathLength == 0 || pathLength >= ARRAYSIZE(programFiles))
-		{
-			errorMessage = L"The ProgramFiles directory could not be determined.";
+		ConfiguredLanguage configured;
+		if (!ReadConfiguredLanguage(configured, errorMessage))
 			return false;
-		}
-
-		const std::wstring configPath = std::wstring(programFiles) +
-			L"\\xucRun\\xucRun.ini";
-		const DWORD configAttributes = GetFileAttributesW(configPath.c_str());
-		if (configAttributes == INVALID_FILE_ATTRIBUTES ||
-			(configAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
-		{
-			const DWORD error = configAttributes == INVALID_FILE_ATTRIBUTES
-				? GetLastError()
-				: ERROR_DIRECTORY;
-			errorMessage = L"The xucRun configuration file is missing or is not a "
-				L"regular file.\n\nFile: " + configPath +
-				L"\nError: " + std::to_wstring(error);
-			return false;
-		}
-
-		wchar_t language[16] = {};
-		GetPrivateProfileStringW(L"xucRun", L"Language", L"",
-			language, ARRAYSIZE(language), configPath.c_str());
-		if (_wcsicmp(language, L"auto") == 0)
-		{
-			g_useAutomaticLanguage = true;
-			g_useGermanResources = SystemUsesGerman();
-		}
-		else if (language[0] == L'\0')
-		{
-			g_useAutomaticLanguage = false;
-			g_useGermanResources = false;
-		}
-		else if (_wcsicmp(language, L"de") == 0)
-		{
-			g_useAutomaticLanguage = false;
-			g_useGermanResources = true;
-		}
-		else if (_wcsicmp(language, L"en") == 0)
-		{
-			g_useAutomaticLanguage = false;
-			g_useGermanResources = false;
-		}
-		else
-		{
-			errorMessage = L"The configured UI language is invalid. Expected 'auto', "
-				L"'de', or 'en'.\n\nConfiguration file: " + configPath;
-			return false;
-		}
+		g_useAutomaticLanguage = configured.automatic;
+		g_useGermanResources = configured.german;
 
 		DWORD languagePathError = NO_ERROR;
 		const std::wstring languagePath =
@@ -189,6 +206,32 @@ namespace xucrun::localization
 		{
 			errorMessage = L"The language resource could not be loaded.\n\nFile: " +
 				languagePath + L"\nError: " + std::to_wstring(GetLastError());
+			return false;
+		}
+		return true;
+	}
+
+	bool CheckConfiguredLanguageChange(
+		bool& changeRequired, std::wstring& errorMessage)
+	{
+		changeRequired = false;
+		ConfiguredLanguage configured;
+		if (!ReadConfiguredLanguage(configured, errorMessage))
+			return false;
+
+		changeRequired =
+			configured.automatic != g_useAutomaticLanguage ||
+			configured.german != g_useGermanResources;
+		if (!changeRequired)
+			return true;
+
+		DWORD windowsError = ERROR_SUCCESS;
+		if (!ValidateLanguageResourceForSwitch(configured.value, windowsError))
+		{
+			errorMessage =
+				L"The configured language resource could not be validated."
+				L"\n\nLanguage: " + std::wstring(configured.value) +
+				L"\nError: " + std::to_wstring(windowsError);
 			return false;
 		}
 		return true;

@@ -1119,12 +1119,14 @@ und nicht an eine Einstellung angehängt werden.
   Pfad aktiviert es. Umgebungsvariablen werden im Kontext des jeweils startenden Clients
   aufgelöst. Der Pfad muss für jedes verwendete Client- und Wrapperkonto erreichbar und mit den
   zum Erstellen, Anhängen und Löschen der Protokolldateien erforderlichen Rechten versehen sein.
+  xucRun verändert die Zugriffsrechte des Verzeichnisses nicht. Bei einem gemeinsamen Pfad muss
+  der Administrator deshalb die vorgesehenen Leser und Schreiber festlegen; Konten mit
+  Änderungsrechten können die Protokolle auch verändern oder löschen.
   Änderungen gelten für neu gestartete Clientprozesse. In jedes aufgelöste Protokollverzeichnis
   schreibt xucRun pro Tag eine datierte Protokolldatei, rotiert oder löscht Client-Protokolle
   jedoch nicht automatisch. Diese Protokolle können Programmpfade, Kontonamen, Befehlszeilen und
-  Argumente des Zielprogramms enthalten. Das Verzeichnis sollte deshalb entsprechend geschützt
-  werden; Kennwörter oder andere Geheimnisse sollten nicht als Befehlszeilenargumente übergeben
-  werden.
+  Argumente des Zielprogramms enthalten. Kennwörter oder andere Geheimnisse sollten deshalb nicht
+  als Befehlszeilenargumente übergeben werden.
 - Warnungen, Fehler sowie Dienst- und ACL-Startmeldungen schreibt der Broker immer in das
   Windows-Anwendungsereignislog unter der Quelle `xucRunBroker`.
   `BrokerInformationEvents=true` ergänzt dort routinemäßige Informationsmeldungen zur Verarbeitung

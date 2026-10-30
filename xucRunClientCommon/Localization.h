@@ -352,6 +352,8 @@ namespace xucrun::localization
 
 	bool Initialize(std::wstring& errorMessage,
 		Component component = Component::Core);
+	bool CheckConfiguredLanguageChange(
+		bool& changeRequired, std::wstring& errorMessage);
 	bool ValidateLanguageResourceForSwitch(
 		const wchar_t* language, DWORD& windowsError);
 	bool UsesGermanResources();

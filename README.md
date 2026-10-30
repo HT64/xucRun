@@ -1054,11 +1054,14 @@ than appended to a setting.
 - A missing or empty `ClientLogDirectory` disables client file logging. Specifying a path enables
   it. Environment variables are expanded in the context of each starting client. The path must
   be accessible to every client and wrapper account in use, with the permissions required to
-  create, append to, and delete log files. Changes apply to newly started client processes. For
-  each resolved log directory, xucRun appends to one dated log file per day but does not
+  create, append to, and delete log files. xucRun does not change the directory's access
+  permissions. For a shared path, the administrator must therefore define the intended readers
+  and writers; accounts with modify access can also alter or delete the logs. Changes apply to
+  newly started client processes. For each resolved log directory, xucRun appends to one dated
+  log file per day but does not
   automatically rotate or delete client logs. These logs can contain program paths, account names,
-  command lines, and target arguments. Protect the directory accordingly, and do not pass
-  passwords or other secrets as command-line arguments.
+  command lines, and target arguments. Do not pass passwords or other secrets as command-line
+  arguments.
 - The broker always writes warnings, errors, and service and ACL startup messages to the Windows
   Application event log under the `xucRunBroker` source. `BrokerInformationEvents=true`
   additionally logs routine information about pipe request processing there. If the setting is
