@@ -1,4 +1,5 @@
 // Purpose: Checks the running client for tampering and injection indicators.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Inspects debuggers, API entry points, loaded modules, and their signature trust.
 #include "ClientSecurityAudit.h"
 

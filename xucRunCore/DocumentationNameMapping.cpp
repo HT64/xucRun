@@ -1,4 +1,5 @@
 // Purpose: Implements the optional display-only name mapping used for documentation screenshots.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Activates only when a strictly valid UTF-8 sidecar file exists beside the executable.
 #include "DocumentationNameMapping.h"
 

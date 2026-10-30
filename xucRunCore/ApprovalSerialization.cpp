@@ -1,4 +1,5 @@
 // Purpose: Serializes and deserializes program approvals in a canonical binary format.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Validates version, field bounds, and structural consistency when reading.
 #include "ApprovalSerialization.h"
 

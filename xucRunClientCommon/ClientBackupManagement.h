@@ -1,4 +1,5 @@
 // Purpose: Declares client-side backup and restore command handling.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 #pragma once
 
 #include <string>

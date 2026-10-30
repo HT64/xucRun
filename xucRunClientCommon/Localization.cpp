@@ -1,4 +1,5 @@
 // Purpose: Loads configured application language resources and resolves localized strings.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "Localization.h"
 
 #include <Windows.h>

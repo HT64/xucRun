@@ -1,4 +1,5 @@
 // Purpose: Implements canonical generation of opaque broker target names.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Encodes bound identity values deterministically for the store keys.
 #include "TargetNaming.h"
 

@@ -1,4 +1,5 @@
 // Purpose: Implements a secure lifecycle for short-lived sensitive strings.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Manages its own buffer and clears contents with SecureZeroMemory.
 #include "ClientSensitiveString.h"
 

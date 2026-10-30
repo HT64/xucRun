@@ -1,4 +1,5 @@
 // Purpose: Detects PowerShell launches that explicitly request hidden windows.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Parses the Windows command line and checks for -WindowStyle hidden case-insensitively.
 #include "ClientLaunchDetection.h"
 

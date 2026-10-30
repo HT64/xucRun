@@ -1,4 +1,5 @@
 // Purpose: Runs xucRunBroker as a hardened LocalSystem service and diagnostic program.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Initializes service state, security checks, and the broker pipe server.
 #include "ApprovalStore.h"
 #include "BrokerBackupStore.h"

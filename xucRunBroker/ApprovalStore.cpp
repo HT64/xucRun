@@ -1,4 +1,5 @@
 // Purpose: Persists and validates broker approvals in the LocalSystem credential store.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 // Binds entries to owner, account, session, target identity, and validity period.
 #include "ApprovalStore.h"
 

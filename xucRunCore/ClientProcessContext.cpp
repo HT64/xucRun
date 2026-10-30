@@ -1,4 +1,5 @@
 // Purpose: Determines the process context from which xucRun was invoked.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Operation: Reads Windows process information and maps known executables to their shell type.
 #include "ClientProcessContext.h"
 

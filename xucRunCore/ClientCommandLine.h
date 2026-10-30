@@ -1,4 +1,5 @@
 // Purpose: Defines the UI-independent rules for parsing and generating client command lines.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Operation: Encapsulates escaping, path validation, user switches, and unchanged cmd/TCC raw arguments.
 #pragma once
 

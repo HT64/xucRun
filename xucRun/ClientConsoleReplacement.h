@@ -1,4 +1,5 @@
 // Purpose: Defines console replacement for invocations without a target program.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Detects the parent shell and launches its replacement with the matching account strategy.
 #pragma once
 

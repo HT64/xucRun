@@ -1,4 +1,5 @@
 // Purpose: Coordinates elevated language changes without granting Broker launch rights to the Tray.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientLanguageChange.h"
 
 #include <Windows.h>

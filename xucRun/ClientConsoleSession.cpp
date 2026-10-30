@@ -1,4 +1,5 @@
 // Purpose: Implements console-faithful launch under a target account and parent console replacement.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Detects the parent shell, carries over its arguments, and launches replacement directly or via broker.
 #include "ClientConsoleSession.h"
 

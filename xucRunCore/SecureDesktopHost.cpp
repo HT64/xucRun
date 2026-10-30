@@ -1,4 +1,5 @@
 // Purpose: Hosts sensitive UI on a private desktop isolated from lower-integrity processes.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "SecureDesktopHost.h"
 
 #include "BrokerContracts.h"

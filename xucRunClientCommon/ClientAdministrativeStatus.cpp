@@ -1,4 +1,5 @@
 // Purpose: Launches and displays the broker-backed administrative status inventory.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientAdministrativeStatus.h"
 
 #include <Windows.h>

@@ -1,4 +1,5 @@
 // Purpose: Declares the bounded, versioned broker backup archive format and validation API.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 #pragma once
 
 #include "ApprovalSerialization.h"

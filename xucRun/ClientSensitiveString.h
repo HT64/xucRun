@@ -1,4 +1,5 @@
 // Purpose: Defines exclusive storage for short-lived sensitive strings.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Overwrites used memory before release and forbids copy and move operations.
 #pragma once
 

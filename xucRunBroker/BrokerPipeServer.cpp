@@ -1,4 +1,5 @@
 // Purpose: Authenticates pipe clients, enforces broker request policy, and dispatches privileged operations.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "BrokerBackupStore.h"
 #include "BrokerTargetNaming.h"
 // Processes authenticated broker requests over a hardened named pipe.

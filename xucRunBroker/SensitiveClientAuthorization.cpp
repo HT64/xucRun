@@ -1,4 +1,5 @@
 // Purpose: Loads and validates the installed policy for sensitive broker clients.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 // Validates the path and signature binding.
 #include "SensitiveClientAuthorization.h"
 

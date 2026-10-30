@@ -1,4 +1,43 @@
-# Purpose: Creates the unsigned standalone installer, ZIP archive, and public release checksums.
+<#
+.SYNOPSIS
+Creates unsigned xucRun release assets from a Release build.
+
+.DESCRIPTION
+Reads and validates the product version of the compiled graphical installer,
+optionally compares it with an expected version, and invokes
+New-xucRun-Package.ps1. It verifies that the public package files are unsigned,
+then emits a standalone installer, a ZIP containing the package, and a
+SHA256SUMS.txt file for both downloadable assets.
+
+.PARAMETER Configuration
+Selects the build configuration. Only Release is accepted, and Release is the
+default.
+
+.PARAMETER ExpectedVersion
+Optionally requires the compiled installer product version to match this value.
+The actual build version must always have four numeric components.
+
+.PARAMETER DestinationDirectory
+Specifies the release asset directory. If omitted or blank, the default is
+artifacts\Release\<product-version> below the repository root. An existing
+destination must not be a reparse point and may contain only the three expected
+release files.
+
+.EXAMPLE
+.\New-xucRun-Release.ps1 -ExpectedVersion 0.9.0.3
+
+Builds the unsigned assets for version 0.9.0.3 in the standard release
+directory and fails if the compiled installer reports another version.
+
+.NOTES
+Run on Windows after building x64 Release. The script recreates the unsigned
+package and replaces recognized release assets. It deliberately rejects signed
+package payloads and does not publish, sign, or upload anything. Missing or
+signed inputs, version mismatches, unsafe destinations, package-tool failures,
+and archive or file-system failures are terminating errors; a child packaging
+failure is reported with its exit code. A powershell.exe -File invocation
+returns 0 on success and nonzero on an unhandled error.
+#>
 [CmdletBinding()]
 param(
     [ValidateSet('Release')]

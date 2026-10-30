@@ -1,4 +1,5 @@
 // Purpose: Defines parsing of the internal command line for the elevated wrapper.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Splits wrapper options, target program, and broker result channel without starting a process.
 
 #pragma once

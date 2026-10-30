@@ -1,4 +1,5 @@
 // Purpose: Defines reporting of an elevated wrapper launch back to the broker.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Reports launch results and holds the launched process handle until broker acknowledgement.
 
 #pragma once

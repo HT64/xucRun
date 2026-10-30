@@ -1,4 +1,5 @@
 // Purpose: Internal request decoding for BrokerPipeServer.cpp.
+// Approach: Provides implementation helpers included by the owning translation unit to keep the related flow grouped.
 //
 // Inclusion contract:
 // - Included exactly once after the broker's private replay and authorization helpers.

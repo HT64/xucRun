@@ -1,4 +1,5 @@
 // Purpose: Internal standalone-mode helpers for the xucRun client entry point.
+// Approach: Provides implementation helpers included by the owning translation unit to keep the related flow grouped.
 //
 // Inclusion contract:
 // - Included once after ClientMainArguments.inl and before normal launch execution.

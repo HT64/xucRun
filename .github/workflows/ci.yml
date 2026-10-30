@@ -1,4 +1,5 @@
 # Purpose: Builds and validates xucRun on a clean Windows runner.
+# Approach: Restores and builds the x64 solution, then runs the repository validation scripts.
 name: xucRun CI
 
 on:

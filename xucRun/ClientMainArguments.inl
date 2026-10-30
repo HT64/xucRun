@@ -1,4 +1,5 @@
 // Purpose: Internal command-line helpers for the xucRun client entry point.
+// Approach: Provides implementation helpers included by the owning translation unit to keep the related flow grouped.
 //
 // Inclusion contract:
 // - Included once by main.cpp before mode and execution helpers.

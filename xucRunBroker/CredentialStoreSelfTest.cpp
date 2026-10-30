@@ -1,4 +1,5 @@
 // Purpose: Tests the credential store with temporary, uniquely named test entries.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 // Validates round trip and protection boundaries and removes generated data afterward.
 #include "CredentialStoreSelfTest.h"
 #include "CredentialStore.h"

@@ -1,4 +1,5 @@
 // Purpose: Implements protected memory management for passwords and other secrets.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Allocates lockable memory and overwrites it before every release.
 #include "SensitiveString.h"
 

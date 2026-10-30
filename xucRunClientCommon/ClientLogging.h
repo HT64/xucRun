@@ -1,4 +1,5 @@
 // Purpose: Defines initialization and writing of the shared client log.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Hides log path, enabled state, and output format behind a compact API.
 #pragma once
 

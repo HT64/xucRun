@@ -1,4 +1,5 @@
 // Purpose: Implements internal end-to-end probes for broker protocol and authorization behavior.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientInternalBrokerTests.h"
 
 #include <Windows.h>

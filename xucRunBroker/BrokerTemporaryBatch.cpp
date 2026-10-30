@@ -1,4 +1,5 @@
 // Purpose: Creates and validates broker-owned temporary batch wrappers for approved command execution.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 #include "BrokerTemporaryBatch.h"
 
 #include "../xucRunSharedResources/BuildVersion.h"

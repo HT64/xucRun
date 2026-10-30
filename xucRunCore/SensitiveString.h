@@ -1,4 +1,5 @@
 // Purpose: Defines a non-copyable storage container for sensitive strings.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Locks the memory when possible and deterministically erases its content.
 #pragma once
 

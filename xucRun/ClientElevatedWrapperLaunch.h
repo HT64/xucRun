@@ -1,4 +1,5 @@
 // Purpose: Declares launching of a validated broker-bound elevated wrapper process.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 #pragma once
 
 #include <string>

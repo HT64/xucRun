@@ -1,4 +1,5 @@
 // Purpose: Implements canonical processing of client arguments and /user options.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Operation: Parses argv structurally and quotes arguments according to Windows process startup rules.
 #include "ClientCommandLine.h"
 

@@ -1,4 +1,5 @@
 // Purpose: Extracts the embedded xucRun package securely and launches its graphical installer.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include <Windows.h>
 #include <ShlObj.h>
 #include <sddl.h>

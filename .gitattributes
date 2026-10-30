@@ -1,4 +1,5 @@
-# Purpose: Defines the .gitattributes content exported to the public repository root.
+# Purpose: Defines text normalization and binary handling for repository files.
+# Approach: Assigns text normalization, platform line endings, and binary handling with path patterns.
 * text=auto
 
 *.bat text eol=crlf

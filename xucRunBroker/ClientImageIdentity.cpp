@@ -1,4 +1,5 @@
 // Purpose: Determines and verifies the path, SHA-256 hash, and signature of a broker client.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 // Locks the process-reported file and its protected path during authorization.
 #include "ClientImageIdentity.h"
 

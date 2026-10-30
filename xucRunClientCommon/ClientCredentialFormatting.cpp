@@ -1,4 +1,5 @@
 // Purpose: Implements consistent text formatting for credential and approval workflows.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Maps status values via localization and formats paths, scopes, and FILETIME values.
 #include "ClientCredentialFormatting.h"
 

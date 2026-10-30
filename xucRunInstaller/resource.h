@@ -1,4 +1,5 @@
 // Purpose: Defines resource identifiers for the xucRun bootstrap installer.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 #ifndef XUCRUN_INSTALLER_RESOURCE_H
 #define XUCRUN_INSTALLER_RESOURCE_H
 

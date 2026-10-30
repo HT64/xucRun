@@ -1,4 +1,5 @@
 // Purpose: Tests contracts, serialization, identity helpers, and sensitive storage primitives.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 // Runs positive round trips and targeted rejection cases as a release test program.
 #include "ApprovalSerialization.h"
 #include "AuthenticodeTrust.h"

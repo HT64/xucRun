@@ -1,4 +1,5 @@
 // Purpose: Tests strict loading and reversible account mappings for documentation screenshots.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 #include "DocumentationNameMapping.h"
 
 #include <Windows.h>

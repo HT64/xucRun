@@ -1,4 +1,5 @@
 // Purpose: Declares machine-bound, opaque target names for broker stores.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Separates credential, approval, and authenticity-marker keys through distinct purposes.
 #pragma once
 

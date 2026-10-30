@@ -1,4 +1,5 @@
 // Purpose: Orchestrates broker service status and administrative commands.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 #pragma once
 
 #include <Windows.h>

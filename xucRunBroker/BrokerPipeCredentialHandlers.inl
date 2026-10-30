@@ -1,4 +1,5 @@
 // Purpose: Internal request-handler implementation fragment for BrokerPipeServer.cpp.
+// Approach: Provides implementation helpers included by the owning translation unit to keep the related flow grouped.
 //
 // Inclusion contract:
 // - This file is included exactly once, from inside BrokerPipeServer.cpp's anonymous namespace.

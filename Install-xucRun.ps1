@@ -1,4 +1,68 @@
-# Purpose: Installs or removes the public xucRun package.
+<#
+.SYNOPSIS
+Installs, updates, or uninstalls xucRun on the local Windows computer.
+
+.DESCRIPTION
+In install mode, validates that every required package file has a valid,
+trusted Authenticode signature from one common signer, stages and rechecks the
+package, installs it under Program Files, configures the broker service and
+authorization policy, writes the selected language, and registers uninstall
+metadata. Existing service state is preserved during an update. In uninstall
+mode, the script verifies the installed broker and managed signer, optionally
+asks for confirmation, purges broker data through the service, removes files,
+registration and any installer-added PATH entry, and removes the managed local
+certificate from the relevant machine stores.
+
+.PARAMETER PackageDirectory
+Specifies the signed package directory for installation. The default is the
+directory containing this script. The resolved path and its existing ancestors
+must not contain reparse points. This parameter belongs only to the Install
+parameter set.
+
+.PARAMETER Language
+Selects the installed program language. Allowed values are auto, de, and en.
+When omitted, German is selected for a German current UI culture and English
+otherwise. The literal auto value is written as selected. This parameter
+belongs only to the Install parameter set.
+
+.PARAMETER AddToSystemPath
+Adds the xucRun installation directory to the system PATH during installation.
+If omitted, an installer-managed existing entry is removed during an update.
+This switch belongs only to the Install parameter set.
+
+.PARAMETER Uninstall
+Selects the mandatory Uninstall parameter set and removes an existing xucRun
+installation instead of installing a package.
+
+.PARAMETER NoSuccessDialog
+Suppresses uninstall confirmation and success or failure dialogs. This is
+intended for unattended removal and belongs only to the Uninstall parameter
+set; failures still terminate and are written to the caller.
+
+.EXAMPLE
+.\Install-xucRun.ps1 -PackageDirectory . -Language en -AddToSystemPath
+
+Installs the signed package from the current directory, selects English, and
+registers the installation directory in the system PATH.
+
+.EXAMPLE
+& 'C:\Program Files\xucRun\Install-xucRun.ps1' -Uninstall
+
+Verifies the installed product, asks for confirmation, and uninstalls xucRun.
+
+.NOTES
+Requires Windows PowerShell 5.1, elevation, Windows service and registry
+facilities, and a complete package whose required files are validly signed by
+the same trusted certificate. Installation changes Program Files, HKLM,
+machine PATH when requested, service configuration, and protected ProgramData
+staging. Uninstallation deletes installed files, broker credentials and
+approvals, registration data, and the managed local signing certificate; it
+refuses unsafe reparse-point paths, signer mismatches, and incompatible
+installed add-ons. Uninstall failures may write a diagnostic log under
+ProgramData\xucRun\InstallerLogs. Cancellation is not an error. Unhandled
+validation, service, registry, or file-system errors terminate the script and
+produce a nonzero host exit code; success produces exit code 0.
+#>
 [CmdletBinding(DefaultParameterSetName = 'Install')]
 param(
     [Parameter(ParameterSetName = 'Install')]

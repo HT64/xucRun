@@ -1,4 +1,5 @@
 // Purpose: Starts targets with the current user token while preserving requested elevation semantics.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientSameUserLaunch.h"
 
 #include <Windows.h>

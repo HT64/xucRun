@@ -1,8 +1,12 @@
+<!--
+Purpose: Introduces xucRun, its security model, use, and documentation in English.
+Approach: Combines conceptual guidance, security boundaries, examples, and links to task-specific documents.
+-->
 # xucRun
 
 **Language:** English | [Deutsch](README.de.md)
 
-**Documentation:** [Changelog](CHANGELOG.md) |
+**Documentation:** [File register](FILE_REGISTER.md) | [Changelog](CHANGELOG.md) |
 [Manual removal](docs/en/MANUAL_REMOVAL.md)
 
 **Download:** [Latest release](https://github.com/HT64/xucRun/releases/latest)
@@ -130,12 +134,22 @@ and their file hashes, and it can be time-limited. If one of the bound programs 
 its SHA-256 hash no longer matches the approval. xucRun requires an explicit decision before
 transferring the approval to the changed program version.
 
-In addition to built-in Windows features, other vendors provide solutions for account switching,
-elevation, and administrative access management. They emphasize different aspects depending on
-the use case. A list of individual products would inevitably be incomplete and could
-unintentionally emphasize particular solutions through the selection itself. It would also
-quickly become outdated and allow only limited comparison because their usage and security models
-differ.
+In addition to native Windows options, third-party solutions are available for switching user
+accounts, elevating privileges, and managing administrative access. Depending on the use case,
+they focus on different priorities and may be better suited, for example, to centralized
+administration, managed enterprise environments, or unattended automation. Listing individual
+products would inevitably be incomplete and might unintentionally emphasize certain options
+through the selection. Such a list would also quickly become outdated and would allow only
+limited comparison because the products use different operational and security models.
+
+The appropriate solution depends on the specific requirements.
+
+Users who are willing to re-enter the credentials for the other user account each time they start
+a program under that account can use the native Windows mechanisms for this purpose.
+
+For users who instead want to avoid entering passwords repeatedly while retaining more precise
+control than `runas /savecred` provides over which programs may use stored credentials and
+administrative privileges, xucRun provides a freely available solution.
 
 ## Approvals and UAC in xucRun
 

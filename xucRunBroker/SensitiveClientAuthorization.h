@@ -1,4 +1,5 @@
 // Purpose: Declares the installed authorization policy for sensitive broker clients.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Binds access to the final path and trusted signing certificate.
 #pragma once
 

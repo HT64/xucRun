@@ -1,4 +1,5 @@
 // Purpose: Adapts shared Authenticode verification for client-facing trust details.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientImageTrust.h"
 
 #include "AuthenticodeTrust.h"

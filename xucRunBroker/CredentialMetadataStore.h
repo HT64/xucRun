@@ -1,4 +1,5 @@
 // Purpose: Declares the protected metadata store for broker-managed account credentials.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Manages the account SID and modification time separately from the password itself.
 #pragma once
 

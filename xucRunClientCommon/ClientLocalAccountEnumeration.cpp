@@ -1,4 +1,5 @@
 // Purpose: Implements enumeration of enabled local Windows accounts.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Reads local standard users via NetAPI and returns sorted computer account names.
 #include "ClientLocalAccountEnumeration.h"
 

@@ -1,4 +1,40 @@
-# Purpose: Provides the bilingual graphical workflow for installing xucRun.
+<#
+.SYNOPSIS
+Displays the bilingual graphical xucRun installation workflow.
+
+.DESCRIPTION
+Builds a German or English Windows Forms installer UI for selecting language
+and system-PATH registration. It inspects the local signing certificate,
+installed product, and Microsoft Visual C++ x64 runtime. If necessary, it lets
+the user download the runtime from Microsoft's fixed URL or select an existing
+redistributable, stages and validates its Microsoft signature, original file
+name, and minimum version, and installs it. The workflow then invokes the
+package signing script and installation script in hidden Windows PowerShell
+processes and reports their results.
+
+.PARAMETER PackageDirectory
+Specifies the mandatory directory containing the extracted xucRun package,
+including the signing and installation scripts and payloads. The workflow may
+also use this protected directory to stage a downloaded redistributable.
+
+.EXAMPLE
+.\xucRunInstaller\Installer-Gui.ps1 -PackageDirectory 'C:\ProgramData\xucRun-Installer-1234'
+
+Opens the installer for an extracted package in a protected staging directory.
+
+.NOTES
+Requires elevated Windows PowerShell 5.1, Windows Forms, System.Drawing, and
+access to Windows certificate, registry, service, and runtime information.
+Completing installation can download or install the Microsoft Visual C++ x64
+runtime, create and trust a nonexportable machine-local certificate, sign the
+package, install xucRun, configure its service and registry entries, and change
+the system PATH when selected. Selected local redistributables are copied into
+protected staging before validation and execution; reparse-point inputs are
+rejected. Temporary process logs and runtime staging are removed. Exit code 0
+means installation completed. Closing or cancelling the UI returns 1223.
+Operational failures are shown in the UI and leave it open for retry or
+cancellation.
+#>
 param(
     [Parameter(Mandatory)][string]$PackageDirectory
 )

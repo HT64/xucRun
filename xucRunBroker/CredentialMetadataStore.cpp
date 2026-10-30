@@ -1,4 +1,5 @@
 // Purpose: Persists protected credential metadata in the broker context.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Serializes account SID and timestamps with strict format and size validation.
 #include "CredentialMetadataStore.h"
 

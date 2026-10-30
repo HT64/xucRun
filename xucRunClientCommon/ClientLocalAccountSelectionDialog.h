@@ -1,4 +1,5 @@
 // Purpose: Defines the client-side selection dialog for local Windows accounts.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Shows prepared account display strings and returns the selected canonical account.
 #pragma once
 

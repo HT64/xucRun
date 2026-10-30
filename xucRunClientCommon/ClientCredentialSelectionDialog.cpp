@@ -1,4 +1,5 @@
 // Purpose: Implements the client-side selection dialog for stored credentials.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Operation: Manages the selection in the dialog context and maps the sorted result to the input vector.
 #include "ClientCredentialSelectionDialog.h"
 

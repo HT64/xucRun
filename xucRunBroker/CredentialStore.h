@@ -1,4 +1,5 @@
 // Purpose: Declares the LocalSystem store for client- and account-bound passwords.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Provides secure storage, short-term reading, listing, and deletion.
 #pragma once
 

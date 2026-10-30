@@ -1,4 +1,5 @@
 // Purpose: Implements console-aware display of extensive informational and error text.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Delegates available text output to ClientConsoleOutput and otherwise builds a modal dialog.
 #include "ClientTextDialog.h"
 

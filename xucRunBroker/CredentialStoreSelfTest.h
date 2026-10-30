@@ -1,4 +1,5 @@
 // Purpose: Declares the isolated round-trip test of the broker-internal credential store.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Tests storage, reading, protection binding, and final cleanup.
 #pragma once
 

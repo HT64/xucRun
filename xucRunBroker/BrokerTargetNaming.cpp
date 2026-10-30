@@ -1,4 +1,5 @@
 // Purpose: Generates machine-bound target names for sensitive broker storage entries.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Derives them from MachineGuid, identity values, and the respective storage purpose.
 #include "BrokerTargetNaming.h"
 

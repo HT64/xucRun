@@ -1,4 +1,5 @@
 // Purpose: Defines a unified, localized representation of Windows error codes.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Converts a DWORD error into cleaned text understandable to users.
 #pragma once
 

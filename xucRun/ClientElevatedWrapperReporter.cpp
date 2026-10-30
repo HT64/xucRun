@@ -1,4 +1,5 @@
 // Purpose: Reports exactly one elevated-wrapper launch result through broker-provided handles.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientElevatedWrapperReporter.h"
 
 #include <string>

@@ -1,4 +1,5 @@
 // Purpose: Resolves Windows account SIDs and validates the returned account type.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 // Provides stable SID, domain, and name values for broker operations.
 #include "AccountIdentity.h"
 

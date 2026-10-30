@@ -1,4 +1,5 @@
 // Purpose: Implements shared construction and validation of broker contract data.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Rejects incomplete, oversized, or semantically invalid requests.
 #include "BrokerContracts.h"
 

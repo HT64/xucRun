@@ -1,4 +1,5 @@
 // Purpose: Defines client-side metadata for credentials reported by the broker.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Bundles account identity, target name, and approval timestamps for client workflows and dialogs.
 #pragma once
 

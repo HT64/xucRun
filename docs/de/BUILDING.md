@@ -1,3 +1,7 @@
+<!--
+Purpose: Explains how users build xucRun from source in German.
+Approach: Lists prerequisites and reproducible Visual Studio and command-line build steps.
+-->
 # xucRun bauen
 
 **Sprache:** Deutsch | [English](../en/BUILDING.md)

@@ -1,4 +1,5 @@
 // Purpose: Implements dated, process-safe client file logging.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Chooses the log path and adds time, level, process ID, and message.
 #include "ClientLogging.h"
 

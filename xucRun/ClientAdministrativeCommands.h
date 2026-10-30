@@ -1,4 +1,5 @@
 // Purpose: Defines dispatch for the client's public administrative commands.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Executes recognized commands and leaves argv ownership and cleanup to the caller.
 #pragma once
 

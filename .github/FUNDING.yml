@@ -1,2 +1,3 @@
 # Purpose: Links xucRun to its optional Patreon funding page.
+# Approach: Declares the project funding account through GitHub's supported funding configuration.
 patreon: xucRun

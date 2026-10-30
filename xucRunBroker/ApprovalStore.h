@@ -1,4 +1,5 @@
 // Purpose: Declares the protected broker store for time- and program-bound approvals.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Provides reading, writing, listing, deletion, and controlled path updates.
 #pragma once
 

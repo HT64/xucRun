@@ -1,4 +1,5 @@
 // Purpose: Declares controlled process launches and secure-desktop hosts in the client session.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Covers diagnostic starts, interactive object access, and sensitive helper UI.
 #pragma once
 

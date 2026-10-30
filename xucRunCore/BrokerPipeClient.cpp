@@ -1,4 +1,5 @@
 // Purpose: Transmits broker requests through the service's authenticated Named Pipe.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Manages service startup, timeouts, server identity, and response validation.
 #include "BrokerPipeClient.h"
 

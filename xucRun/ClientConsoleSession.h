@@ -1,4 +1,5 @@
 // Purpose: Defines detection, replacement, and closure of the invoking console session.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Encapsulates shell type, executable shell path, working-directory arguments, and launch parameters.
 #pragma once
 

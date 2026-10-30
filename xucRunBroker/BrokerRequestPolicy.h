@@ -1,4 +1,5 @@
 // Purpose: Defines every broker request kind and its sensitive-client policy.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 #pragma once
 
 #include <cstddef>

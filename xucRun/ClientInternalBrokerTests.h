@@ -1,4 +1,5 @@
 // Purpose: Defines handling of internal broker test switches in the client.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Executes recognized tests and leaves argv ownership and cleanup to the caller.
 #pragma once
 

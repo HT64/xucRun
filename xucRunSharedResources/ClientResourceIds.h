@@ -1,4 +1,5 @@
 // Purpose: Defines the stable resource identifiers of the xucRun Windows application.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // In particular, links the application icon to the resource script.
 #ifndef XUCRUN_RESOURCE_H
 #define XUCRUN_RESOURCE_H

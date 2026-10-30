@@ -1,4 +1,5 @@
 // Purpose: Declares the authenticated named pipe server of the broker service.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Provides service operation and isolated self-tests for central selection rules.
 #pragma once
 

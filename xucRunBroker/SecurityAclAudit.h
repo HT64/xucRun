@@ -1,4 +1,5 @@
 // Purpose: Declares the ACL audit of security-critical broker resources.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Provides structured findings with the object, problem, and concrete remediation.
 #pragma once
 

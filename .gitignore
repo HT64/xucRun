@@ -1,4 +1,5 @@
 # Purpose: Excludes xucRun build outputs, IDE state, and generated packages.
+# Approach: Uses repository-relative patterns for Visual Studio state, build trees, and release artifacts.
 .vs/
 *.user
 *.suo

@@ -1,4 +1,5 @@
 // Purpose: Declares handle-based resolution and hashing for file identities.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Provides final paths and SHA-256 values without trusting the input path.
 #pragma once
 

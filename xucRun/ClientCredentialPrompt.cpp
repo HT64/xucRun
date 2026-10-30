@@ -1,4 +1,5 @@
 // Purpose: Implements protected client-side input of Windows credentials.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Uses CredUI, clears all authentication buffers, and passes password data to SecureString.
 #include "ClientCredentialPrompt.h"
 

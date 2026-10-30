@@ -1,4 +1,5 @@
 // Purpose: Implements safe window lookup, foreground activation, and Total Commander refresh.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Validates process ownership, tries Win32 activation with thread fallback, and signals rejection.
 #include "ClientWindowActivation.h"
 

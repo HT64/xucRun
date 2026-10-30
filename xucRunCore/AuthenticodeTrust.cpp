@@ -1,4 +1,5 @@
 // Purpose: Verifies embedded signatures and Windows catalog signatures uniformly.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 #include "AuthenticodeTrust.h"
 
 #include <Softpub.h>

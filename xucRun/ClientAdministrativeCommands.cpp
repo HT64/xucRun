@@ -1,4 +1,5 @@
 // Purpose: Dispatches administrative client commands to status, credential, approval, backup, language, and audit workflows.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientAdministrativeCommands.h"
 
 #include <Windows.h>

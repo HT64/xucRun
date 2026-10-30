@@ -1,4 +1,5 @@
 // Purpose: Defines the canonical identity of a Windows account.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Declares the validated resolution of SIDs to domain and account names.
 #pragma once
 

@@ -1,4 +1,5 @@
 // Purpose: Defines client-side resolution and checks for Windows account identities.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Exposes SID, account name, token, and administrator queries through one API.
 #pragma once
 

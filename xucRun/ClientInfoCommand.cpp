@@ -1,4 +1,5 @@
 // Purpose: Implements the public client information command.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Collects read-only diagnostics and emits them through the shared text output path.
 #include "ClientInfoCommand.h"
 

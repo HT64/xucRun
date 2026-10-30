@@ -1,4 +1,5 @@
 // Purpose: Implements startup and execution of the internal monitor for hidden target processes.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Inherits only the target handle via attribute list, waits for it, and reports non-zero exit codes.
 #include "ClientProcessMonitoring.h"
 

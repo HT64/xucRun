@@ -1,4 +1,5 @@
 // Purpose: Implements client-side process launch via stored broker credentials.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Handles broker- or UAC-started approval, confirmation, and window activation.
 #include "ClientBrokerLaunch.h"
 

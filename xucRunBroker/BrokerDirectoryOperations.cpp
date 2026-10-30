@@ -1,4 +1,5 @@
 // Purpose: Implements broker-owned directory validation, creation, traversal, and deletion helpers.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "BrokerDirectoryOperations.h"
 
 #include <winternl.h>

@@ -1,4 +1,5 @@
 // Purpose: Implements shared color transformations for application icons.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ApplicationIcon.h"
 
 #include <algorithm>

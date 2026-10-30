@@ -1,4 +1,5 @@
 // Purpose: Defines creation and deletion of stored broker credentials.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Combines account selection, secure input, and broker management calls.
 #pragma once
 

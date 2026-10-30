@@ -1,4 +1,5 @@
 // Purpose: Stores a random per-user marker that only the broker reveals to authorized helpers.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "AuthenticityMarkerStore.h"
 
 #include "BrokerTargetNaming.h"

@@ -1,4 +1,5 @@
 // Purpose: Declares the binary representation of all broker protocol messages.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Defines fixed frame sizes and size-limited serialization functions.
 #pragma once
 

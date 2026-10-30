@@ -1,3 +1,7 @@
+<!--
+Purpose: Explains how users manually remove xucRun in English.
+Approach: Provides ordered cleanup and verification steps for each installed component.
+-->
 # Manual removal
 
 **Language:** [Deutsch](../de/MANUAL_REMOVAL.md) | English

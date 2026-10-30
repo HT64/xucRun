@@ -1,4 +1,53 @@
-# Purpose: Creates a machine-local certificate and signs an xucRun package.
+<#
+.SYNOPSIS
+Signs an xucRun package with a trusted machine-local certificate.
+
+.DESCRIPTION
+Finds one current machine code-signing certificate with the requested subject
+and private key or creates a nonexportable 3072-bit RSA certificate. It adds
+that certificate to the LocalMachine Root and TrustedPublisher stores, stages
+all required package payloads, signs and verifies each staged file, replaces
+the package payloads only after all staged signatures succeed, and regenerates
+SHA256SUMS.json.
+
+.PARAMETER PackageDirectory
+Specifies the package to sign. If omitted or blank, the default is the parent
+directory of this script's directory. The directory must contain all required
+xucRun payloads and no more than one correctly versioned graphical installer.
+
+.PARAMETER CertificateName
+Specifies the certificate common name. The default is
+xucRun Local Signing (<computer-name>). The value is limited to 120 characters
+and may contain only ASCII letters, digits, spaces, periods, underscores,
+parentheses, and hyphens.
+
+.PARAMETER CertificateValidityYears
+Specifies the validity period for a newly created certificate. The default is
+10 years, and the allowed range is 1 through 20. This value does not alter a
+reused certificate.
+
+.PARAMETER TimestampServer
+Optionally specifies the timestamp server passed to Set-AuthenticodeSignature.
+When supplied and nonblank, every resulting signature must expose a verifiable
+timestamp.
+
+.EXAMPLE
+.\UserCodeSigning\Sign-xucRunPackage.ps1 -PackageDirectory .\artifacts\Package\Release -CertificateValidityYears 5
+
+Creates or reuses the default local certificate, trusts it on this computer,
+and signs the Release package.
+
+.NOTES
+Requires elevated Windows PowerShell 5.1 and the LocalMachine certificate
+providers. Creating or reusing the certificate changes the machine My, Root,
+and TrustedPublisher stores; the private key of a new certificate is
+nonexportable. Package payloads are replaced with signed copies and the hash
+manifest is rewritten. Trust is local to this computer and is not equivalent
+to a publicly trusted publisher. Missing or ambiguous certificates, invalid
+names, package errors, signature or timestamp validation failures, and
+file-system failures are terminating errors and produce a nonzero host exit
+code. Success returns exit code 0.
+#>
 [CmdletBinding()]
 param(
     [string]$PackageDirectory,

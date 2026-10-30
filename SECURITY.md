@@ -1,3 +1,7 @@
+<!--
+Purpose: Explains supported versions and vulnerability reporting in English.
+Approach: Defines the supported release scope and routes private reports to GitHub Security Advisories.
+-->
 # Security Policy
 
 **Language:** [Deutsch](SECURITY.de.md) | English

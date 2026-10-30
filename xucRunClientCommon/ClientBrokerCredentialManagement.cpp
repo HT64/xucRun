@@ -1,4 +1,5 @@
 // Purpose: Implements creation and deletion of stored broker credentials.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Combines account selection, secure prompt input, and broker management calls.
 #include "ClientBrokerCredentialManagement.h"
 

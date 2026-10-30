@@ -1,4 +1,5 @@
 // Purpose: Implements central rendering and notification functions for the client UI.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Connects resources, localization, and console-aware error output.
 #include "ClientUiCommon.h"
 

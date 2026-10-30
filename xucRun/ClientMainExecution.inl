@@ -1,4 +1,5 @@
 // Purpose: Internal normal-launch implementation for the xucRun client entry point.
+// Approach: Provides implementation helpers included by the owning translation unit to keep the related flow grouped.
 //
 // Inclusion contract:
 // - Included exactly once by main.cpp after argument and mode helpers are defined.

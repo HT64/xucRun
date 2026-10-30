@@ -1,4 +1,5 @@
 // Purpose: Internal protocol implementation fragment for BrokerSerialization.cpp.
+// Approach: Provides implementation helpers included by the owning translation unit to keep the related flow grouped.
 //
 // Inclusion contract:
 // - This file is included exactly once inside the xucrun::broker namespace.

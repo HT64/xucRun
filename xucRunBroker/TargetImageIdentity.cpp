@@ -1,4 +1,5 @@
 // Purpose: Determines the immutable identity of a requested launch file.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Opens the target fail-closed and validates its final path, hash, and supported binary type.
 #include "TargetImageIdentity.h"
 

@@ -1,4 +1,5 @@
 // Purpose: Implements retrieval and selection of stored broker credentials.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Queries metadata from the broker and filters by account and admin status.
 #include "ClientBrokerCredentialSelection.h"
 

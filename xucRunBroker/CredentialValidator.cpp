@@ -1,4 +1,5 @@
 // Purpose: Validates credentials through Windows logon and matches the token account against the SID.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 // Prevents alias resolution or unexpected accounts from being accepted as success.
 #include "CredentialValidator.h"
 

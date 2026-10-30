@@ -1,4 +1,5 @@
 // Purpose: Defines direct program launch under the current user account.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Prepares batch targets and launches them with the current or elevated token.
 #pragma once
 

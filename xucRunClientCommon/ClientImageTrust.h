@@ -1,4 +1,5 @@
 // Purpose: Defines trust verification for executable Windows files.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Produces results for embedded signatures, catalog signatures, and publisher checks.
 #pragma once
 

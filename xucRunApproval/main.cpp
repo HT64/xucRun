@@ -1,4 +1,5 @@
 // Purpose: Implements the secure-desktop approval helper that displays and answers broker challenges.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include <Windows.h>
 #include <CommCtrl.h>
 #include <shellapi.h>

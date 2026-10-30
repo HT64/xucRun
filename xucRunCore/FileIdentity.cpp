@@ -1,4 +1,5 @@
 // Purpose: Determines final file paths and SHA-256 hashes through open handles.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Encapsulates Win32 handles and BCrypt-based hash calculation.
 #include "FileIdentity.h"
 

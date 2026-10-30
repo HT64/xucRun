@@ -1,4 +1,5 @@
 // Purpose: Launches the broker-prepared elevated wrapper process and reports its final result securely.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientElevatedWrapperLaunch.h"
 
 #include <Windows.h>

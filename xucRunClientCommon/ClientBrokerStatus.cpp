@@ -1,4 +1,5 @@
 // Purpose: Queries and formats broker service health for client status surfaces.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientBrokerStatus.h"
 
 #include <Windows.h>

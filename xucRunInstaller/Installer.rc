@@ -1,4 +1,5 @@
 // Purpose: Embeds the xucRun package and version metadata into Installer.exe.
+// Approach: Declares the icons, dialogs, embedded data, and version metadata compiled into the target.
 #pragma code_page(65001)
 
 #include <windows.h>

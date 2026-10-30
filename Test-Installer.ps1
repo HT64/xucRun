@@ -1,4 +1,38 @@
-# Purpose: Installs, updates, verifies, and uninstalls a signed package on a clean CI runner.
+<#
+.SYNOPSIS
+Runs the destructive xucRun installer smoke test on a clean Windows runner.
+
+.DESCRIPTION
+Checks that the elevated machine is clean, creates and reuses a short-lived
+local signing certificate, signs the supplied package, installs xucRun, and
+verifies files, metadata, signatures, broker authorization, registry entries,
+language, system PATH, and the client information command. It repeats the
+installation to test update behavior, verifies that an installed Tray add-on
+blocks removal, then uninstalls and confirms that product data and the test
+certificate are gone. Best-effort cleanup runs after success or failure.
+
+.PARAMETER PackageDirectory
+Specifies the mandatory unsigned package to test. It must contain
+Install-xucRun.ps1, UserCodeSigning\Sign-xucRunPackage.ps1, and all files those
+scripts require.
+
+.EXAMPLE
+.\Test-Installer.ps1 -PackageDirectory .\artifacts\Package\Release
+
+Signs and exercises the Release package on an otherwise clean elevated test
+machine, then removes the installation and test certificate.
+
+.NOTES
+Requires elevated Windows PowerShell 5.1 and a disposable clean Windows
+environment with no xucRun broker service, product files, product data,
+uninstall registration, or matching local test certificate. This test changes
+LocalMachine certificate stores, Program Files, ProgramData, HKLM, services,
+and the system PATH; do not run it on a machine containing an installation or
+certificate that must be retained. It also modifies the supplied package by
+signing its payload and regenerating SHA256SUMS.json. Assertion, signing,
+installation, timeout, and cleanup-critical failures are terminating errors
+and yield a nonzero host exit code. A complete pass returns exit code 0.
+#>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]

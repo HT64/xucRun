@@ -1,4 +1,5 @@
 // Purpose: Defines the handle-based verified identity of a requested launch file.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Declares final path, file, hash, and binary type resolution.
 #pragma once
 

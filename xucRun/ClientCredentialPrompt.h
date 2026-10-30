@@ -1,4 +1,5 @@
 // Purpose: Defines protected client-side input of Windows credentials.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Opens CredUI and returns password data only through SecureString.
 #pragma once
 

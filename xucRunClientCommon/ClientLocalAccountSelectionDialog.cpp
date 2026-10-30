@@ -1,4 +1,5 @@
 // Purpose: Implements the client-side selection dialog for local Windows accounts.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Creates a modal Win32 dialog and separates display text from canonical account names.
 #include "ClientLocalAccountSelectionDialog.h"
 

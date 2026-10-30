@@ -1,4 +1,5 @@
 // Purpose: Defines a reusable read-only table dialog for client information views.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Displays localized columns and rows in a resizable Win32 list view.
 #pragma once
 

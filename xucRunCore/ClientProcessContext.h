@@ -1,4 +1,5 @@
 // Purpose: Defines process queries and classification of supported parent shells.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Operation: Provides process ID, name, path, and a stable ParentShellType without UI dependencies.
 #pragma once
 

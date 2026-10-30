@@ -1,4 +1,5 @@
 // Purpose: Defines shared embedded and catalog Authenticode verification.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 #pragma once
 
 #include <Windows.h>

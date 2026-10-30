@@ -1,4 +1,5 @@
 // Purpose: Provides the client API for authenticated requests to the broker service.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Encapsulates health, start, credential, approval, and process contracts.
 #pragma once
 

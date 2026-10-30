@@ -1,3 +1,7 @@
+<!--
+Purpose: Explains how users install xucRun in English.
+Approach: Walks through package verification, installer choices, and post-install checks.
+-->
 # Installing xucRun
 
 **Language:** [Deutsch](../de/INSTALLATION.md) | English

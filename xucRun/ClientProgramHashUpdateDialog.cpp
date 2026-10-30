@@ -1,4 +1,5 @@
 // Purpose: Implements the selection dialog for program hash update scope.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Creates a modal Win32 dialog and stores the result only in dialog context.
 #include "ClientProgramHashUpdateDialog.h"
 

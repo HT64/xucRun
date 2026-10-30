@@ -1,4 +1,5 @@
 // Purpose: Defines retrieval and selection of stored broker credentials.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Processes credential metadata only; passwords remain in the broker.
 #pragma once
 

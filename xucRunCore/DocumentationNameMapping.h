@@ -1,4 +1,5 @@
 // Purpose: Defines optional display-only account and computer name mappings for documentation screenshots.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Loads an explicitly placed sidecar file and never changes operational account identities.
 #pragma once
 

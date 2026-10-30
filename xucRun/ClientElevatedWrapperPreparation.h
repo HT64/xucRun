@@ -1,4 +1,5 @@
 // Purpose: Defines launch preparation for internal elevated wrapper mode.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Prepares program, arguments, and working directory for ShellExecuteEx.
 #pragma once
 

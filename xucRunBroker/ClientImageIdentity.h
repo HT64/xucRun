@@ -1,4 +1,5 @@
 // Purpose: Defines the verified image identity of a connected client process.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Retains file and directory locks for sensitive authorization decisions.
 #pragma once
 

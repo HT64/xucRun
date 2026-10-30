@@ -1,4 +1,5 @@
 // Purpose: Implements multi-selection of broker approvals to reset.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Creates a modal Win32 list dialog and keeps selected indices in dialog context.
 #include "ClientApprovalSelectionDialog.h"
 

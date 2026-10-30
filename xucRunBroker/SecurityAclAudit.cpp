@@ -1,4 +1,5 @@
 ﻿// Purpose: Audits broker files, directories, and registry entries for unexpected writers.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Accepts only the intended privileged security principals.
 #include "SecurityAclAudit.h"
 

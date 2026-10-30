@@ -1,4 +1,5 @@
 // Purpose: Defines localized display text for credentials, approvals, and broker errors.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Formats broker contract types and timestamps without dialog or storage access.
 #pragma once
 

@@ -1,4 +1,5 @@
 // Purpose: Declares the per-user authenticity marker stored exclusively by the broker.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 #pragma once
 
 #include <Windows.h>

@@ -1,3 +1,7 @@
+<!--
+Purpose: Explains the current contribution policy in German.
+Approach: States the accepted reporting channels and links to the project security policy.
+-->
 # Beiträge zu xucRun
 
 **Sprache:** Deutsch | [English](CONTRIBUTING.md)

@@ -1,4 +1,5 @@
 // Purpose: Creates, validates, restores, and removes encrypted broker backup archives.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 #include "BrokerBackupStore.h"
 
 #include "BrokerBackupArchive.h"

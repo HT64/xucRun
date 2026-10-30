@@ -1,3 +1,7 @@
+<!--
+Purpose: Explains supported versions and vulnerability reporting in German.
+Approach: Defines the supported release scope and routes private reports to GitHub Security Advisories.
+-->
 # Sicherheitsrichtlinie
 
 **Sprache:** Deutsch | [English](SECURITY.md)

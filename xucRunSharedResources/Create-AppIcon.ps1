@@ -1,4 +1,38 @@
-# Purpose: Creates an xucRun icon variant as a multi-resolution ICO and 1024-pixel JPG file.
+<#
+.SYNOPSIS
+Creates ICO and JPEG artwork for an xucRun application variant.
+
+.DESCRIPTION
+Draws the selected xucRun variant with System.Drawing, renders transparent PNG
+frames at 16, 32, 48, and 256 pixels, and packages those frames into one ICO.
+It also renders a 1024-pixel version on a white canvas and saves it as JPEG.
+
+.PARAMETER OutputPath
+Specifies the ICO output path. The default is xucRun.ico beside this script.
+The parent directory must already exist; an existing file is replaced.
+
+.PARAMETER JpegOutputPath
+Specifies the 1024-pixel JPEG output path. The default is xucRun-1024.jpg
+beside this script. The parent directory must already exist; an existing file
+is replaced.
+
+.PARAMETER Variant
+Selects the artwork and color variant. Allowed values are Client, Broker, and
+Approval; the default is Client.
+
+.EXAMPLE
+.\Create-AppIcon.ps1 -Variant Broker -OutputPath .\xucRunBroker.ico -JpegOutputPath .\xucRunBroker-1024.jpg
+
+Creates the Broker icon and its large JPEG preview in the current directory.
+
+.NOTES
+Requires Windows PowerShell with the System.Drawing assembly available. The
+script writes or replaces both output files and does not create their parent
+directories. It performs no network access and does not sign the generated
+artwork. Invalid variants are rejected during parameter binding; drawing and
+file-system failures are terminating errors and yield a nonzero host exit code
+under powershell.exe -File. Success returns exit code 0.
+#>
 param(
     [string]$OutputPath = (Join-Path $PSScriptRoot "xucRun.ico"),
     [string]$JpegOutputPath = (Join-Path $PSScriptRoot "xucRun-1024.jpg"),

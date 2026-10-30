@@ -1,4 +1,5 @@
 // Purpose: Defines client-side process launch through stored broker credentials.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Starts or waits for the requested approval helper, confirms challenges, and registers processes.
 #pragma once
 

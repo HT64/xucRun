@@ -1,8 +1,12 @@
+<!--
+Purpose: Introduces xucRun, its security model, use, and documentation in German.
+Approach: Combines conceptual guidance, security boundaries, examples, and links to task-specific documents.
+-->
 # xucRun
 
 **Sprache:** [English](README.md) | Deutsch
 
-**Dokumentation:** [Änderungsprotokoll](CHANGELOG.de.md) |
+**Dokumentation:** [Dateiregister](FILE_REGISTER.md) | [Änderungsprotokoll](CHANGELOG.de.md) |
 [Manuelle Entfernung](docs/de/MANUAL_REMOVAL.md)
 
 **Download:** [Aktuelle Version](https://github.com/HT64/xucRun/releases/latest)
@@ -144,9 +148,20 @@ Entscheidung.
 
 Neben den Windows-eigenen Möglichkeiten gibt es Lösungen anderer Anbieter für Benutzerwechsel,
 Rechteerhöhungen und die Verwaltung administrativer Zugriffe. Sie setzen je nach Anwendungsfall
-andere Schwerpunkte. Eine Aufzählung einzelner Produkte wäre zwangsläufig unvollständig und könnte
+andere Schwerpunkte und können zum Beispiel für zentrale Administration, verwaltete
+Unternehmensumgebungen oder unbeaufsichtigte Automatisierung besser geeignet sein.
+Eine Aufzählung einzelner Produkte wäre zwangsläufig unvollständig und könnte
 durch die Auswahl unbeabsichtigt Schwerpunkte setzen. Zudem wäre sie rasch veraltet und wegen
 unterschiedlicher Einsatz- und Sicherheitsmodelle nur eingeschränkt vergleichbar.
+
+Die passende Lösung richtet sich nach den jeweiligen Anforderungen.
+
+Wer bereit ist, bei jedem entsprechenden Programmstart die Anmeldedaten des anderen
+Benutzerkontos erneut einzugeben, kann dafür die Windows-eigenen Mechanismen verwenden.
+
+Wer dagegen wiederholte Kennworteingaben vermeiden und genauer als mit `runas /savecred`
+kontrollieren möchte, welche Programme gespeicherte Anmeldedaten und administrative Rechte
+verwenden dürfen, für den bietet xucRun eine frei verfügbare Lösung.
 
 ## Freigaben und UAC in xucRun
 

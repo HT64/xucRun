@@ -1,4 +1,5 @@
 # Purpose: Builds and attests unsigned xucRun release assets and stages unpublished releases as drafts.
+# Approach: Builds and verifies release outputs in GitHub Actions before creating an unpublished draft release.
 name: xucRun Release
 
 on:

@@ -1,4 +1,5 @@
 // Purpose: Declares canonical inputs and target names for broker store entries.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Keeps name generation consistent between credential and approval stores.
 #pragma once
 

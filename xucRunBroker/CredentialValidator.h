@@ -1,4 +1,5 @@
 // Purpose: Declares server-side validation of a password for an expected account SID.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Classifies successful logon, rejection, and technical errors separately.
 #pragma once
 

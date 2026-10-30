@@ -1,4 +1,5 @@
 // Purpose: Internal typed request dispatch for BrokerPipeServer.cpp.
+// Approach: Provides implementation helpers included by the owning translation unit to keep the related flow grouped.
 //
 // Inclusion contract:
 // - Included after BrokerPipeRequestDecoder.inl and all request handlers.

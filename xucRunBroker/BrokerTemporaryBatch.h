@@ -1,4 +1,5 @@
 // Purpose: Declares lifecycle management for broker-owned temporary batch wrappers.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 #pragma once
 
 #include <Windows.h>

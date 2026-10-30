@@ -1,4 +1,5 @@
 // Purpose: Defines shared Win32 helpers for client windows and notifications.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Unifies app icon, owner window, window title, and standard message types.
 #pragma once
 

@@ -1,4 +1,5 @@
 // Purpose: Defines the client-side selection dialog for stored credentials.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Sorts accounts for display and returns the index in the original input vector.
 #pragma once
 

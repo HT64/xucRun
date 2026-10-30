@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Purpose: Builds the secure-desktop approval helper executable. -->
+<!--
+Purpose: Builds the secure-desktop approval helper executable.
+Approach: Configures the target inputs and x64 Debug and Release settings through MSBuild.
+-->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64"><Configuration>Debug</Configuration><Platform>x64</Platform></ProjectConfiguration>

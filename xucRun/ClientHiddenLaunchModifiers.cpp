@@ -1,4 +1,5 @@
 // Purpose: Parses hidden-launch modifiers and removes them from the target command line.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientHiddenLaunchModifiers.h"
 
 #include <algorithm>

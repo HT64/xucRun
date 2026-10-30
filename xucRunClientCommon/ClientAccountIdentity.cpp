@@ -1,4 +1,5 @@
 // Purpose: Implements account, SID, and administrator checks for client workflows.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Uses process tokens, account lookups, and local group membership APIs.
 #include "ClientAccountIdentity.h"
 

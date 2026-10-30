@@ -1,4 +1,5 @@
 // Purpose: Parses and validates the internal broker-bound elevated-wrapper command line.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 #include "ClientElevatedWrapperParsing.h"
 
 #include <algorithm>

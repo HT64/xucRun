@@ -1,4 +1,5 @@
 // Purpose: Implements central formatting of client Win32 and pipe errors.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Uses FormatMessage, cleans system text, and appends localized fallback explanations.
 #include "ClientWindowsError.h"
 

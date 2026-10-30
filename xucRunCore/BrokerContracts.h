@@ -1,4 +1,5 @@
 // Purpose: Defines the shared request and result types of the broker protocol.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Specifies the protocol version, field bounds, and permitted status values.
 #pragma once
 

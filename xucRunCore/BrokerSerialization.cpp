@@ -1,4 +1,5 @@
 // Purpose: Serializes and deserializes broker protocol messages.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Validates identifiers, versions, lengths, and complete frame consumption.
 #include "BrokerSerialization.h"
 

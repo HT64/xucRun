@@ -1,4 +1,5 @@
 // Purpose: Prepares normalized target, argument, and working-directory data for elevated wrapper launch.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientElevatedWrapperPreparation.h"
 
 #include <Windows.h>

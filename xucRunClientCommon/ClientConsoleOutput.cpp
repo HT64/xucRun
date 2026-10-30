@@ -1,4 +1,5 @@
 // Purpose: Reliably routes client text to an available Windows output target.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Detects console and redirection, writes with matching encoding, otherwise falls back to UI.
 #include "ClientConsoleOutput.h"
 

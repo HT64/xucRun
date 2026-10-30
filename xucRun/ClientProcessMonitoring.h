@@ -1,4 +1,5 @@
 // Purpose: Defines monitoring of hidden-started target processes via an xucRun helper process.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Behavior: Passes only a restricted process handle and visibly reports failing exit codes.
 #pragma once
 

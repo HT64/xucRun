@@ -1,4 +1,5 @@
 // Purpose: Implements the xucRun client entry point with broker integration and file logging.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 
 // ============================================================================
 // COMMAND-LINE SYNTAX & SWITCHES

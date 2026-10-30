@@ -1,4 +1,42 @@
-﻿# Purpose: Creates bilingual GitHub release notes from the matching changelog sections and checksums.
+﻿<#
+.SYNOPSIS
+Creates bilingual release notes for one xucRun version.
+
+.DESCRIPTION
+Extracts the requested version section from the English and German changelogs,
+validates that the supplied checksum file contains the matching installer and
+ZIP entries, and writes UTF-8 release notes containing the notices, both
+changelog sections, links, and checksums.
+
+.PARAMETER Version
+Specifies the release version. This mandatory value must contain exactly four
+dot-separated numeric components.
+
+.PARAMETER ChecksumPath
+Specifies the mandatory SHA256SUMS.txt input. It must contain uppercase
+64-character SHA-256 hashes for the versioned x64 installer and ZIP archive in
+the format produced by New-xucRun-Release.ps1.
+
+.PARAMETER DestinationPath
+Specifies the mandatory output file. Its parent directory is created when
+necessary, and an existing file is replaced.
+
+.EXAMPLE
+.\New-xucRun-ReleaseNotes.ps1 -Version 0.9.0.3 -ChecksumPath .\artifacts\Release\0.9.0.3\SHA256SUMS.txt -DestinationPath .\artifacts\Release\0.9.0.3\RELEASE_NOTES.md
+
+Creates release notes for version 0.9.0.3 from the matching checksums and
+changelog sections.
+
+.NOTES
+The repository must contain matching nonempty sections in CHANGELOG.md and
+CHANGELOG.de.md. The script only writes the requested local output; it does not
+create or update a GitHub Release. It validates checksum syntax and asset names
+but does not independently hash either asset or establish the checksum file's
+origin. The output file can be overwritten. Missing or malformed checksums,
+missing or empty changelog sections, invalid paths, and write failures are
+terminating errors. A powershell.exe -File invocation returns 0 on success and
+nonzero on an unhandled error.
+#>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]

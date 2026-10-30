@@ -1,4 +1,5 @@
 // Purpose: Implements console replacement for invocations without a target program.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Chooses current token or broker credentials and replaces the parent shell.
 #include "ClientConsoleReplacement.h"
 

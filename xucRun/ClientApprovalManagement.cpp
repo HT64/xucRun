@@ -1,4 +1,5 @@
 // Purpose: Implements displaying and resetting stored broker approvals.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Queries approvals and credential metadata from the broker and shows client dialogs.
 #include "ClientApprovalManagement.h"
 

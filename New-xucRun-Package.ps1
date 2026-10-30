@@ -1,4 +1,38 @@
-# Purpose: Creates an unsigned xucRun package from public build outputs.
+<#
+.SYNOPSIS
+Creates an unsigned xucRun package from compiled public build outputs.
+
+.DESCRIPTION
+Validates the selected build's versioned graphical installer and all required
+client, broker, approval, language, installation, and signing files. It then
+cleans only known package outputs from a safe, non-reparse-point destination,
+copies the required files, and writes SHA256SUMS.json for the resulting
+package. The graphical installer is renamed to include its product version.
+
+.PARAMETER Configuration
+Selects the build configuration to package. Allowed values are Debug and
+Release; the default is Debug.
+
+.PARAMETER DestinationDirectory
+Specifies the output directory. If omitted or blank, the default is
+artifacts\Package\<Configuration> below the repository root. An existing
+directory and all existing descendants must not be reparse points and may
+contain only recognized package outputs.
+
+.EXAMPLE
+.\New-xucRun-Package.ps1 -Configuration Release -DestinationDirectory .\artifacts\Package\Release
+
+Creates a Release package in the standard Release package directory.
+
+.NOTES
+Run on Windows after building the selected x64 configuration. The script
+replaces recognized package files and removes obsolete recognized installer
+files in the destination, but refuses unexpected files or reparse points. It
+does not sign any file; use UserCodeSigning\Sign-xucRunPackage.ps1 afterward.
+Failures such as missing build outputs, invalid versions, unsafe destinations,
+or file-system errors are terminating errors and produce a nonzero host exit
+code when invoked with powershell.exe -File. Success returns exit code 0.
+#>
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')]

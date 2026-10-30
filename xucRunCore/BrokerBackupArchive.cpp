@@ -1,4 +1,5 @@
 // Purpose: Serializes and validates the versioned binary archive shared by broker backup workflows.
+// Approach: Exercises the behavior with focused assertions against the shared implementation and Windows contracts.
 #include "BrokerBackupArchive.h"
 
 #include <algorithm>

@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Purpose: Ensures changes to shared client resources are embedded in every dependent binary. -->
+<!--
+Purpose: Ensures changes to shared client resources are embedded in every dependent binary.
+Approach: Adds an MSBuild target that removes the cached shared resource before resource compilation.
+-->
 <Project>
   <Target Name="ForceSharedResourceCompilation" BeforeTargets="ResourceCompile">
     <Delete Files="$(IntDir)ClientResources.res" />

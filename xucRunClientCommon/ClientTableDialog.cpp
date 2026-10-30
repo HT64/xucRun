@@ -1,4 +1,5 @@
 // Purpose: Implements a reusable read-only table dialog for client information views.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Behavior: Uses a resizable report-style list view with stable column widths.
 #include "ClientTableDialog.h"
 

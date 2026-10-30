@@ -1,4 +1,5 @@
 // Purpose: Launches controlled processes and secure-desktop hosts in the authenticated client session.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Prepares tokens and interactive object access for diagnostics and sensitive helper UI.
 #include "SessionTestLauncher.h"
 

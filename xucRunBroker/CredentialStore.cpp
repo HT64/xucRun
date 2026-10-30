@@ -1,4 +1,5 @@
 // Purpose: Stores passwords exclusively in the broker's LocalSystem credential store.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 // Additionally protects payload data with DPAPI-NG and clears plaintext memory deterministically.
 #include "CredentialStore.h"
 

@@ -1,4 +1,5 @@
 // Purpose: Defines the versioned binary format for stored program approvals.
+// Approach: Exposes the declarations, constants, and types consumed by the components that provide this behavior.
 // Provides types, bounds, and serialization and validation operations.
 #pragma once
 

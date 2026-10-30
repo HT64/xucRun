@@ -1,4 +1,5 @@
 // Purpose: Implements client commands for broker-backed backup, restore, listing, and deletion.
+// Approach: Implements the behavior with focused helpers built on shared xucRun interfaces and Windows APIs.
 #include "ClientBackupManagement.h"
 
 #include <Windows.h>
