@@ -303,6 +303,11 @@ namespace
 		return false;
 	}
 
+	bool InspectCurrentBrokerProcessHardening(std::wstring& failure)
+	{
+		return VerifyRequiredProcessHardening(processHardeningFailures, failure);
+	}
+
 #ifdef _DEBUG
 	bool RunProcessMitigationSelfTest(std::wstring& failure)
 	{
@@ -560,7 +565,8 @@ namespace
 		LogEvent(EVENTLOG_INFORMATION_TYPE, L"Service started.");
 		SetServiceState(SERVICE_RUNNING);
 		const DWORD pipeError = RunBrokerPipeServer(
-			stopEvent, brokerImageIdentity, LogBrokerEvent);
+			stopEvent, brokerImageIdentity, LogBrokerEvent,
+			InspectCurrentBrokerProcessHardening);
 		if (pipeError != NO_ERROR)
 		{
 			LogEvent(EVENTLOG_ERROR_TYPE,

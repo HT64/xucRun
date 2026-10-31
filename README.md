@@ -1050,6 +1050,14 @@ was disabled,
 `xucRun.exe /enable-broker` enables it again. `xucRun.exe /help` displays the complete local
 command overview.
 
+The diagnostics explicitly verify the file protection, Authenticode trust, and expected signer
+of the installed `Install-xucRun.ps1` maintenance script and, when Tray is installed,
+`Install-xucRunTray.ps1`. The check uses this fixed product-file list rather than treating
+arbitrary additional PowerShell files in the installation directory as xucRun components.
+The report also confirms whether all required Windows protections of the running broker process
+are active. A successful report summarizes the protected areas; a deviation identifies the
+affected protection and provides a restart and reinstall recommendation.
+
 If xucRun reports that an elevated launch was blocked because UAC confirmation was unavailable,
 Windows Admin Approval Mode is not effective for the selected different administrator account.
 This can particularly affect the built-in `Administrator` account.

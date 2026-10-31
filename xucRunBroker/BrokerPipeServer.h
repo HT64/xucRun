@@ -10,9 +10,11 @@
 #include <string>
 
 using BrokerLogCallback = void (*)(WORD eventType, const std::wstring& message);
+using BrokerProcessHardeningInspector = bool (*)(std::wstring& failure);
 
 bool RunApprovalChallengeIdentitySelfTest();
 bool RunTrackedProcessListSelectionSelfTest();
 DWORD RunBrokerPipeServer(HANDLE stopEvent,
 	const ClientImageIdentity& brokerImageIdentity,
-	BrokerLogCallback log);
+	BrokerLogCallback log,
+	BrokerProcessHardeningInspector processHardeningInspector);

@@ -47,11 +47,63 @@
 	}
 
 // Performs the authorized ACL audit and bounds the report to the protocol contract.
+	std::wstring GetProcessHardeningArea(
+		const std::wstring& failure, bool german)
+	{
+		if (failure.find(L"Dynamic code") != std::wstring::npos)
+			return german ? L"Schutz vor dynamischem Code"
+				: L"dynamic-code protection";
+		if (failure.find(L"extension point") != std::wstring::npos ||
+			failure.find(L"Extension point") != std::wstring::npos)
+		{
+			return german ? L"Schutz vor unsicheren Erweiterungspunkten"
+				: L"unsafe extension-point protection";
+		}
+		if (failure.find(L"image") != std::wstring::npos ||
+			failure.find(L"Image") != std::wstring::npos ||
+			failure.find(L"System32") != std::wstring::npos)
+		{
+			return german ? L"Schutz beim Laden von Programmbibliotheken"
+				: L"program-library loading protection";
+		}
+		if (failure.find(L"handle") != std::wstring::npos ||
+			failure.find(L"Handle") != std::wstring::npos)
+		{
+			return german ? L"Strikte Handleprüfung"
+				: L"strict handle checking";
+		}
+		if (failure.find(L"control-flow") != std::wstring::npos ||
+			failure.find(L"Control-flow") != std::wstring::npos)
+		{
+			return german ? L"Strikter Kontrollflussschutz"
+				: L"strict control-flow protection";
+		}
+		if (failure.find(L"font") != std::wstring::npos ||
+			failure.find(L"Font") != std::wstring::npos)
+		{
+			return german ? L"Schutz vor nicht systemeigenen Schriftarten"
+				: L"non-system font protection";
+		}
+		if (failure.find(L"WER") != std::wstring::npos ||
+			failure.find(L"heap dump") != std::wstring::npos)
+		{
+			return german ? L"Schutz von Fehlerabbildern"
+				: L"error-report dump protection";
+		}
+		if (failure.find(L"DLL search") != std::wstring::npos)
+			return german ? L"Geschützte Suche nach Programmbibliotheken"
+				: L"protected program-library search";
+		return german ? L"Windows-Schutzfunktionen"
+			: L"Windows process protections";
+	}
+
 	void HandleSecurityAuditRequest(HANDLE pipe, HANDLE stopEvent,
 		const ClientImageIdentity& imageIdentity,
 		const std::wstring& clientSid,
 		const xucrun::broker::SecurityAuditRequest& request,
-		BrokerLogCallback log, DWORD& transferred)
+		BrokerLogCallback log,
+		BrokerProcessHardeningInspector processHardeningInspector,
+		DWORD& transferred)
 	{
 		xucrun::broker::SecurityAuditResult result;
 		result.requestId = request.requestId;
@@ -66,8 +118,31 @@
 			const bool german = request.language ==
 				xucrun::broker::SecurityAuditRequest::Language::German;
 			SecurityAclAuditCoverage coverage;
-			const std::vector<SecurityAclFinding> findings =
+			std::vector<SecurityAclFinding> findings =
 				AuditBrokerSecurityAcls(german, &coverage, true);
+			std::wstring processHardeningFailure;
+			const bool processHardeningComplete =
+				processHardeningInspector &&
+				processHardeningInspector(processHardeningFailure);
+			const std::wstring processHardeningArea =
+				GetProcessHardeningArea(processHardeningFailure, german);
+			if (!processHardeningComplete)
+			{
+				findings.push_back({
+					german ? L"Schutz des Brokerprozesses"
+						: L"Broker process protection",
+					(german
+						? L"Nicht alle erforderlichen Windows-Schutzfunktionen sind aktiv. Betroffen: "
+						: L"Not all required Windows protections are active. Affected area: ") +
+						processHardeningArea,
+					german
+						? L"Starten Sie den Brokerdienst neu und führen Sie /audit erneut aus. "
+							L"Bleibt die Abweichung bestehen, installieren Sie xucRun aus dem "
+							L"signierten Paket neu."
+						: L"Restart the broker service and run /audit again. If the deviation "
+							L"persists, reinstall xucRun from the signed package."
+				});
+			}
 			if (findings.size() > xucrun::broker::MaximumSecurityAuditFindings)
 			{
 				result.status = xucrun::broker::SecurityAuditStatus::Failed;
@@ -80,8 +155,8 @@
 				result.report = findings.empty()
 					? (german ? L"Keine Sicherheitsabweichungen gefunden."
 						: L"No security deviations found.")
-					: (german ? L"Unerwartete Schreibberechtigungen oder ACL-Probleme gefunden:"
-						: L"Unexpected write permissions or ACL problems found:");
+					: (german ? L"Sicherheitsabweichungen gefunden."
+						: L"Security deviations found.");
 				const auto& context = coverage.credentialStoreContext;
 				result.report += german ? L"\n\nCredential-Store-Kontext:"
 					: L"\n\nCredential store context:";
@@ -111,6 +186,28 @@
 							: L"active; current context permitted")
 						: (german ? L"aktiv; aktueller Kontext abgelehnt"
 							: L"active; current context denied"));
+				result.report += german ? L"\n\nSchutz des Brokerprozesses:"
+					: L"\n\nBroker process protection:";
+				if (processHardeningComplete)
+				{
+					result.report += german
+						? L"\n- Status: Alle erforderlichen Windows-Schutzfunktionen sind aktiv."
+							L"\n- Geschützt werden insbesondere das Nachladen von Code und "
+							L"Bibliotheken, Erweiterungspunkte, Handles, Kontrollfluss, "
+							L"Schriftarten und Fehlerabbilder."
+						: L"\n- Status: All required Windows protections are active."
+							L"\n- Protection covers in particular code and library loading, "
+							L"extension points, handles, control flow, fonts, and error-report "
+							L"dumps.";
+				}
+				else
+				{
+					result.report += (german
+						? L"\n- Status: Nicht alle erforderlichen Windows-Schutzfunktionen sind aktiv."
+							L"\n- Betroffen: "
+						: L"\n- Status: Not all required Windows protections are active."
+							L"\n- Affected area: ") + processHardeningArea;
+				}
 				result.report += german ? L"\n\nÜberprüfte Installationsobjekte:"
 					: L"\n\nInspected installation objects:";
 				for (const std::wstring& object : coverage.installationObjects)

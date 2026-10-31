@@ -1118,6 +1118,16 @@ Autostartaufgaben. Wurde der Brokerdienst deaktiviert, kann er mit
 `xucRun.exe /enable-broker` wieder aktiviert werden. `xucRun.exe /help` zeigt die vollständige
 lokale Befehlsübersicht.
 
+Die Diagnose prüft ausdrücklich den Dateiobjektschutz, das Authenticode-Vertrauen und den
+erwarteten Signierer des installierten Wartungsskripts `Install-xucRun.ps1` sowie bei installiertem
+Tray von `Install-xucRunTray.ps1`. Die Prüfung verwendet diese feste Produktdateiliste; beliebige
+zusätzliche PowerShell-Dateien im Installationsverzeichnis werden nicht als xucRun-Komponenten
+behandelt.
+Der Bericht bestätigt außerdem, ob alle erforderlichen Windows-Schutzfunktionen des laufenden
+Brokerprozesses aktiv sind. Bei Erfolg fasst er die geschützten Bereiche zusammen; bei einer
+Abweichung nennt er die betroffene Schutzfunktion sowie eine Empfehlung zu Neustart und
+Neuinstallation.
+
 Meldet xucRun, dass ein erhöhter Start wegen fehlender UAC-Bestätigung blockiert wurde, ist für
 das ausgewählte andere Administratorkonto der Windows-Administratorbestätigungsmodus nicht
 wirksam. Das kann insbesondere das integrierte Konto `Administrator` betreffen.

@@ -17,7 +17,9 @@ bool DispatchBrokerRequest(DecodedBrokerRequest& decoded,
 	std::vector<TrackedElevatedProcess>& trackedElevatedProcesses,
 	std::vector<TrackedElevatedProcessJob>& trackedElevatedProcessJobs,
 	std::vector<RegisteredStatusIcon>& registeredStatusIcons,
-	BrokerLogCallback log, DWORD& transferred)
+	BrokerLogCallback log,
+	BrokerProcessHardeningInspector processHardeningInspector,
+	DWORD& transferred)
 {
 	switch (decoded.kind)
 	{
@@ -132,7 +134,8 @@ bool DispatchBrokerRequest(DecodedBrokerRequest& decoded,
 		break;
 	case BrokerRequestKind::SecurityAudit:
 		HandleSecurityAuditRequest(pipe, stopEvent, imageIdentity,
-			clientSid, decoded.securityAudit, log, transferred);
+			clientSid, decoded.securityAudit, log,
+			processHardeningInspector, transferred);
 		break;
 	case BrokerRequestKind::CredentialUseTest:
 		HandleCredentialUseTestRequest(pipe, stopEvent, clientProcess,

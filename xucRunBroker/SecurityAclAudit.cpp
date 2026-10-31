@@ -420,8 +420,8 @@ namespace
 		if (!inspection.identityRead)
 		{
 			findings.push_back({ label + L": " + path, SelectAuditText(german,
-				L"The image identity could not be read (error ",
-				L"Die Abbildidentität konnte nicht gelesen werden (Fehler ") +
+				L"The file identity could not be read (error ",
+				L"Die Dateiidentität konnte nicht gelesen werden (Fehler ") +
 				std::to_wstring(error) + L").", remediation });
 		}
 		else if (!inspection.fileIdentityRead || !inspection.protectedPath)
@@ -1014,6 +1014,22 @@ std::vector<SecurityAclFinding> AuditBrokerSecurityAcls(bool german,
 			clientPolicy.imagePath, clientPolicy.signerCertificateSha256,
 			coverage, findings, german);
 
+		const std::wstring coreMaintenanceScript =
+			directory + L"\\Install-xucRun.ps1";
+		const std::wstring coreMaintenanceRemediation = SelectAuditText(german,
+			L"Reinstall xucRun from the matching signed Core package.",
+			L"Installieren Sie xucRun aus dem passenden signierten Core-Paket neu.");
+		if (coverage)
+			AppendUniquePath(coverage->installationObjects, coreMaintenanceScript);
+		AuditFileSystemObject(SelectAuditText(german,
+			L"Core maintenance script", L"Core-Wartungsskript"),
+			coreMaintenanceScript, coreMaintenanceRemediation, findings, german);
+		AuditInstallationSignature(SelectAuditText(german,
+			L"Core maintenance script certificate",
+			L"Zertifikat des Core-Wartungsskripts"),
+			coreMaintenanceScript, clientPolicy.signerCertificateSha256,
+			coverage, findings, german, coreMaintenanceRemediation);
+
 		const std::wstring trayPath = directory + L"\\xucRunTray.exe";
 		HKEY trayUninstallKey = nullptr;
 		const bool trayRegistryPresent = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
@@ -1028,7 +1044,7 @@ std::vector<SecurityAclFinding> AuditBrokerSecurityAcls(bool german,
 				std::pair{ trayPath, true },
 				std::pair{ languageDirectory + L"\\xucRunTray.de-DE.dll", true },
 				std::pair{ languageDirectory + L"\\xucRunTray.en-US.dll", true },
-				std::pair{ directory + L"\\Install-xucRunTray.ps1", false }
+				std::pair{ directory + L"\\Install-xucRunTray.ps1", true }
 			};
 			const std::wstring trayRemediation = SelectAuditText(german,
 				L"Remove xucRun Tray and reinstall the matching Tray release.",
@@ -1039,14 +1055,14 @@ std::vector<SecurityAclFinding> AuditBrokerSecurityAcls(bool german,
 			AuditFileSystemObject(SelectAuditText(german,
 				L"Tray language directory", L"Tray-Sprachverzeichnis"),
 				languageDirectory, trayRemediation, findings, german);
-			for (const auto& [path, signedImage] : trayFiles)
+			for (const auto& [path, signedFile] : trayFiles)
 			{
 				if (coverage)
 					AppendUniquePath(coverage->installationObjects, path);
 				AuditFileSystemObject(SelectAuditText(german,
 					L"Tray file", L"Tray-Datei"), path,
 					trayRemediation, findings, german);
-				if (signedImage)
+				if (signedFile)
 				{
 					AuditInstallationSignature(SelectAuditText(german,
 						L"Tray file certificate", L"Zertifikat der Tray-Datei"),

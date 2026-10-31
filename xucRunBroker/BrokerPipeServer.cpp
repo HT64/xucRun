@@ -3488,7 +3488,8 @@ bool RunTrackedProcessListSelectionSelfTest()
 // Serves one hardened pipe connection at a time and authorizes each contract before privileged actions.
 DWORD RunBrokerPipeServer(HANDLE stopEvent,
 	const ClientImageIdentity& brokerImageIdentity,
-	BrokerLogCallback log)
+	BrokerLogCallback log,
+	BrokerProcessHardeningInspector processHardeningInspector)
 {
 	PSECURITY_DESCRIPTOR descriptor = nullptr;
 	if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(
@@ -3723,7 +3724,7 @@ DWORD RunBrokerPipeServer(HANDLE stopEvent,
 			clientIntegrityRid, imageIdentity, clientSid, clientLogonSid,
 			pendingApprovalChallenges, pendingCredentialCaptureChallenges,
 			trackedElevatedProcesses, trackedElevatedProcessJobs,
-			registeredStatusIcons, log, transferred);
+			registeredStatusIcons, log, processHardeningInspector, transferred);
 		CloseHandle(clientProcess);
 		DisconnectNamedPipe(pipe);
 		if (stopAccepted)
