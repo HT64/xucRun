@@ -331,6 +331,10 @@ namespace xucrun::command_line
 			return { UserSwitchKind::SelectCredential, L"" };
 		if (lowerArgument == elevatedSwitch || lowerArgument == elevatedPrefix)
 			return { UserSwitchKind::SelectElevatedCredential, L"" };
+		if (lowerArgument == L"/user:*")
+			return { UserSwitchKind::SelectLocalAccount, L"" };
+		if (lowerArgument == L"/user-elevated:*")
+			return { UserSwitchKind::SelectElevatedLocalAccount, L"" };
 
 		UserSwitchKind namedKind = UserSwitchKind::None;
 		std::size_t prefixLength = 0;

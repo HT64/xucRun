@@ -153,6 +153,7 @@ namespace xucrun::localization
 		AccountSelectionTitle = IDS_ACCOUNT_SELECTION_TITLE,
 		AccountSelectionFirstUse = IDS_ACCOUNT_SELECTION_FIRST_USE,
 		AccountSelectionHeader = IDS_ACCOUNT_SELECTION_HEADER,
+		AccountSelectionLaunchHeader = IDS_ACCOUNT_SELECTION_LAUNCH_HEADER,
 		AccountSelectionCurrent = IDS_ACCOUNT_SELECTION_CURRENT,
 		AccountSelectionStored = IDS_ACCOUNT_SELECTION_STORED,
 		ProgramUpdateTitle = IDS_PROGRAM_UPDATE_TITLE,

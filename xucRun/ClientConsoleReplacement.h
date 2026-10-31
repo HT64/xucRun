@@ -21,6 +21,7 @@ namespace xucrun::console_replacement
 		bool onlyUserParameter = false;
 		bool requestElevation = false;
 		bool selectCredentialWithoutElevation = false;
+		bool selectLocalAccount = false;
 		std::wstring username;
 		std::wstring programExecutableName;
 	};

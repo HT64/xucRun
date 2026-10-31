@@ -338,8 +338,9 @@ namespace xucrun::broker_credential_management
 
 		// Shows local account selection for credential creation without a fixed account name;
 		// an empty successful selection stands for "Other account".
-		bool SelectLocalAccountForCredentialPrompt(
-			std::wstring& selectedAccount, HWND owner, bool requireAdministrator)
+		bool SelectLocalAccount(
+			std::wstring& selectedAccount, HWND owner, bool requireAdministrator,
+			local_account_selection_dialog::SelectionMode selectionMode)
 		{
 			std::vector<std::wstring> accounts =
 				local_account_enumeration::GetEnabledLocalAccounts();
@@ -408,6 +409,7 @@ namespace xucrun::broker_credential_management
 				accounts, displayAccounts, storedAccounts,
 				DisplayAccount(currentAccount), currentAccountIndex,
 				credentialListAvailable && storedCredentials.empty(),
+				selectionMode,
 				selectedAccount, owner);
 		}
 
@@ -549,14 +551,22 @@ namespace xucrun::broker_credential_management
 		}
 	}
 
+	bool SelectLocalAccountForLaunch(
+		std::wstring& selectedAccount, HWND owner, bool requireAdministrator)
+	{
+		return SelectLocalAccount(selectedAccount, owner, requireAdministrator,
+			local_account_selection_dialog::SelectionMode::Launch);
+	}
+
 	// Selects the target identity and delegates secure credential capture to the elevated helper.
 	bool PromptAndSaveBrokerCredentials(
 		const std::wstring& prefilledUsername, HWND owner, bool requireAdministrator)
 	{
 		std::wstring selectedUsername = prefilledUsername;
 		if (selectedUsername.empty() &&
-			!SelectLocalAccountForCredentialPrompt(
-				selectedUsername, owner, requireAdministrator))
+			!SelectLocalAccount(selectedUsername, owner, requireAdministrator,
+				local_account_selection_dialog::SelectionMode::
+					CredentialManagement))
 		{
 			client_logging::Write(L"Info", L"Local user account selection cancelled");
 			return false;

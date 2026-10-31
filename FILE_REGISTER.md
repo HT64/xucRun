@@ -202,8 +202,8 @@ treats that encoding as binary.
 | `xucRunClientCommon/ClientAdministrativeStatus.h` | C++ header | Defines the elevated, read-only status view across Windows user profiles. |
 | `xucRunClientCommon/ClientBackupManagement.cpp` | C++ source | Implements client commands for broker-backed backup, restore, listing, and deletion. |
 | `xucRunClientCommon/ClientBackupManagement.h` | C++ header | Declares client-side backup and restore command handling. |
-| `xucRunClientCommon/ClientBrokerCredentialManagement.cpp` | C++ source | Implements creation and deletion of stored broker credentials. |
-| `xucRunClientCommon/ClientBrokerCredentialManagement.h` | C++ header | Defines creation and deletion of stored broker credentials. |
+| `xucRunClientCommon/ClientBrokerCredentialManagement.cpp` | C++ source | Implements local account selection plus creation and deletion of stored broker credentials. |
+| `xucRunClientCommon/ClientBrokerCredentialManagement.h` | C++ header | Defines local account selection plus creation and deletion of stored broker credentials. |
 | `xucRunClientCommon/ClientBrokerCredentialSelection.cpp` | C++ source | Implements retrieval and selection of stored broker credentials. |
 | `xucRunClientCommon/ClientBrokerCredentialSelection.h` | C++ header | Defines retrieval and selection of stored broker credentials. |
 | `xucRunClientCommon/ClientBrokerLaunch.cpp` | C++ source | Implements client-side process launch via stored broker credentials. |
@@ -223,8 +223,8 @@ treats that encoding as binary.
 | `xucRunClientCommon/ClientLaunchDetection.h` | C++ header | Defines stateless detection rules for special client process launches. |
 | `xucRunClientCommon/ClientLocalAccountEnumeration.cpp` | C++ source | Implements enumeration of enabled local Windows accounts. |
 | `xucRunClientCommon/ClientLocalAccountEnumeration.h` | C++ header | Defines client-side enumeration of enabled local Windows accounts. |
-| `xucRunClientCommon/ClientLocalAccountSelectionDialog.cpp` | C++ source | Implements the client-side selection dialog for local Windows accounts. |
-| `xucRunClientCommon/ClientLocalAccountSelectionDialog.h` | C++ header | Defines the client-side selection dialog for local Windows accounts. |
+| `xucRunClientCommon/ClientLocalAccountSelectionDialog.cpp` | C++ source | Implements the client-side selection dialog for credential management and local-account launches. |
+| `xucRunClientCommon/ClientLocalAccountSelectionDialog.h` | C++ header | Defines the client-side selection dialog modes for credential management and local-account launches. |
 | `xucRunClientCommon/ClientLogging.cpp` | C++ source | Implements dated, process-safe client file logging. |
 | `xucRunClientCommon/ClientLogging.h` | C++ header | Defines initialization and writing of the shared client log. |
 | `xucRunClientCommon/ClientRuntimeInfo.cpp` | C++ source | Collects and formats the runtime information shared by Core and Tray. |

@@ -57,6 +57,22 @@ namespace xucrun::console_replacement
 			return { ConsoleReplacementCompletion::Failed, 1, false };
 		}
 
+		std::wstring selectedUsername = request.username;
+		if (request.selectLocalAccount)
+		{
+			if (!broker_credential_management::SelectLocalAccountForLaunch(
+				selectedUsername, ui::GetDialogOwnerWindow(),
+				request.requestElevation))
+			{
+				client_logging::Write(L"Info",
+					L"Local account selection for console replacement cancelled");
+				return { ConsoleReplacementCompletion::Cancelled, 1, false };
+			}
+			client_logging::Write(L"Info",
+				L"Local account selected for console replacement: " +
+					selectedUsername);
+		}
+
 		bool useBrokerCredential = false;
 		same_user_launch::SameUserLaunchMode sameUserLaunchMode =
 			same_user_launch::SameUserLaunchMode::Credentials;
@@ -67,20 +83,20 @@ namespace xucrun::console_replacement
 		broker_credential_selection::BrokerCredentialSelectionOutcome selection =
 			broker_credential_selection::BrokerCredentialSelectionOutcome::NotFound;
 
-		if (!request.username.empty())
+		if (!selectedUsername.empty())
 		{
 			sameUserLaunchMode = same_user_launch::GetSameUserLaunchMode(
-				request.username, request.requestElevation);
+				selectedUsername, request.requestElevation);
 
 			if (sameUserLaunchMode != same_user_launch::SameUserLaunchMode::Credentials)
 			{
-				client_logging::Write(L"Info", L"User switch refers to current account - launching console without credentials: " + request.username);
+				client_logging::Write(L"Info", L"User switch refers to current account - launching console without credentials: " + selectedUsername);
 			}
 			else
 			{
-				client_logging::Write(L"Info", L"Explicit user switch -> searching broker credential for: " + request.username);
+				client_logging::Write(L"Info", L"Explicit user switch -> searching broker credential for: " + selectedUsername);
 				selection = broker_credential_selection::SelectBrokerCredential(
-					request.username, request.requestElevation,
+					selectedUsername, request.requestElevation,
 					selectedCredential, selectionError);
 				brokerElevationMode = request.requestElevation
 					? broker::ElevationMode::RequireElevated
@@ -137,16 +153,16 @@ namespace xucrun::console_replacement
 				: L"Already elevated admin account without user switch -> use current token");
 		}
 
-		if ((!request.username.empty() || request.requestElevation) &&
+		if ((!selectedUsername.empty() || request.requestElevation) &&
 			sameUserLaunchMode == same_user_launch::SameUserLaunchMode::Credentials &&
 			selection == broker_credential_selection::BrokerCredentialSelectionOutcome::NotFound)
 		{
-			client_logging::Write(L"Info", request.username.empty()
+			client_logging::Write(L"Info", selectedUsername.empty()
 				? L"No administrator broker credential stored for elevated console replacement - starting administrator credential creation"
 				: L"Explicit broker credential for console replacement missing - starting credential prompt for: " +
-					request.username);
+					selectedUsername);
 			if (!broker_credential_management::PromptAndSaveBrokerCredentials(
-				request.username, ui::GetDialogOwnerWindow(),
+				selectedUsername, ui::GetDialogOwnerWindow(),
 				request.requestElevation))
 			{
 				client_logging::Write(L"Info",
@@ -154,13 +170,13 @@ namespace xucrun::console_replacement
 				return { ConsoleReplacementCompletion::Failed, 1, false };
 			}
 			selection = broker_credential_selection::SelectBrokerCredential(
-				request.username, request.requestElevation,
+				selectedUsername, request.requestElevation,
 				selectedCredential, selectionError);
 			useBrokerCredential = selection ==
 				broker_credential_selection::BrokerCredentialSelectionOutcome::Selected;
 		}
 
-		const bool automaticCredentialSelection = request.username.empty() &&
+		const bool automaticCredentialSelection = selectedUsername.empty() &&
 			!request.requestElevation && !request.selectCredentialWithoutElevation &&
 			sameUserLaunchMode == same_user_launch::SameUserLaunchMode::Credentials;
 		if (automaticCredentialSelection &&
@@ -278,7 +294,7 @@ namespace xucrun::console_replacement
 
 			client_logging::Write(L"Info", sameUserLaunchMode == same_user_launch::SameUserLaunchMode::ElevateCurrentToken
 				? L"Launching console under current account with requested elevation"
-				: (!request.username.empty()
+				: (!selectedUsername.empty()
 					? L"Launching console under explicitly selected current account with unchanged token state"
 					: L"Launching console under current account with existing elevated token"));
 			if (!consoleArgs.empty())

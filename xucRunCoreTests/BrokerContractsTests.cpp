@@ -481,6 +481,9 @@ namespace
 		};
 		const UserSwitch selectUser = ParseUserSwitch(L"/UsEr");
 		const UserSwitch selectElevated = ParseUserSwitch(L"/USER-ELEVATED:");
+		const UserSwitch selectLocalUser = ParseUserSwitch(L"/user:*");
+		const UserSwitch selectElevatedLocalUser =
+			ParseUserSwitch(L"/USER-ELEVATED:*");
 		const UserSwitch namedUser = ParseUserSwitch(L"/user:  DOMAIN\\Karin\t");
 		const UserSwitch namedElevated = ParseUserSwitch(
 			L"/user-elevated: Administrator ");
@@ -490,6 +493,9 @@ namespace
 			std::wstring(userArguments[2]) != L"/user:Karin" ||
 			selectUser.kind != UserSwitchKind::SelectCredential ||
 			selectElevated.kind != UserSwitchKind::SelectElevatedCredential ||
+			selectLocalUser.kind != UserSwitchKind::SelectLocalAccount ||
+			selectElevatedLocalUser.kind !=
+				UserSwitchKind::SelectElevatedLocalAccount ||
 			namedUser.kind != UserSwitchKind::NamedUser ||
 			namedUser.username != L"DOMAIN\\Karin" ||
 			namedElevated.kind != UserSwitchKind::NamedElevatedUser ||

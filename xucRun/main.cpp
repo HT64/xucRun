@@ -14,9 +14,10 @@
 //   a current administrator account is elevated via UAC when necessary; otherwise,
 //   a single credential match launches elevated automatically, while multiple matches are presented for selection.
 //   Standard accounts are launched normally only if no administrator match exists.
-//   /user[:<Username>] suppresses additional elevation; for a named same-user
-//   account, the current token state remains unchanged.
-//   /user-elevated[:<Username>] explicitly ensures elevated privileges.
+//   /user[:<Username>|:*] suppresses additional elevation; for a named same-user
+//   account, the current token state remains unchanged. :* always selects from
+//   enabled local accounts and captures missing credentials before continuing.
+//   /user-elevated[:<Username>|:*] explicitly ensures elevated privileges.
 //
 //   IMPORTANT: Stored credentials are required to switch accounts.
 //              UAC elevation is possible only with an administrator account.
@@ -76,11 +77,13 @@
 //
 // 2. /user[:<Username>]
 //    Without a username, the switch selects from all stored accounts.
+//    With :*, it always selects from all enabled local accounts.
 //    With a username, it selects a specific account. No credentials are needed
 //    for the same Windows SID; the current token state remains unchanged.
 //
 //    Usage:
 //      xucRun.exe /user notepad.exe
+//      xucRun.exe /user:* notepad.exe
 //      xucRun.exe /user:Administrator notepad.exe
 //      xucRun.exe /user:DOMAIN\AdminUser cmd.exe
 //
@@ -91,6 +94,7 @@
 //    only stored accounts that are members of the local Administrators group
 //    are considered. A single match is used automatically; multiple matches
 //    are displayed in the selection box.
+//    /user-elevated:* always selects from enabled local administrator accounts.
 //
 //
 // 3. /showcred
@@ -562,6 +566,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	bool onlyUserParameter = false;
 	bool requestElevation = false;
 	bool selectCredentialWithoutElevation = false;
+	bool selectLocalAccount = false;
 	std::wstring userParamForConsole = L"";
 
 	if (argc == 2)
@@ -586,6 +591,17 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 			requestElevation = true;
 			WriteLog(L"Info", L"/user-elevated without user - select stored administrator account for elevated console");
 			break;
+		case xucrun::command_line::UserSwitchKind::SelectLocalAccount:
+			onlyUserParameter = true;
+			selectLocalAccount = true;
+			WriteLog(L"Info", L"/user:* - select a local account for console replacement");
+			break;
+		case xucrun::command_line::UserSwitchKind::SelectElevatedLocalAccount:
+			onlyUserParameter = true;
+			requestElevation = true;
+			selectLocalAccount = true;
+			WriteLog(L"Info", L"/user-elevated:* - select a local administrator account for elevated console replacement");
+			break;
 		case xucrun::command_line::UserSwitchKind::NamedUser:
 			onlyUserParameter = true;
 			userParamForConsole = userSwitch.username;
@@ -608,6 +624,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		request.onlyUserParameter = onlyUserParameter;
 		request.requestElevation = requestElevation;
 		request.selectCredentialWithoutElevation = selectCredentialWithoutElevation;
+		request.selectLocalAccount = selectLocalAccount;
 		request.username = userParamForConsole;
 		request.programExecutableName = PROGRAM_EXE_NAME;
 
@@ -682,16 +699,24 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		{
 			requestElevation =
 				userSwitch.kind == xucrun::command_line::UserSwitchKind::SelectElevatedCredential ||
+				userSwitch.kind == xucrun::command_line::UserSwitchKind::SelectElevatedLocalAccount ||
 				userSwitch.kind == xucrun::command_line::UserSwitchKind::NamedElevatedUser;
 			selectCredentialWithoutElevation =
 				userSwitch.kind == xucrun::command_line::UserSwitchKind::SelectCredential;
+			selectLocalAccount =
+				userSwitch.kind == xucrun::command_line::UserSwitchKind::SelectLocalAccount ||
+				userSwitch.kind == xucrun::command_line::UserSwitchKind::SelectElevatedLocalAccount;
 			specificUserParam = userSwitch.username;
 			for (int index = 1; index < argc - 1; index++)
 			{
 				argv[index] = argv[index + 1];
 			}
 			argc--;
-			WriteLog(L"Info", selectCredentialWithoutElevation
+			WriteLog(L"Info", selectLocalAccount
+				? (requestElevation
+					? L"/user-elevated:* found - select a local administrator account"
+					: L"/user:* found - select a local account")
+				: selectCredentialWithoutElevation
 				? L"/user without username found - select stored account without additional elevation"
 				: requestElevation
 				? (specificUserParam.empty()
@@ -871,7 +896,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	}
 
 	const int result = RunNormalProgramLaunch(argc, argv, specificUserParam,
-		requestElevation, selectCredentialWithoutElevation,
+		requestElevation, selectCredentialWithoutElevation, selectLocalAccount,
 		hiddenLaunch, monitorHiddenLaunch);
 	LocalFree(argv);
 	return result;

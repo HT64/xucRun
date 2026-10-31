@@ -19,11 +19,20 @@ namespace
 		const std::wstring* currentAccount;
 		std::size_t currentAccountIndex;
 		bool noStoredCredentials;
+		xucrun::local_account_selection_dialog::SelectionMode mode;
 	};
 
 	void UpdatePrimaryButton(HWND dialog, const SelectionContext* context,
 		LRESULT selectedIndex)
 	{
+		if (context &&
+			context->mode ==
+				xucrun::local_account_selection_dialog::SelectionMode::Launch)
+		{
+			SetWindowTextW(GetDlgItem(dialog, IDOK), xucrun::localization::GetText(
+				xucrun::localization::TextId::ButtonNext).c_str());
+			return;
+		}
 		const bool stored = context && context->storedAccounts &&
 			selectedIndex >= 0 &&
 			static_cast<std::size_t>(selectedIndex) < context->storedAccounts->size() &&
@@ -48,13 +57,19 @@ namespace
 			SetForegroundWindow(dialog);
 
 			std::wstring headerText;
-			if (context && context->noStoredCredentials)
+			if (context && context->noStoredCredentials &&
+				context->mode ==
+					xucrun::local_account_selection_dialog::SelectionMode::
+						CredentialManagement)
 			{
 				headerText = xucrun::localization::GetText(
 					xucrun::localization::TextId::AccountSelectionFirstUse);
 			}
 			headerText += xucrun::localization::Format(
-				xucrun::localization::TextId::AccountSelectionHeader,
+				context && context->mode ==
+					xucrun::local_account_selection_dialog::SelectionMode::Launch
+					? xucrun::localization::TextId::AccountSelectionLaunchHeader
+					: xucrun::localization::TextId::AccountSelectionHeader,
 				{ context && context->currentAccount
 					? *context->currentAccount
 					: xucrun::localization::GetText(
@@ -84,7 +99,9 @@ namespace
 			{
 				for (std::size_t index = 0; index < context->accounts->size(); index++)
 				{
-					if (index != context->currentAccountIndex)
+					if (context->mode ==
+							xucrun::local_account_selection_dialog::SelectionMode::Launch ||
+						index != context->currentAccountIndex)
 					{
 						initialIndex = static_cast<LRESULT>(index);
 						break;
@@ -136,7 +153,11 @@ namespace
 			{
 				text = (*context->displayAccounts)[drawItem->itemID];
 			}
-			const bool disabled = drawItem->itemID == context->currentAccountIndex;
+			const bool disabled =
+				context->mode ==
+					xucrun::local_account_selection_dialog::SelectionMode::
+						CredentialManagement &&
+				drawItem->itemID == context->currentAccountIndex;
 			const bool selected = (drawItem->itemState & ODS_SELECTED) != 0;
 			const COLORREF backgroundColor = selected && !disabled
 				? GetSysColor(COLOR_HIGHLIGHT) : GetSysColor(COLOR_WINDOW);
@@ -168,6 +189,8 @@ namespace
 				const LRESULT selectedIndex = SendMessageW(
 					GetDlgItem(dialog, AccountListId), LB_GETCURSEL, 0, 0);
 				EnableWindow(GetDlgItem(dialog, IDOK), !context ||
+					context->mode ==
+						xucrun::local_account_selection_dialog::SelectionMode::Launch ||
 					selectedIndex == LB_ERR || static_cast<std::size_t>(selectedIndex) !=
 					context->currentAccountIndex);
 				UpdatePrimaryButton(dialog, context, selectedIndex);
@@ -186,8 +209,11 @@ namespace
 					MessageBeep(MB_ICONWARNING);
 					return TRUE;
 				}
-				if (static_cast<std::size_t>(selectedIndex) ==
-					context->currentAccountIndex)
+				if (context->mode ==
+						xucrun::local_account_selection_dialog::SelectionMode::
+							CredentialManagement &&
+					static_cast<std::size_t>(selectedIndex) ==
+						context->currentAccountIndex)
 				{
 					MessageBeep(MB_ICONWARNING);
 					return TRUE;
@@ -223,7 +249,8 @@ namespace xucrun::local_account_selection_dialog
 		const std::vector<std::wstring>& displayAccounts,
 		const std::vector<bool>& storedAccounts,
 		const std::wstring& currentAccount, std::size_t currentAccountIndex,
-		bool noStoredCredentials, std::wstring& selectedAccount, HWND owner)
+		bool noStoredCredentials, SelectionMode mode,
+		std::wstring& selectedAccount, HWND owner)
 	{
 		struct DialogTemplateHeader
 		{
@@ -258,7 +285,8 @@ namespace xucrun::local_account_selection_dialog
 
 		selectedAccount.clear();
 		SelectionContext context = { &accounts, &displayAccounts, &storedAccounts,
-			&selectedAccount, &currentAccount, currentAccountIndex, noStoredCredentials };
+			&selectedAccount, &currentAccount, currentAccountIndex,
+			noStoredCredentials, mode };
 		const INT_PTR result = DialogBoxIndirectParamW(GetModuleHandle(nullptr),
 			reinterpret_cast<LPCDLGTEMPLATEW>(buffer),
 			owner ? owner : ui::GetDialogOwnerWindow(), DialogProc,

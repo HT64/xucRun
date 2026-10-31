@@ -765,9 +765,17 @@ shown.
 |---|---|
 | `xucRun.exe <Program> [Arguments ...]` | determine the account automatically and request elevation when required |
 | `xucRun.exe /user <Program> [Arguments ...]` | select an account for which xucRun credentials are stored, without additional elevation by xucRun |
+| `xucRun.exe /user:* <Program> [Arguments ...]` | always select an enabled local account, without additional elevation by xucRun |
 | `xucRun.exe /user:<Account> <Program> [Arguments ...]` | use a specific account without additional elevation by xucRun |
 | `xucRun.exe /user-elevated <Program> [Arguments ...]` | select an administrator account for which xucRun credentials are stored and start elevated |
+| `xucRun.exe /user-elevated:* <Program> [Arguments ...]` | always select an enabled local administrator account and start elevated |
 | `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated |
+
+The `:*` forms always show the local target-account selection, even when only one suitable
+account or stored credential is available. The current account and accounts with stored xucRun
+credentials are identified in the dialog. Selecting the current account uses its existing token;
+selecting another account without stored xucRun credentials starts protected password entry and
+continues the original launch after the credentials have been stored successfully.
 
 If no credentials for a suitable administrator account are stored on the first invocation with
 `/user-elevated`, xucRun automatically offers administrator-account selection and protected

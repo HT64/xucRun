@@ -818,9 +818,18 @@ Konto mit xucRun-Anmeldedaten, wird es automatisch gewählt; bei mehreren ersche
 |---|---|
 | `xucRun.exe <Programm> [Argumente ...]` | Konto automatisch bestimmen; bei Bedarf erhöhte Rechte anfordern |
 | `xucRun.exe /user <Programm> [Argumente ...]` | Konto wählen, für das xucRun-Anmeldedaten gespeichert sind, ohne zusätzliche Erhöhung durch xucRun |
+| `xucRun.exe /user:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, ohne zusätzliche Erhöhung durch xucRun |
 | `xucRun.exe /user:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden, ohne zusätzliche Erhöhung durch xucRun |
 | `xucRun.exe /user-elevated <Programm> [Argumente ...]` | Administratorkonto wählen, für das xucRun-Anmeldedaten gespeichert sind, und erhöht starten |
+| `xucRun.exe /user-elevated:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Administratorkonto wählen und erhöht starten |
 | `xucRun.exe /user-elevated:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden und erhöht starten |
+
+Die `:*`-Formen zeigen die lokale Zielkontoauswahl immer an, auch wenn nur ein geeignetes Konto
+oder nur ein passender Anmeldedatensatz vorhanden ist. Der Dialog kennzeichnet das aktuelle Konto
+und Konten mit gespeicherten xucRun-Anmeldedaten. Beim aktuellen Konto wird dessen vorhandener
+Token verwendet. Fehlen für ein anderes ausgewähltes Konto xucRun-Anmeldedaten, folgt die
+geschützte Kennworteingabe; nach erfolgreicher Speicherung wird der ursprüngliche Startauftrag
+fortgesetzt.
 
 Sind beim ersten Aufruf mit `/user-elevated` noch keine Anmeldedaten für ein geeignetes
 Administratorkonto gespeichert, bietet xucRun automatisch die Auswahl eines Administratorkontos

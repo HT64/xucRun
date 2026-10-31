@@ -197,8 +197,8 @@ int RunSystemProgramLaunch(int argc, LPWSTR* argv)
 
 int RunNormalProgramLaunch(int argc, LPWSTR* argv,
 	const std::wstring& specificUserParam, bool requestElevation,
-	bool selectCredentialWithoutElevation, bool hiddenLaunch,
-	bool monitorHiddenLaunch)
+	bool selectCredentialWithoutElevation, bool selectLocalAccount,
+	bool hiddenLaunch, bool monitorHiddenLaunch)
 {
 	// ==============================================================================
 	// Normal process launch with program path and arguments
@@ -265,10 +265,24 @@ int RunNormalProgramLaunch(int argc, LPWSTR* argv,
 
 	WriteLog(L"Info", L"Current user: " + currentDomain + L"\\" + currentUser);
 
-	SameUserLaunchMode sameUserLaunchMode = specificUserParam.empty()
+	std::wstring selectedUserParam = specificUserParam;
+	if (selectLocalAccount)
+	{
+		if (!xucrun::broker_credential_management::SelectLocalAccountForLaunch(
+			selectedUserParam, GetDialogOwnerWindow(), requestElevation))
+		{
+			WriteLog(L"Info", L"Local account selection for program launch cancelled");
+			return 1;
+		}
+		WriteLog(L"Info", L"Local account selected for program launch: " +
+			selectedUserParam);
+	}
+
+	SameUserLaunchMode sameUserLaunchMode = selectedUserParam.empty()
 		? SameUserLaunchMode::Credentials
-		: GetSameUserLaunchMode(specificUserParam, requestElevation);
-	const bool automaticCurrentAdmin = IsUserInAdminGroup() && specificUserParam.empty() && !requestElevation;
+		: GetSameUserLaunchMode(selectedUserParam, requestElevation);
+	const bool automaticCurrentAdmin = IsUserInAdminGroup() &&
+		selectedUserParam.empty() && !requestElevation;
 	if (automaticCurrentAdmin)
 	{
 		sameUserLaunchMode = IsRunningAsAdministrator()
@@ -301,29 +315,29 @@ int RunNormalProgramLaunch(int argc, LPWSTR* argv,
 	}
 
 	const bool useExplicitBrokerLaunch = requestElevation ||
-		selectCredentialWithoutElevation || !specificUserParam.empty();
+		selectCredentialWithoutElevation || !selectedUserParam.empty();
 	if (useExplicitBrokerLaunch)
 	{
 		CredentialInfo selectedCredential;
 		DWORD selectionError = NO_ERROR;
 		BrokerCredentialSelectionOutcome selection = SelectBrokerCredential(
-			specificUserParam, requestElevation, selectedCredential, selectionError);
+			selectedUserParam, requestElevation, selectedCredential, selectionError);
 		if (selection == BrokerCredentialSelectionOutcome::NotFound &&
-			(!specificUserParam.empty() || requestElevation))
+			(!selectedUserParam.empty() || requestElevation))
 		{
-			WriteLog(L"Info", specificUserParam.empty()
+			WriteLog(L"Info", selectedUserParam.empty()
 				? L"No administrator broker credential stored - starting administrator credential creation"
 				: L"Explicit broker credential missing - starting credential prompt for: " +
-					specificUserParam);
+					selectedUserParam);
 			if (!PromptAndSaveBrokerCredentials(
-				specificUserParam, GetDialogOwnerWindow(), requestElevation))
+				selectedUserParam, GetDialogOwnerWindow(), requestElevation))
 			{
 				WriteLog(L"Info",
 					L"Credential creation for explicit program launch cancelled or failed");
 				return 1;
 			}
 			selection = SelectBrokerCredential(
-				specificUserParam, requestElevation, selectedCredential, selectionError);
+				selectedUserParam, requestElevation, selectedCredential, selectionError);
 		}
 		if (selection == BrokerCredentialSelectionOutcome::Cancelled)
 		{
@@ -353,11 +367,11 @@ int RunNormalProgramLaunch(int argc, LPWSTR* argv,
 					xucrun::localization::TextId::BrokerAdminCredentialNotFound)
 				: xucrun::localization::GetText(
 					xucrun::localization::TextId::BrokerStandardCredentialNotFound);
-			if (!specificUserParam.empty())
+			if (!selectedUserParam.empty())
 				message += xucrun::localization::Format(
 					xucrun::localization::TextId::AccountDetail,
 					{ xucrun::documentation_names::DisplayAccount(
-						specificUserParam) });
+						selectedUserParam) });
 			message += xucrun::localization::Format(
 				xucrun::localization::TextId::SaveCredentialInstruction,
 				{ PROGRAM_EXE_NAME });
@@ -384,7 +398,7 @@ int RunNormalProgramLaunch(int argc, LPWSTR* argv,
 	}
 
 	const bool useAutomaticCredentialSelection = !requestElevation &&
-		!selectCredentialWithoutElevation && specificUserParam.empty();
+		!selectCredentialWithoutElevation && selectedUserParam.empty();
 	if (useAutomaticCredentialSelection)
 	{
 		CredentialInfo selectedCredential;

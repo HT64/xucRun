@@ -11,9 +11,16 @@
 
 namespace xucrun::local_account_selection_dialog
 {
+	enum class SelectionMode
+	{
+		CredentialManagement,
+		Launch
+	};
+
 	bool Show(const std::vector<std::wstring>& accounts,
 		const std::vector<std::wstring>& displayAccounts,
 		const std::vector<bool>& storedAccounts,
 		const std::wstring& currentAccount, std::size_t currentAccountIndex,
-		bool noStoredCredentials, std::wstring& selectedAccount, HWND owner);
+		bool noStoredCredentials, SelectionMode mode,
+		std::wstring& selectedAccount, HWND owner);
 }

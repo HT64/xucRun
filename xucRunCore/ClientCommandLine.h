@@ -14,6 +14,8 @@ namespace xucrun::command_line
 		None,
 		SelectCredential,
 		SelectElevatedCredential,
+		SelectLocalAccount,
+		SelectElevatedLocalAccount,
 		NamedUser,
 		NamedElevatedUser,
 		Invalid
