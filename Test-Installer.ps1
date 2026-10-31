@@ -242,6 +242,9 @@ function Assert-InstalledState {
         [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.0.3') `
         'The uninstall DisplayVersion is not 0.9.0.3.'
     Assert-Condition (
+        [int]$uninstallKey.GetValue('InstallationContractVersion', 0) -eq 1) `
+        'The installation contract version is missing or invalid.'
+    Assert-Condition (
         [string]$uninstallKey.GetValue('InstallDate', '') -match '^\d{8}$') `
         'The uninstall InstallDate is missing or invalid.'
     $installTimestamp = [DateTimeOffset]::MinValue

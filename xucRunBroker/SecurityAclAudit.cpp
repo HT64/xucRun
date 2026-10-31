@@ -32,12 +32,6 @@ namespace
 	constexpr wchar_t TrayTaskFolder[] = L"\\xucRun";
 	constexpr wchar_t TrayTaskPrefix[] = L"BrokerStatus-";
 
-	bool UsesCombinedTrayStartupRegistration(bool trayRegistryPresent,
-		bool iconInstallerPresent)
-	{
-		return !trayRegistryPresent && iconInstallerPresent;
-	}
-
 	template<typename T>
 	class ComPtr
 	{
@@ -1030,20 +1024,12 @@ std::vector<SecurityAclFinding> AuditBrokerSecurityAcls(bool german,
 			GetFileAttributesW(trayPath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
 			const std::wstring languageDirectory = directory + L"\\Languages";
-			const std::wstring iconInstallerPath =
-				directory + L"\\Install-xucRun-Icon.ps1";
-			const bool combinedStartupRegistration =
-				UsesCombinedTrayStartupRegistration(trayRegistryPresent,
-					GetFileAttributesW(iconInstallerPath.c_str()) !=
-					INVALID_FILE_ATTRIBUTES);
 			std::vector<std::pair<std::wstring, bool>> trayFiles = {
 				std::pair{ trayPath, true },
 				std::pair{ languageDirectory + L"\\xucRunTray.de-DE.dll", true },
-				std::pair{ languageDirectory + L"\\xucRunTray.en-US.dll", true }
+				std::pair{ languageDirectory + L"\\xucRunTray.en-US.dll", true },
+				std::pair{ directory + L"\\Install-xucRunTray.ps1", false }
 			};
-			trayFiles.emplace_back(combinedStartupRegistration
-				? iconInstallerPath
-				: directory + L"\\Install-xucRunTray.ps1", false);
 			const std::wstring trayRemediation = SelectAuditText(german,
 				L"Remove xucRun Tray and reinstall the matching Tray release.",
 				L"Entfernen Sie xucRun Tray und installieren Sie die passende "
@@ -1068,14 +1054,10 @@ std::vector<SecurityAclFinding> AuditBrokerSecurityAcls(bool german,
 						coverage, findings, german, trayRemediation);
 				}
 			}
-			if (trayRegistryPresent)
-			{
-				AuditRegistryKey(SelectAuditText(german,
-					L"Tray uninstall registration", L"Tray-Deinstallationsregistrierung"),
-					TrayUninstallRegistryPath, findings, german, trayRemediation);
-			}
-			if (!combinedStartupRegistration)
-				AuditTrayScheduledTasks(trayPath, findings, german);
+			AuditRegistryKey(SelectAuditText(german,
+				L"Tray uninstall registration", L"Tray-Deinstallationsregistrierung"),
+				TrayUninstallRegistryPath, findings, german, trayRemediation);
+			AuditTrayScheduledTasks(trayPath, findings, german);
 		}
 	}
 
@@ -1154,10 +1136,7 @@ bool RunSecurityAclAuditSelfTest()
 	const std::wstring testSid = L"S-1-5-21-1-2-3-1001";
 	const std::wstring testTaskName = std::wstring(TrayTaskPrefix) + testSid;
 	const std::wstring testTrayPath = L"C:\\Program Files\\xucRun\\xucRunTray.exe";
-	if (!UsesCombinedTrayStartupRegistration(false, true) ||
-		UsesCombinedTrayStartupRegistration(true, true) ||
-		UsesCombinedTrayStartupRegistration(false, false) ||
-		!IsExpectedTrayTaskPrincipal(testTaskName, testSid,
+	if (!IsExpectedTrayTaskPrincipal(testTaskName, testSid,
 			TASK_LOGON_INTERACTIVE_TOKEN, TASK_RUNLEVEL_LUA) ||
 		IsExpectedTrayTaskPrincipal(testTaskName, testSid,
 			TASK_LOGON_INTERACTIVE_TOKEN, TASK_RUNLEVEL_HIGHEST) ||

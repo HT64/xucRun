@@ -30,6 +30,7 @@ Approach: Configures the target inputs and x64 Debug and Release settings throug
     <ClCompile Include="ClientLocalAccountEnumeration.cpp" />
     <ClCompile Include="ClientLocalAccountSelectionDialog.cpp" />
     <ClCompile Include="ClientLogging.cpp" />
+    <ClCompile Include="ClientRuntimeInfo.cpp" />
     <ClCompile Include="ClientTableDialog.cpp" />
     <ClCompile Include="ClientTextDialog.cpp" />
     <ClCompile Include="ClientUiCommon.cpp" />
@@ -54,6 +55,7 @@ Approach: Configures the target inputs and x64 Debug and Release settings throug
     <ClInclude Include="ClientLocalAccountEnumeration.h" />
     <ClInclude Include="ClientLocalAccountSelectionDialog.h" />
     <ClInclude Include="ClientLogging.h" />
+    <ClInclude Include="ClientRuntimeInfo.h" />
     <ClInclude Include="ClientTableDialog.h" />
     <ClInclude Include="ClientTextDialog.h" />
     <ClInclude Include="ClientUiCommon.h" />

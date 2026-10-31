@@ -416,6 +416,15 @@ Für die Installation wird ein vollständiges xucRun-Paket benötigt. Der grafis
 signiert die installierbaren Paketdateien auf dem Zielrechner einheitlich mit einem lokalen
 xucRun-Zertifikat.
 
+Das öffentliche Binär-ZIP ist ein vollständiges Installationspaket, aber kein portables
+Programmpaket. Die darin enthaltenen EXE- und DLL-Dateien dürfen nicht einzeln in ein beliebiges
+Verzeichnis kopiert und als Installation verwendet werden. Verwenden Sie entweder den enthaltenen
+grafischen Installer oder den in der
+[Installationsanleitung](docs/de/INSTALLATION.md) beschriebenen skriptbasierten Weg. Beide richten
+zusätzlich zu den Programmdateien den geschützten Installationspfad, das lokale
+Signaturzertifikat, den Brokerdienst und dessen Autorisierungsbindung sowie Konfiguration und
+Deinstallation ein.
+
 ### Lokales Signaturzertifikat
 
 xucRun verwendet das Zertifikat, damit Windows und xucRun prüfen können, dass die installierten
@@ -980,6 +989,10 @@ Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
 dessen Exitcode und zeigt bei einem Fehler einen Hinweis. Dialoge und Kindprozesse werden dadurch
 nicht verborgen oder überwacht.
 
+`xucRun.exe` verwendet Exitcode `0` für einen erfolgreichen Vorgang und Exitcode `1`, wenn der
+Vorgang fehlschlägt, abgelehnt oder abgebrochen wird. Der Exitcode eines gestarteten Zielprogramms
+wird nicht als Exitcode von `xucRun.exe` zurückgegeben.
+
 ### Anwendung oder Ersatz-Shell als LocalSystem starten
 
 `xucRun.exe /system [<Anwendung> [Argumente...]]` startet die angegebene lokale Anwendung oder
@@ -1078,9 +1091,14 @@ Die Deinstallation entfernt auch die lokal gespeicherten xucRun-Datensicherungen
 
 ## Fehlerdiagnose
 
-`xucRun.exe /info` zeigt unter anderem Clientversion, Copyright, Name, SHA-256-Fingerabdruck und
-Gültigkeitszeitraum des Signierzertifikats, Brokerstatus, aktuelles Konto und wirksame
-Konfiguration. `xucRun.exe /audit` prüft sicherheitsrelevante Eigenschaften der laufenden
+`xucRun.exe /info` zeigt die auch von xucRun Tray verwendeten gemeinsamen
+Client-Laufzeitinformationen: Version, Copyright, Pfad, Architektur, wirksame Sprache und geladene
+Sprach-DLL, Signierzertifikat, aktuelles Konto einschließlich SID und Rechteerhöhung,
+Konfigurationsdatei und Client-Protokollierung. Core-spezifische Abschnitte ergänzen Brokerstatus,
+Der gemeinsame Konfigurationsabschnitt nennt außerdem das installierte Wartungsskript.
+Core-spezifische Abschnitte ergänzen Brokerstatus, Broker-Informationsereignisse und Anzahlen
+gespeicherter Daten. `xucRun.exe /audit` prüft
+sicherheitsrelevante Eigenschaften der laufenden
 Installation und nennt bei gültiger Clientsignatur ebenfalls das geprüfte Zertifikat. Ist xucRun
 Tray separat installiert, prüft die Diagnose zusätzlich dessen
 installierte Dateien und Signaturen, Deinstallationsregistrierung und benutzerbezogene
@@ -1130,6 +1148,9 @@ und nicht an eine Einstellung angehängt werden.
 - `Language=auto` folgt der Windows-Anzeigesprache des aktuellen Benutzers und verwendet bei einer
   deutschen Anzeigesprache Deutsch, andernfalls Englisch. `Language=de` wählt ausdrücklich Deutsch,
   `Language=en` ausdrücklich Englisch. Die Änderung gilt für neu gestartete xucRun-Prozesse.
+  Laufende Tray-Instanzen starten sich nach einer über xucRun gesetzten Sprachänderung neu. Eine
+  manuelle externe Änderung erkennt das Tray beim nächsten Öffnen seines Kontextmenüs und startet
+  sich dann neu. Andere bereits laufende xucRun-Prozesse übernehmen die Änderung nicht.
 - Ein fehlendes oder leeres `ClientLogDirectory` deaktiviert das Client-Dateilog. Ein eingetragener
   Pfad aktiviert es. Umgebungsvariablen werden im Kontext des jeweils startenden Clients
   aufgelöst. Der Pfad muss für jedes verwendete Client- und Wrapperkonto erreichbar und mit den
@@ -1137,17 +1158,19 @@ und nicht an eine Einstellung angehängt werden.
   xucRun verändert die Zugriffsrechte des Verzeichnisses nicht. Bei einem gemeinsamen Pfad muss
   der Administrator deshalb die vorgesehenen Leser und Schreiber festlegen; Konten mit
   Änderungsrechten können die Protokolle auch verändern oder löschen.
-  Änderungen gelten für neu gestartete Clientprozesse. In jedes aufgelöste Protokollverzeichnis
-  schreibt xucRun pro Tag eine datierte Protokolldatei, rotiert oder löscht Client-Protokolle
-  jedoch nicht automatisch. Diese Protokolle können Programmpfade, Kontonamen, Befehlszeilen und
-  Argumente des Zielprogramms enthalten. Kennwörter oder andere Geheimnisse sollten deshalb nicht
-  als Befehlszeilenargumente übergeben werden.
+  Änderungen gelten für neu gestartete Client- und Wrapperprozesse. Das laufende Tray liest den
+  Wert beim nächsten Öffnen seines Kontextmenüs neu; bis dahin verwendet es seine bisherige
+  Loggingkonfiguration. In jedes aufgelöste Protokollverzeichnis schreibt xucRun pro Tag eine
+  datierte Protokolldatei, rotiert oder löscht Client-Protokolle jedoch nicht automatisch. Diese
+  Protokolle können Programmpfade, Kontonamen, Befehlszeilen und Argumente des Zielprogramms
+  enthalten. Kennwörter oder andere Geheimnisse sollten deshalb nicht als Befehlszeilenargumente
+  übergeben werden.
 - Warnungen, Fehler sowie Dienst- und ACL-Startmeldungen schreibt der Broker immer in das
   Windows-Anwendungsereignislog unter der Quelle `xucRunBroker`.
   `BrokerInformationEvents=true` ergänzt dort routinemäßige Informationsmeldungen zur Verarbeitung
   von Pipe-Anfragen. Bei fehlendem, leerem, `false` oder anderem Wert bleiben nur diese
   zusätzlichen Informationsmeldungen deaktiviert. Änderungen gelten nach einem Neustart des
-  Brokerdienstes.
+  Brokerdienstes; ein Neustart von Client oder Tray genügt nicht.
 
 Eine fehlende Konfigurationsdatei, ein ungültiger Sprachwert oder eine fehlende beziehungsweise
 nicht passend signierte Sprachdatei führt aus Sicherheitsgründen zum Startabbruch statt zu einem

@@ -340,6 +340,14 @@ namespace xucrun::localization
 		return g_useAutomaticLanguage;
 	}
 
+	std::wstring GetLoadedLanguageResourcePath()
+	{
+		DWORD windowsError = NO_ERROR;
+		return g_languageModule
+			? GetLanguagePath(g_useGermanResources, windowsError)
+			: std::wstring{};
+	}
+
 	std::wstring GetTextByResourceId(unsigned int resourceId)
 	{
 		std::wstring text = LoadStringForLanguage(

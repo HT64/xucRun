@@ -7,7 +7,8 @@ In install mode, validates that every required package file has a valid,
 trusted Authenticode signature from one common signer, stages and rechecks the
 package, installs it under Program Files, configures the broker service and
 authorization policy, writes the selected language, and registers uninstall
-metadata. Existing service state is preserved during an update. In uninstall
+metadata including the contract version required by local development
+refreshes. Existing service state is preserved during an update. In uninstall
 mode, the script verifies the installed broker and managed signer, optionally
 asks for confirmation, purges broker data through the service, removes files,
 registration and any installer-added PATH entry, and removes the managed local
@@ -84,6 +85,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $serviceName = 'xucRunBroker'
+$installationContractVersion = 1
 $serviceDisplayName = 'xucRun Privileged Broker'
 $programFilesDirectory = [Environment]::GetFolderPath(
     [Environment+SpecialFolder]::ProgramFiles)
@@ -575,9 +577,13 @@ function Set-ConfigurationLanguage {
             @(
                 '; Diese Datei konfiguriert xucRun fuer alle Benutzer dieses Computers.'
                 '; Fehlt diese Datei, startet xucRun nicht.'
-                '; Laufende Prozesse lesen Aenderungen nicht automatisch neu ein.'
-                '; Language und ClientLogDirectory gelten fuer jeden neu gestarteten Client.'
-                '; BrokerInformationEvents wird beim Start des Broker-Dienstes gelesen.'
+                '; Language gilt fuer neu gestartete xucRun-Prozesse.'
+                '; Nach einer mit xucRun gesetzten Sprachanderung starten laufende Tray-Instanzen'
+                '; neu. Eine manuelle Aenderung erkennt das Tray beim naechsten Oeffnen des Menues.'
+                '; ClientLogDirectory gilt fuer neu gestartete Client- und Wrapperprozesse.'
+                '; Das laufende Tray liest ClientLogDirectory beim naechsten Oeffnen des Menues neu.'
+                '; BrokerInformationEvents wird nur beim Start des Broker-Dienstes gelesen.'
+                '; Eine Aenderung erfordert einen Neustart des Broker-Dienstes.'
                 ''
                 '[xucRun]'
                 '; Legt die Sprache der Clientoberflaeche fest.'
@@ -613,9 +619,13 @@ function Set-ConfigurationLanguage {
             @(
                 '; This file configures xucRun for all users of this computer.'
                 '; xucRun does not start if this file is missing.'
-                '; Running processes do not reload changes automatically.'
-                '; Language and ClientLogDirectory apply to each newly started client.'
-                '; BrokerInformationEvents is read when the broker service starts.'
+                '; Language applies to newly started xucRun processes.'
+                '; Running Tray instances restart after a language change made through xucRun.'
+                '; After a manual edit, Tray checks Language when its menu is next opened.'
+                '; ClientLogDirectory applies to newly started client and wrapper processes.'
+                '; Running Tray reloads ClientLogDirectory when its menu is next opened.'
+                '; BrokerInformationEvents is read only when the broker service starts.'
+                '; Restart the broker service for a change to take effect.'
                 ''
                 '[xucRun]'
                 '; Sets the language of the client user interface.'
@@ -1008,6 +1018,9 @@ try {
         [int](Get-Item -LiteralPath $uninstallRegistryPath).GetValue(
             'AddedToSystemPath', 0) -eq 1
     New-Item -Path $uninstallRegistryPath -Force | Out-Null
+    New-ItemProperty -Path $uninstallRegistryPath `
+        -Name InstallationContractVersion -PropertyType DWord `
+        -Value $installationContractVersion -Force | Out-Null
     New-ItemProperty -Path $uninstallRegistryPath -Name DisplayName `
         -PropertyType String -Value 'xucRun' -Force | Out-Null
     New-ItemProperty -Path $uninstallRegistryPath -Name DisplayVersion `

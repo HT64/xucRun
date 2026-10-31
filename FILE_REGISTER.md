@@ -227,6 +227,8 @@ treats that encoding as binary.
 | `xucRunClientCommon/ClientLocalAccountSelectionDialog.h` | C++ header | Defines the client-side selection dialog for local Windows accounts. |
 | `xucRunClientCommon/ClientLogging.cpp` | C++ source | Implements dated, process-safe client file logging. |
 | `xucRunClientCommon/ClientLogging.h` | C++ header | Defines initialization and writing of the shared client log. |
+| `xucRunClientCommon/ClientRuntimeInfo.cpp` | C++ source | Collects and formats the runtime information shared by Core and Tray. |
+| `xucRunClientCommon/ClientRuntimeInfo.h` | C++ header | Defines the shared runtime-information contract for xucRun clients. |
 | `xucRunClientCommon/ClientTableDialog.cpp` | C++ source | Implements a reusable read-only table dialog for client information views. |
 | `xucRunClientCommon/ClientTableDialog.h` | C++ header | Defines a reusable read-only table dialog for client information views. |
 | `xucRunClientCommon/ClientTextDialog.cpp` | C++ source | Implements console-aware display of extensive informational and error text. |

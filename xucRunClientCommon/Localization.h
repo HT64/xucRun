@@ -58,8 +58,10 @@ namespace xucrun::localization
 		InfoTitle = IDS_INFO_TITLE,
 		InfoHeading = IDS_INFO_HEADING,
 		InfoContent = IDS_INFO_CONTENT,
+		InfoCommonContent = IDS_INFO_COMMON_CONTENT,
 		InfoLanguageGerman = IDS_INFO_LANGUAGE_GERMAN,
 		InfoLanguageEnglish = IDS_INFO_LANGUAGE_ENGLISH,
+		InfoLanguageAutomaticSuffix = IDS_INFO_LANGUAGE_AUTOMATIC_SUFFIX,
 		InfoElevated = IDS_INFO_ELEVATED,
 		InfoNotElevated = IDS_INFO_NOT_ELEVATED,
 		InfoEnabled = IDS_INFO_ENABLED,
@@ -359,6 +361,7 @@ namespace xucrun::localization
 		const wchar_t* language, DWORD& windowsError);
 	bool UsesGermanResources();
 	bool UsesAutomaticLanguage();
+	std::wstring GetLoadedLanguageResourcePath();
 	std::wstring GetTextByResourceId(unsigned int resourceId);
 	std::wstring FormatResource(unsigned int resourceId,
 		std::initializer_list<std::wstring> arguments);

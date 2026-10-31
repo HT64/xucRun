@@ -382,6 +382,13 @@ as a deliberately chosen and hardened security boundary, not as an absolute secu
 Installation requires a complete xucRun package. The graphical installer signs all installable
 package files consistently on the target computer with a local xucRun certificate.
 
+The public binary ZIP is a complete installation package, but it is not a portable application
+package. Do not copy individual EXE or DLL files from it to an arbitrary directory and treat that
+as an installation. Use either the included graphical installer or the script-based method
+described in the [installation guide](docs/en/INSTALLATION.md). In addition to the program files,
+both methods configure the protected installation path, local signing certificate, broker service
+and its authorization binding, configuration, and uninstall support.
+
 ### Local signing certificate
 
 xucRun uses the certificate so that Windows and xucRun can verify that the installed program
@@ -918,6 +925,10 @@ authorization.
 and displays a notice when it fails. Dialogs and child processes are not hidden or monitored by
 these options.
 
+`xucRun.exe` uses exit code `0` for a successful operation and exit code `1` when the operation
+fails, is rejected, or is cancelled. The exit code of a launched target program is not returned as
+the exit code of `xucRun.exe`.
+
 ### Starting an application or replacement shell as LocalSystem
 
 `xucRun.exe /system [<Application> [Arguments...]]` starts the specified local application, or a
@@ -1014,9 +1025,12 @@ Uninstalling xucRun also removes locally stored xucRun backups.
 
 ## Troubleshooting
 
-`xucRun.exe /info` shows information including the client version, copyright, signing certificate name,
-SHA-256 fingerprint and validity period, broker status, current account, and effective
-configuration. `xucRun.exe /audit` checks security-relevant properties of the running installation
+`xucRun.exe /info` shows the shared client runtime information also used by xucRun Tray: version,
+copyright, path, architecture, effective language and loaded language DLL, signing certificate,
+current account including SID and elevation, configuration file, and client logging. Core-specific
+The common configuration section also identifies the installed maintenance script. Core-specific
+sections add broker status, broker information events, and stored-data counts.
+`xucRun.exe /audit` checks security-relevant properties of the running installation
 and also identifies the verified certificate when the client signature is valid. If xucRun Tray
 is installed separately, the diagnostics also check its installed
 files and signatures, uninstall registration, and per-user autostart tasks. If the broker service
@@ -1065,22 +1079,26 @@ than appended to a setting.
 - `Language=auto` follows the current user's Windows display language, selecting German for a
   German display language and English otherwise. `Language=de` selects German explicitly, and
   `Language=en` selects English explicitly. The change applies to newly started xucRun processes.
+  Running Tray instances restart after a language change made through xucRun. Tray detects a
+  manual external change when its context menu is next opened and then restarts itself. Other
+  already running xucRun processes do not adopt the change.
 - A missing or empty `ClientLogDirectory` disables client file logging. Specifying a path enables
   it. Environment variables are expanded in the context of each starting client. The path must
   be accessible to every client and wrapper account in use, with the permissions required to
   create, append to, and delete log files. xucRun does not change the directory's access
   permissions. For a shared path, the administrator must therefore define the intended readers
   and writers; accounts with modify access can also alter or delete the logs. Changes apply to
-  newly started client processes. For each resolved log directory, xucRun appends to one dated
-  log file per day but does not
-  automatically rotate or delete client logs. These logs can contain program paths, account names,
-  command lines, and target arguments. Do not pass passwords or other secrets as command-line
-  arguments.
+  newly started client and wrapper processes. Running Tray reloads the value when its context menu
+  is next opened; until then, it continues to use its previous logging configuration. For each
+  resolved log directory, xucRun appends to one dated log file per day but does not automatically
+  rotate or delete client logs. These logs can contain program paths, account names, command
+  lines, and target arguments. Do not pass passwords or other secrets as command-line arguments.
 - The broker always writes warnings, errors, and service and ACL startup messages to the Windows
   Application event log under the `xucRunBroker` source. `BrokerInformationEvents=true`
   additionally logs routine information about pipe request processing there. If the setting is
   missing, empty, `false`, or has any other value, only these additional information events remain
-  disabled. Changes take effect after the broker service is restarted.
+  disabled. Changes take effect after the broker service is restarted; restarting the client or
+  Tray is not sufficient.
 
 A missing configuration file, invalid language value, or missing or incorrectly signed language
 file causes startup to fail for security reasons instead of silently falling back to another

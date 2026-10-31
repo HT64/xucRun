@@ -69,6 +69,28 @@ Fehlt Microsoft Visual C++ Redistributable v14 für x64, bietet der Installer de
 offiziellen Microsoft-Link oder die Auswahl einer vorhandenen `vc_redist.x64.exe` an. Vor der
 Ausführung prüft er Microsoft-Signatur und Originaldateiname.
 
+## Kein portables Programmpaket
+
+Das öffentliche `xucRun-<Version>-x64.zip` enthält die ausführbaren Dateien, Sprachressourcen,
+Installationsskripte und den grafischen Installer. Es ermöglicht damit eine grafische oder
+skriptbasierte Installation, ist aber kein portables Programmpaket.
+
+Das bloße Kopieren oder direkte Starten der enthaltenen EXE- und DLL-Dateien stellt keine
+vollständige und unterstützte xucRun-Installation her. Es fehlen dann insbesondere:
+
+- das lokale xucRun-Signaturzertifikat und seine Vertrauenseinträge;
+- einheitlich lokal signierte Programmdateien;
+- das geschützte Installations- und Sprachverzeichnis unter `%ProgramFiles%\xucRun`;
+- der als `LocalSystem` ausgeführte Brokerdienst einschließlich Dienst-SID und eingeschränkter
+  Dienst-DACL;
+- Ereignisquelle und Brokerkonfiguration;
+- die Bindung sensibler Brokeranfragen an kanonischen Clientpfad und Signierer;
+- `xucRun.ini` und der Windows-Deinstallationseintrag.
+
+Führen Sie deshalb entweder den grafischen Installer aus oder verwenden Sie die nachfolgende
+manuelle Installation. „Manuell“ bedeutet dabei die Installation mit den mitgelieferten
+PowerShell-Skripten, nicht das einzelne Kopieren der Programmdateien.
+
 ## Manuelle Installation
 
 Die Skripte ermöglichen Installation und Signierung ohne grafische Oberfläche. Dazu wird Windows
