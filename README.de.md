@@ -1158,6 +1158,10 @@ und nicht an eine Einstellung angehängt werden.
   Pfad aktiviert es. Umgebungsvariablen werden im Kontext des jeweils startenden Clients
   aufgelöst. Der Pfad muss für jedes verwendete Client- und Wrapperkonto erreichbar und mit den
   zum Erstellen, Anhängen und Löschen der Protokolldateien erforderlichen Rechten versehen sein.
+  Ist das konfigurierte Verzeichnis, insbesondere ein Netzwerkpfad, nicht erreichbar, können
+  Windows-Dateisystemzeitüberschreitungen auch das Öffnen des Tray-Kontextmenüs verzögern. Das
+  Tray ermittelt dabei die vorhandenen Logdateien, um die zugehörigen Aktionen und deren
+  Dateianzahl zu aktualisieren.
   xucRun verändert die Zugriffsrechte des Verzeichnisses nicht. Bei einem gemeinsamen Pfad muss
   der Administrator deshalb die vorgesehenen Leser und Schreiber festlegen; Konten mit
   Änderungsrechten können die Protokolle auch verändern oder löschen.

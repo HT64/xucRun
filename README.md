@@ -1090,7 +1090,10 @@ than appended to a setting.
   it. Environment variables are expanded in the context of each starting client. The path must
   be accessible to every client and wrapper account in use, with the permissions required to
   create, append to, and delete log files. xucRun does not change the directory's access
-  permissions. For a shared path, the administrator must therefore define the intended readers
+  permissions. If the configured directory, especially a network path, is unavailable, Windows
+  file-system timeouts can also delay the opening of the Tray context menu. The Tray enumerates
+  the existing log files at that point to update the corresponding actions and file count. For a
+  shared path, the administrator must therefore define the intended readers
   and writers; accounts with modify access can also alter or delete the logs. Changes apply to
   newly started client and wrapper processes. Running Tray reloads the value when its context menu
   is next opened; until then, it continues to use its previous logging configuration. For each
