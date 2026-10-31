@@ -191,6 +191,10 @@ also writable, xucRun blocks the elevated start.
 
 xucRun's central use case is a signed-in standard user for whom exactly one administrator account
 has been stored in xucRun and programs are to be started elevated under that account when needed.
+For this purpose, xucRun neither temporarily makes the standard user an administrator nor
+artificially extends that account's privileges. Instead, the elevated target process runs under
+the administrator account whose stored credentials xucRun has verified. This keeps the identities
+and privileges of both accounts clearly separated.
 After the one-time setup, an invocation without account name and password is sufficient:
 
 ```powershell

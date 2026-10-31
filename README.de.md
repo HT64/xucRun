@@ -205,8 +205,11 @@ erhöhten Start.
 
 Der zentrale Anwendungsfall von xucRun ist ein angemeldeter Standardbenutzer, für den genau ein
 Administratorkonto mit xucRun-Anmeldedaten gespeichert ist und Programme bei Bedarf unter diesem
-Konto erhöht gestartet werden sollen. Nach der einmaligen Einrichtung genügt ein Aufruf ohne
-Kontonamen und Kennwort:
+Konto erhöht gestartet werden sollen. Dafür macht xucRun den Standardbenutzer weder vorübergehend
+zum Administrator noch erweitert es dessen Rechte künstlich. Der erhöhte Zielprozess läuft
+stattdessen unter dem Administratorkonto, dessen gespeicherte Anmeldedaten xucRun geprüft hat. So
+bleiben die Identitäten und Berechtigungen beider Konten klar getrennt. Nach der einmaligen
+Einrichtung genügt ein Aufruf ohne Kontonamen und Kennwort:
 
 ```powershell
 xucRun.exe regedit.exe
