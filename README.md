@@ -62,6 +62,22 @@ configuration, an account switch with xucRun can require UAC confirmation. For a
 elevation, UAC can confirm the user's presence through the xucRun helper; with elevation, it can
 instead confirm the target program start and grant the requested administrator privileges.
 
+[Sudo for Windows](https://learn.microsoft.com/windows/advanced-settings/sudo/) starts a single
+process with administrator privileges from an unelevated console through Windows UAC. Its current
+implementation requires the invoking account to already have administrator privileges; a standard
+user cannot use Sudo for Windows, and another target account cannot currently be selected. The
+commonly used Unix/Linux `sudo` with the `sudoers` policy can reuse successful authentication for
+a period controlled by
+[`timestamp_timeout` and `timestamp_type`](https://www.sudo.ws/docs/man/sudoers.man/#User_Authentication).
+Microsoft currently documents no corresponding timestamp mechanism for Sudo for Windows; every
+invocation goes through UAC.
+
+For one-time elevation from an unelevated console under an existing administrator account, Sudo
+for Windows is the native Windows option. xucRun additionally covers starting programs from a
+standard account under another local account by using stored credentials and approvals that can
+be single-use or time-limited. If Windows requires UAC confirmation for the target launch, that
+confirmation remains interactive.
+
 Another built-in Windows option with more similarity to xucRun is `runas.exe`. It can start
 individual programs under another account. With `/savecred`, the credentials used for this are
 stored in the signed-in user's Windows Credential Manager after the password is entered once.

@@ -67,6 +67,22 @@ xucRun eine UAC-Bestätigung erfordern. Bei einem Start ohne Erhöhung kann UAC 
 xucRun-Helfer die Anwesenheit des Benutzers bestätigen; bei einer Erhöhung kann UAC stattdessen
 den Start des Zielprogramms bestätigen und ihm die angeforderten Administratorrechte erteilen.
 
+[Windows Sudo](https://learn.microsoft.com/windows/advanced-settings/sudo/) startet aus einer
+nicht erhöhten Konsole einen einzelnen Prozess über Windows-UAC mit Administratorrechten. Die
+aktuelle Implementierung setzt dafür ein bereits administratives Konto voraus; ein
+Standardbenutzer kann Windows Sudo nicht verwenden, und ein anderes Zielkonto lässt sich derzeit
+nicht auswählen. Das verbreitete Unix/Linux-`sudo` kann mit der `sudoers`-Policy erfolgreiche
+Authentifizierungen abhängig von
+[`timestamp_timeout` und `timestamp_type`](https://www.sudo.ws/docs/man/sudoers.man/#User_Authentication)
+zeitlich begrenzt wiederverwenden. Microsoft dokumentiert für Windows Sudo derzeit keinen
+entsprechenden Timestamp-Mechanismus; jeder Aufruf führt über UAC.
+
+Für die einmalige Erhöhung aus einer nicht erhöhten Konsole unter einem vorhandenen
+Administratorkonto ist Windows Sudo die Windows-eigene Möglichkeit. xucRun behandelt zusätzlich
+den Anwendungsfall, Programme aus einem Standardkonto unter einem anderen lokalen Konto mit
+gespeicherten Anmeldedaten und einmaligen oder zeitlich begrenzbaren Freigaben zu starten. Wenn
+Windows für den Zielprogrammstart eine UAC-Bestätigung verlangt, bleibt diese interaktiv.
+
 Eine weitere Windows-eigene Möglichkeit, die mehr Ähnlichkeit mit xucRun hat, ist `runas.exe`.
 Damit lassen sich einzelne Programme gezielt unter einem anderen Benutzerkonto starten. Mit dem
 Parameter `/savecred` werden die dafür verwendeten Anmeldedaten nach der ersten Kennworteingabe in
