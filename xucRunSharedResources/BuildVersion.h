@@ -4,8 +4,8 @@
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 9
-#define VERSION_PATCH 0
-#define BUILD_NUMBER 3
-#define VERSION_STRING "0.9.0.3"
+#define VERSION_PATCH 1
+#define BUILD_NUMBER 0
+#define VERSION_STRING "0.9.1.0"
 #define BUILD_DATE __DATE__
 #define BUILD_TIME __TIME__
