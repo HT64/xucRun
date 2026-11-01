@@ -167,6 +167,19 @@ namespace
 			approval.targetHash == update.oldHash;
 	}
 
+	// Identifies a program-bound approval that can trigger a controlled hash transition.
+	bool IsProgramUpdateCandidate(
+		const xucrun::approval::BrokerApprovalValue& approval,
+		const xucrun::approval::BrokerApprovalValue& context)
+	{
+		return approval.programScope !=
+			xucrun::approval::BrokerApprovalProgramScope::General &&
+			(approval.accountScope !=
+				xucrun::approval::BrokerApprovalAccountScope::CurrentAccount ||
+			 EqualInsensitive(approval.targetAccountSid, context.targetAccountSid)) &&
+			EqualInsensitive(approval.targetPath, context.targetPath);
+	}
+
 	// Applies a confirmed path and hash change to an affected approval.
 	void ApplyUpdate(xucrun::approval::BrokerApprovalValue& approval,
 		const xucrun::approval_store::ProgramUpdateInfo& update)
@@ -435,6 +448,55 @@ namespace xucrun::approval_store
 		return true;
 	}
 
+	// Lists the most relevant active approvals that explain why this invocation differs.
+	bool ListRelated(const xucrun::approval::BrokerApprovalValue& context,
+		std::uint64_t now, std::size_t maximumCount,
+		std::vector<xucrun::approval::BrokerApprovalValue>& approvals,
+		std::uint32_t& totalCount, DWORD& error)
+	{
+		approvals.clear();
+		totalCount = 0;
+		std::vector<xucrun::approval::BrokerApprovalValue> stored;
+		if (!List(context.ownerUserSid, context.sessionLogonSid, stored, error))
+			return false;
+		stored.erase(std::remove_if(stored.begin(), stored.end(),
+			[&context, now](const auto& approval) {
+				return IsMatch(approval, context, now) ||
+					(approval.programScope !=
+						xucrun::approval::BrokerApprovalProgramScope::General &&
+					 !EqualInsensitive(approval.targetPath, context.targetPath));
+			}), stored.end());
+		std::stable_sort(stored.begin(), stored.end(),
+			[&context](const auto& left, const auto& right) {
+				auto relevance = [&context](const auto& approval) {
+					int score = approval.programScope ==
+						xucrun::approval::BrokerApprovalProgramScope::General ? 0 : 8;
+					if (approval.targetHash == context.targetHash)
+						score += 4;
+					if (approval.accountScope ==
+							xucrun::approval::BrokerApprovalAccountScope::AllAccounts ||
+						EqualInsensitive(
+							approval.targetAccountSid, context.targetAccountSid))
+					{
+						score += 2;
+					}
+					if (approval.elevationMode == context.elevationMode)
+						score++;
+					return score;
+				};
+				const int leftScore = relevance(left);
+				const int rightScore = relevance(right);
+				return leftScore != rightScore
+					? leftScore > rightScore : left.createdAt > right.createdAt;
+			});
+		totalCount = static_cast<std::uint32_t>(stored.size());
+		if (stored.size() > maximumCount)
+			stored.resize(maximumCount);
+		approvals = std::move(stored);
+		error = NO_ERROR;
+		return true;
+	}
+
 	// Tests the approval matching rules with positive and negative binding cases.
 	bool RunApprovalMatchSelfTest()
 	{
@@ -511,6 +573,35 @@ namespace xucrun::approval_store
 		if (IsMatch(stored, context, 1))
 			return false;
 		context = stored;
+		if (!IsProgramUpdateCandidate(stored, context))
+			return false;
+		xucrun::approval::BrokerApprovalValue general = stored;
+		general.programScope =
+			xucrun::approval::BrokerApprovalProgramScope::General;
+		if (IsProgramUpdateCandidate(general, context))
+			return false;
+		ProgramUpdateInfo update;
+		update.available = true;
+		update.changedPath = stored.targetPath;
+		update.oldHash = stored.targetHash;
+		update.newHash = stored.targetHash;
+		update.newHash[0] = 8;
+		xucrun::approval::BrokerApprovalValue updated = stored;
+		ApplyUpdate(updated, update);
+		if (!IsAffected(stored, update) || IsAffected(general, update) ||
+			updated.targetHash != update.newHash ||
+			updated.argumentHash != stored.argumentHash ||
+			updated.workingDirectory != stored.workingDirectory ||
+			updated.visibility != stored.visibility ||
+			updated.scriptPath != stored.scriptPath ||
+			updated.scriptHash != stored.scriptHash)
+		{
+			return false;
+		}
+		context.targetPath = L"C:\\Windows\\System32\\write.exe";
+		if (IsProgramUpdateCandidate(stored, context))
+			return false;
+		context = stored;
 		context.elevationMode = 1;
 		return !IsMatch(stored, context, 1);
 	}
@@ -527,15 +618,8 @@ namespace xucrun::approval_store
 		const xucrun::approval::BrokerApprovalValue* trigger = nullptr;
 		for (const auto& approval : approvals)
 		{
-			if (approval.programScope !=
-				xucrun::approval::BrokerApprovalProgramScope::TargetProgram ||
-				(approval.accountScope ==
-					xucrun::approval::BrokerApprovalAccountScope::CurrentAccount &&
-				 !EqualInsensitive(approval.targetAccountSid, context.targetAccountSid)) ||
-				!EqualInsensitive(approval.targetPath, context.targetPath))
-			{
+			if (!IsProgramUpdateCandidate(approval, context))
 				continue;
-			}
 			const bool targetMatches = approval.targetHash == context.targetHash;
 			if (!targetMatches &&
 				(!trigger || approval.createdAt > trigger->createdAt))

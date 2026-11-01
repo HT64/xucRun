@@ -65,6 +65,7 @@ namespace xucrun::broker
 	inline constexpr std::size_t CredentialUseTestResultSize = 28;
 	inline constexpr std::size_t ApprovalChallengeRequestHeaderSize = 40;
 	inline constexpr std::size_t ApprovalChallengeResultHeaderSize = 476;
+	inline constexpr std::size_t RelatedApprovalSummarySize = 48;
 	inline constexpr std::size_t ApprovalConfirmationRequestSize = 40;
 	inline constexpr std::size_t ApprovalConfirmationResultSize = 28;
 	inline constexpr std::size_t ApprovalHelperRequestSize = 36;
@@ -107,7 +108,8 @@ namespace xucrun::broker
 		ApprovalChallengeResultHeaderSize + 2 * (MaximumCanonicalAccountNameLength +
 			MaximumCanonicalAccountNameLength + MaximumPathLength + MaximumPathLength +
 			MaximumArgumentLength + MaximumPathLength + MaximumPathLength +
-			MaximumAuthenticityMarkerLength + 6 * MaximumSignerSubjectLength);
+			MaximumAuthenticityMarkerLength + 6 * MaximumSignerSubjectLength) +
+		MaximumRelatedApprovalEntries * RelatedApprovalSummarySize;
 	inline constexpr std::size_t MaximumCredentialListResultSize =
 		CredentialListResultHeaderSize + MaximumCredentialListEntries *
 		(CredentialListEntryHeaderSize + 2 *

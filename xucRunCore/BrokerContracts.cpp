@@ -1004,6 +1004,39 @@ namespace xucrun::broker
 				  result.helperStartMode == ApprovalHelperStartMode::ClientRunAsRequired) &&
 				 !result.programUpdateAvailable &&
 				 (result.approvalHelperView || result.userConfirmationRequired));
+			const bool relatedApprovalsValid =
+				result.relatedApprovals.size() <= MaximumRelatedApprovalEntries &&
+				result.totalRelatedApprovalCount >= result.relatedApprovals.size() &&
+				std::all_of(result.relatedApprovals.begin(),
+					result.relatedApprovals.end(), [](const RelatedApprovalSummary& summary) {
+						const bool hashPresent = std::any_of(
+							summary.targetSha256.begin(), summary.targetSha256.end(),
+							[](std::uint8_t value) { return value != 0; });
+						return summary.programScope >=
+								approval::BrokerApprovalProgramScope::General &&
+							summary.programScope <=
+								approval::BrokerApprovalProgramScope::ExactInvocation &&
+							summary.accountScope >=
+								approval::BrokerApprovalAccountScope::CurrentAccount &&
+							summary.accountScope <=
+								approval::BrokerApprovalAccountScope::AllAccounts &&
+							summary.lifetime >= approval::BrokerApprovalLifetime::Until &&
+							summary.lifetime <= approval::BrokerApprovalLifetime::Forever &&
+							summary.elevationMode <= ElevationMode::RequireElevated &&
+							summary.visibility <= LaunchVisibility::HiddenMonitor &&
+							summary.mismatchFlags != 0 &&
+							(summary.mismatchFlags & 0x80) == 0 &&
+							(summary.lifetime == approval::BrokerApprovalLifetime::Until
+								? summary.expiresAt != 0 : summary.expiresAt == 0) &&
+							(summary.programScope ==
+								approval::BrokerApprovalProgramScope::General
+								? !hashPresent &&
+									summary.visibility == LaunchVisibility::Normal
+								: hashPresent) &&
+							(summary.programScope ==
+								approval::BrokerApprovalProgramScope::ExactInvocation ||
+								summary.visibility == LaunchVisibility::Normal);
+					});
 			if (result.windowsError != NO_ERROR ||
 				result.failureReason != ApprovalFailureReason::None ||
 				std::all_of(result.challengeId.begin(), result.challengeId.end(),
@@ -1046,6 +1079,7 @@ namespace xucrun::broker
 				 (result.elevationMode != ElevationMode::RequireElevated ||
 				  (!result.userConfirmationRequired && !result.approvalHelperView))) ||
 				!helperStateValid || !presenceConfirmationStateValid ||
+				!relatedApprovalsValid ||
 				!authenticityMarkerValid ||
 				(result.programUpdateAvailable !=
 					(!result.changedProgramPath.empty() && oldHashPresent && newHashPresent &&
@@ -1087,6 +1121,8 @@ namespace xucrun::broker
 				result.writableElevatedTargetReason != ApprovalFailureReason::None ||
 				result.programUpdateAvailable || !result.changedProgramPath.empty() ||
 				result.affectedApprovalCount != 0 || result.affectedAccountCount != 0 ||
+				result.totalRelatedApprovalCount != 0 ||
+				!result.relatedApprovals.empty() ||
 				std::any_of(result.oldProgramSha256.begin(), result.oldProgramSha256.end(),
 					[](std::uint8_t value) { return value != 0; }) ||
 				std::any_of(result.newProgramSha256.begin(), result.newProgramSha256.end(),

@@ -138,7 +138,8 @@
 			result.changedProgramPath.size() +
 			result.authenticityMarker.size();
 		std::vector<std::uint8_t> frame;
-		frame.reserve(ApprovalChallengeResultHeaderSize + 2 * characterCount);
+		frame.reserve(ApprovalChallengeResultHeaderSize + 2 * characterCount +
+			result.relatedApprovals.size() * RelatedApprovalSummarySize);
 		frame.insert(frame.end(), std::begin(ApprovalChallengeResultMagic),
 			std::end(ApprovalChallengeResultMagic));
 		frame.push_back(ApprovalChallengeResultMessageType);
@@ -179,13 +180,14 @@
 		frame.insert(frame.end(), result.directScriptSha256.begin(),
 			result.directScriptSha256.end());
 		WriteUint32(frame, static_cast<std::uint32_t>(result.directScriptPath.size()));
-		WriteUint32(frame, 0);
+		WriteUint32(frame, result.totalRelatedApprovalCount);
 		WriteUint32(frame, static_cast<std::uint32_t>(result.directScriptTrustStatus));
 		WriteUint32(frame, static_cast<std::uint32_t>(
 			result.executableSignatureDetails.signerSubject.size()));
 		WriteUint32(frame, static_cast<std::uint32_t>(
 			result.directScriptSignatureDetails.signerSubject.size()));
-		WriteUint32(frame, 0);
+		WriteUint32(frame, static_cast<std::uint32_t>(
+			result.relatedApprovals.size()));
 		WriteUint32(frame, 0);
 		WriteUint32(frame, static_cast<std::uint32_t>(
 			result.executableSignatureDetails.issuerSubject.size()));
@@ -233,6 +235,20 @@
 		WriteString(frame, result.executableSignatureDetails.timestampSignerSubject);
 		WriteString(frame, result.directScriptSignatureDetails.issuerSubject);
 		WriteString(frame, result.directScriptSignatureDetails.timestampSignerSubject);
+		for (const RelatedApprovalSummary& summary : result.relatedApprovals)
+		{
+			frame.push_back(static_cast<std::uint8_t>(summary.programScope));
+			frame.push_back(static_cast<std::uint8_t>(summary.accountScope));
+			frame.push_back(static_cast<std::uint8_t>(summary.lifetime));
+			frame.push_back(static_cast<std::uint8_t>(summary.elevationMode));
+			frame.push_back(static_cast<std::uint8_t>(summary.visibility));
+			frame.push_back(summary.mismatchFlags);
+			frame.push_back(0);
+			frame.push_back(0);
+			WriteUint64(frame, summary.expiresAt);
+			frame.insert(frame.end(), summary.targetSha256.begin(),
+				summary.targetSha256.end());
+		}
 		return frame;
 	}
 
@@ -277,10 +293,10 @@
 		const std::size_t changedProgramPathLength = ReadUint32(frame, 216);
 		const std::size_t authenticityMarkerLength = ReadUint32(frame, 224);
 		const std::size_t directScriptPathLength = ReadUint32(frame, 260);
-		const std::size_t clientSignerSubjectLength = ReadUint32(frame, 264);
+		const std::size_t totalRelatedApprovalCount = ReadUint32(frame, 264);
 		const std::size_t executableSignerSubjectLength = ReadUint32(frame, 272);
 		const std::size_t directScriptSignerSubjectLength = ReadUint32(frame, 276);
-		const std::size_t clientIssuerSubjectLength = ReadUint32(frame, 280);
+		const std::size_t relatedApprovalCount = ReadUint32(frame, 280);
 		const std::size_t clientTimestampSignerSubjectLength = ReadUint32(frame, 284);
 		const std::size_t executableIssuerSubjectLength = ReadUint32(frame, 288);
 		const std::size_t executableTimestampSignerSubjectLength =
@@ -294,10 +310,10 @@
 			executableLength > MaximumPathLength || argumentLength > MaximumArgumentLength ||
 			workingDirectoryLength > MaximumPathLength ||
 			directScriptPathLength > MaximumPathLength ||
-			clientSignerSubjectLength != 0 ||
+			totalRelatedApprovalCount < relatedApprovalCount ||
+			relatedApprovalCount > MaximumRelatedApprovalEntries ||
 			executableSignerSubjectLength > MaximumSignerSubjectLength ||
 			directScriptSignerSubjectLength > MaximumSignerSubjectLength ||
-			clientIssuerSubjectLength != 0 ||
 			clientTimestampSignerSubjectLength != 0 ||
 			executableIssuerSubjectLength > MaximumSignerSubjectLength ||
 			executableTimestampSignerSubjectLength > MaximumSignerSubjectLength ||
@@ -317,7 +333,8 @@
 			executableTimestampSignerSubjectLength +
 			directScriptIssuerSubjectLength +
 			directScriptTimestampSignerSubjectLength;
-		if (frame.size() != ApprovalChallengeResultHeaderSize + 2 * characterCount)
+		if (frame.size() != ApprovalChallengeResultHeaderSize + 2 * characterCount +
+			relatedApprovalCount * RelatedApprovalSummarySize)
 			return false;
 
 		ApprovalChallengeResult parsed;
@@ -362,6 +379,8 @@
 			parsed.directScriptSha256.begin());
 		parsed.directScriptTrustStatus =
 			static_cast<std::int32_t>(ReadUint32(frame, 268));
+		parsed.totalRelatedApprovalCount =
+			static_cast<std::uint32_t>(totalRelatedApprovalCount);
 		parsed.directScriptSignatureTrusted =
 			parsed.directScriptTrustStatus == 0;
 		parsed.executableSignatureDetails.kind =
@@ -406,7 +425,51 @@
 			!ReadString(frame, offset, directScriptIssuerSubjectLength,
 				parsed.directScriptSignatureDetails.issuerSubject) ||
 			!ReadString(frame, offset, directScriptTimestampSignerSubjectLength,
-				parsed.directScriptSignatureDetails.timestampSignerSubject) ||
+				parsed.directScriptSignatureDetails.timestampSignerSubject))
+		{
+			return false;
+		}
+		for (std::size_t index = 0; index < relatedApprovalCount; index++)
+		{
+			if (offset + RelatedApprovalSummarySize > frame.size() ||
+				frame[offset] < static_cast<std::uint8_t>(
+					approval::BrokerApprovalProgramScope::General) ||
+				frame[offset] > static_cast<std::uint8_t>(
+					approval::BrokerApprovalProgramScope::ExactInvocation) ||
+				frame[offset + 1] < static_cast<std::uint8_t>(
+					approval::BrokerApprovalAccountScope::CurrentAccount) ||
+				frame[offset + 1] > static_cast<std::uint8_t>(
+					approval::BrokerApprovalAccountScope::AllAccounts) ||
+				frame[offset + 2] < static_cast<std::uint8_t>(
+					approval::BrokerApprovalLifetime::Until) ||
+				frame[offset + 2] > static_cast<std::uint8_t>(
+					approval::BrokerApprovalLifetime::Forever) ||
+				frame[offset + 3] > static_cast<std::uint8_t>(
+					ElevationMode::RequireElevated) ||
+				frame[offset + 4] > static_cast<std::uint8_t>(
+					LaunchVisibility::HiddenMonitor) ||
+				(frame[offset + 5] & 0x80) != 0 ||
+				frame[offset + 6] != 0 || frame[offset + 7] != 0)
+			{
+				return false;
+			}
+			RelatedApprovalSummary summary;
+			summary.programScope =
+				static_cast<approval::BrokerApprovalProgramScope>(frame[offset]);
+			summary.accountScope =
+				static_cast<approval::BrokerApprovalAccountScope>(frame[offset + 1]);
+			summary.lifetime =
+				static_cast<approval::BrokerApprovalLifetime>(frame[offset + 2]);
+			summary.elevationMode = static_cast<ElevationMode>(frame[offset + 3]);
+			summary.visibility = static_cast<LaunchVisibility>(frame[offset + 4]);
+			summary.mismatchFlags = frame[offset + 5];
+			summary.expiresAt = ReadUint64(frame, offset + 8);
+			std::copy_n(frame.begin() + offset + 16, summary.targetSha256.size(),
+				summary.targetSha256.begin());
+			parsed.relatedApprovals.push_back(std::move(summary));
+			offset += RelatedApprovalSummarySize;
+		}
+		if (offset != frame.size() ||
 			ValidateApprovalChallengeResult(parsed) != ResultValidationError::None)
 		{
 			return false;

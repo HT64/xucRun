@@ -836,6 +836,7 @@ namespace
 	struct ApprovalDialogContext
 	{
 		xucrun::broker::ApprovalHelperDecisionRequest* decision;
+		const xucrun::broker::ApprovalChallengeResult* challenge;
 		const std::wstring* fixedDetails;
 		const std::wstring* details;
 		const std::wstring* authenticityMarker;
@@ -848,6 +849,215 @@ namespace
 		bool foregroundActivated;
 		bool* timedOut;
 	};
+
+	std::wstring RelatedApprovalMismatchText(std::uint8_t flags)
+	{
+		std::vector<std::wstring> reasons;
+		const auto has = [flags](xucrun::broker::RelatedApprovalMismatch mismatch) {
+			return (flags & static_cast<std::uint8_t>(mismatch)) != 0;
+		};
+		if (has(xucrun::broker::RelatedApprovalMismatch::TargetHash))
+			reasons.push_back(Text(L"andere Programmdatei", L"different program file"));
+		if (has(xucrun::broker::RelatedApprovalMismatch::TargetAccount))
+			reasons.push_back(Text(L"anderes Zielkonto", L"different target account"));
+		if (has(xucrun::broker::RelatedApprovalMismatch::ElevationMode))
+			reasons.push_back(Text(L"anderer Startmodus", L"different launch mode"));
+		if (has(xucrun::broker::RelatedApprovalMismatch::Arguments))
+			reasons.push_back(Text(L"andere Argumente", L"different arguments"));
+		if (has(xucrun::broker::RelatedApprovalMismatch::WorkingDirectory))
+			reasons.push_back(Text(L"anderes Arbeitsverzeichnis", L"different working directory"));
+		if (has(xucrun::broker::RelatedApprovalMismatch::Visibility))
+			reasons.push_back(Text(L"andere Sichtbarkeit", L"different visibility"));
+		if (has(xucrun::broker::RelatedApprovalMismatch::Script))
+			reasons.push_back(Text(L"anderes direktes Skript", L"different direct script"));
+		std::wstring text;
+		for (const auto& reason : reasons)
+		{
+			if (!text.empty())
+				text += L", ";
+			text += reason;
+		}
+		return text;
+	}
+
+	std::wstring RelatedApprovalsText(
+		const xucrun::broker::ApprovalChallengeResult& challenge)
+	{
+		if (challenge.totalRelatedApprovalCount == 0)
+			return {};
+		std::wstring text = Text(
+			L"\n\nBereits gespeicherte verwandte Freigaben:",
+			L"\n\nExisting related approvals:");
+		for (const auto& approval : challenge.relatedApprovals)
+		{
+			const wchar_t* scope =
+				approval.programScope ==
+					xucrun::approval::BrokerApprovalProgramScope::General
+				? Text(L"alle Programme", L"all programs")
+				: approval.programScope ==
+					xucrun::approval::BrokerApprovalProgramScope::TargetProgram
+					? Text(L"Zielprogramm", L"target program")
+					: Text(L"genauer Aufruf", L"exact invocation");
+			const wchar_t* accounts =
+				approval.accountScope ==
+					xucrun::approval::BrokerApprovalAccountScope::AllAccounts
+				? Text(L"alle Zielkonten", L"all target accounts")
+				: Text(L"dieses Zielkonto", L"this target account");
+			const wchar_t* lifetime =
+				approval.lifetime ==
+					xucrun::approval::BrokerApprovalLifetime::Forever
+				? Text(L"dauerhaft", L"permanent")
+				: approval.lifetime ==
+					xucrun::approval::BrokerApprovalLifetime::LogonSession
+					? Text(L"für diese Anmeldung", L"for this logon session")
+					: Text(L"befristet", L"temporary");
+			const wchar_t* elevation =
+				approval.elevationMode ==
+					xucrun::broker::ElevationMode::RequireElevated
+				? Text(L"erhöht", L"elevated")
+				: Text(L"Token beibehalten", L"preserve token");
+			text += L"\n- ";
+			text += scope;
+			text += L", ";
+			text += accounts;
+			text += L", ";
+			text += lifetime;
+			if (approval.lifetime ==
+				xucrun::approval::BrokerApprovalLifetime::Until)
+			{
+				text += Text(L" bis ", L" until ");
+				text += FormatFileTime(approval.expiresAt, true);
+			}
+			text += L", ";
+			text += elevation;
+			if (approval.programScope ==
+				xucrun::approval::BrokerApprovalProgramScope::ExactInvocation)
+			{
+				text += approval.visibility ==
+					xucrun::broker::LaunchVisibility::Normal
+					? Text(L", sichtbar", L", visible")
+					: Text(L", verborgen", L", hidden");
+			}
+			text += L": ";
+			text += RelatedApprovalMismatchText(approval.mismatchFlags);
+			if ((approval.mismatchFlags & static_cast<std::uint8_t>(
+				xucrun::broker::RelatedApprovalMismatch::TargetHash)) != 0)
+			{
+				text += L"\n  SHA-256: ";
+				text += Hex(approval.targetSha256);
+			}
+		}
+		if (challenge.totalRelatedApprovalCount > challenge.relatedApprovals.size())
+		{
+			text += Text(L"\n- Weitere verwandte Freigaben sind gespeichert.",
+				L"\n- Additional related approvals are stored.");
+		}
+		return text;
+	}
+
+	void AppendRelatedApprovalEffect(HWND dialog,
+		const ApprovalDialogContext* context, bool once, std::wstring& explanation)
+	{
+		if (!context || !context->challenge ||
+			context->challenge->totalRelatedApprovalCount == 0)
+		{
+			return;
+		}
+		if (once)
+		{
+			explanation += Text(
+				L"\r\n\r\nBereits gespeicherte verwandte Freigaben bleiben unverändert.",
+				L"\r\n\r\nExisting related approvals remain unchanged.");
+			return;
+		}
+		const auto selectedScope =
+			SendMessageW(GetDlgItem(dialog, ApprovalProgramGeneral),
+				BM_GETCHECK, 0, 0) == BST_CHECKED
+			? xucrun::approval::BrokerApprovalProgramScope::General
+			: SendMessageW(GetDlgItem(dialog, ApprovalExactInvocation),
+				BM_GETCHECK, 0, 0) == BST_CHECKED
+				? xucrun::approval::BrokerApprovalProgramScope::ExactInvocation
+				: xucrun::approval::BrokerApprovalProgramScope::TargetProgram;
+		const auto selectedAccountScope =
+			SendMessageW(GetDlgItem(dialog, ApprovalAccountAll),
+				BM_GETCHECK, 0, 0) == BST_CHECKED
+			? xucrun::approval::BrokerApprovalAccountScope::AllAccounts
+			: xucrun::approval::BrokerApprovalAccountScope::CurrentAccount;
+		bool broaderExisting = false;
+		bool broadensExisting = false;
+		bool replacesExisting = false;
+		const auto scopeRank = [](auto scope) {
+			return scope ==
+				xucrun::approval::BrokerApprovalProgramScope::General ? 3 :
+				scope == xucrun::approval::BrokerApprovalProgramScope::TargetProgram
+					? 2 : 1;
+		};
+		for (const auto& approval : context->challenge->relatedApprovals)
+		{
+			const bool targetAccountDiffers =
+				(approval.mismatchFlags & static_cast<std::uint8_t>(
+					xucrun::broker::RelatedApprovalMismatch::TargetAccount)) != 0;
+			const int storedScopeRank = scopeRank(approval.programScope);
+			const int selectedScopeRank = scopeRank(selectedScope);
+			const int storedAccountRank = approval.accountScope ==
+				xucrun::approval::BrokerApprovalAccountScope::AllAccounts ? 2 : 1;
+			const int selectedAccountRank = selectedAccountScope ==
+				xucrun::approval::BrokerApprovalAccountScope::AllAccounts ? 2 : 1;
+			const bool comparableAccount = !targetAccountDiffers ||
+				approval.accountScope ==
+					xucrun::approval::BrokerApprovalAccountScope::AllAccounts ||
+				selectedAccountScope ==
+					xucrun::approval::BrokerApprovalAccountScope::AllAccounts;
+			broaderExisting = broaderExisting || (comparableAccount &&
+				storedScopeRank >= selectedScopeRank &&
+				storedAccountRank >= selectedAccountRank &&
+				(storedScopeRank > selectedScopeRank ||
+				 storedAccountRank > selectedAccountRank));
+			broadensExisting = broadensExisting || (comparableAccount &&
+				selectedScopeRank >= storedScopeRank &&
+				selectedAccountRank >= storedAccountRank &&
+				(selectedScopeRank > storedScopeRank ||
+				 selectedAccountRank > storedAccountRank));
+			replacesExisting = replacesExisting ||
+				approval.programScope == selectedScope &&
+				approval.accountScope == selectedAccountScope &&
+				approval.mismatchFlags ==
+					static_cast<std::uint8_t>(
+						xucrun::broker::RelatedApprovalMismatch::ElevationMode);
+		}
+		if (replacesExisting)
+		{
+			explanation += Text(
+				L"\r\n\r\nEine Freigabe mit gleichem Umfang und Zielkonto, aber anderem "
+					L"Startmodus, wird durch diese Auswahl ersetzt.",
+				L"\r\n\r\nAn approval with the same scope and target account but a different "
+					L"launch mode is replaced by this selection.");
+		}
+		else if (broaderExisting)
+		{
+			explanation += Text(
+				L"\r\n\r\nEine bereits gespeicherte weiterreichende Freigabe kann diesen "
+					L"Aufruf weiterhin abdecken. Die neue engere Freigabe schränkt sie nicht ein.",
+				L"\r\n\r\nAn existing broader approval can continue to cover this invocation. "
+					L"The new narrower approval does not restrict it.");
+		}
+		else if (broadensExisting)
+		{
+			explanation += Text(
+				L"\r\n\r\nDiese Auswahl speichert zusätzlich eine weiterreichende Freigabe; "
+					L"bestehende engere Freigaben bleiben gespeichert.",
+				L"\r\n\r\nThis selection additionally stores a broader approval; existing "
+					L"narrower approvals remain stored.");
+		}
+		else
+		{
+			explanation += Text(
+				L"\r\n\r\nDiese Auswahl speichert eine zusätzliche Freigabe mit anderen "
+					L"Bindungen. Bestehende verwandte Freigaben bleiben gespeichert.",
+				L"\r\n\r\nThis selection stores an additional approval with different bindings. "
+					L"Existing related approvals remain stored.");
+		}
+	}
 
 	void SetControlFont(HWND control, HFONT font)
 	{
@@ -915,6 +1125,7 @@ namespace
 						L"not available. You can approve this launch once or deliberately choose "
 						L"a broader interpreter approval.");
 			}
+			AppendRelatedApprovalEffect(dialog, context, true, explanation);
 			SetWindowTextW(GetDlgItem(dialog, ApprovalExplanationControl),
 				explanation.c_str());
 			return;
@@ -1060,6 +1271,7 @@ namespace
 				L"angezeigte Zielkonto.",
 				L"\r\n\r\nTarget accounts: Only for this target account.\r\nApplies only to the "
 				L"displayed target account.");
+		AppendRelatedApprovalEffect(dialog, context, false, explanation);
 		SetWindowTextW(GetDlgItem(dialog, ApprovalExplanationControl),
 			explanation.c_str());
 	}
@@ -1473,7 +1685,7 @@ namespace
 			xucrun::documentation_names::DisplayAccount(
 				challenge.canonicalClientName);
 		ApprovalDialogContext context = {
-			&decision, &fixedDetails, &details, &challenge.authenticityMarker,
+			&decision, &challenge, &fixedDetails, &details, &challenge.authenticityMarker,
 			&displayedClientName, interpreterWarningType,
 			exactInvocationReusableAllowed, directScriptBound,
 			restoreSelection, 0, false, &timedOut
@@ -1655,6 +1867,7 @@ namespace
 					L"\nScript binding: unavailable (no safely usable script hash).");
 			}
 		}
+		details += RelatedApprovalsText(challenge);
 		const std::wstring fixedDetails =
 			accountDetails + L"\n\n" + verifiedClient + L"\n\n" + launchDetails;
 		const std::wstring firstStepDetails = fixedDetails + L"\n\n" + details;

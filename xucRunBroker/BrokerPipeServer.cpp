@@ -362,6 +362,8 @@ namespace
 		bool helperDecisionRecorded = false;
 		xucrun::broker::ApprovalHelperDecisionRequest helperDecision;
 		xucrun::approval_store::ProgramUpdateInfo programUpdate;
+		std::uint32_t totalRelatedApprovalCount = 0;
+		std::vector<xucrun::broker::RelatedApprovalSummary> relatedApprovals;
 	};
 
 	struct PendingCredentialCaptureChallenge
@@ -1731,6 +1733,73 @@ namespace
 		return true;
 	}
 
+	std::uint8_t BuildRelatedApprovalMismatchFlags(
+		const xucrun::approval::BrokerApprovalValue& stored,
+		const xucrun::approval::BrokerApprovalValue& context)
+	{
+		std::uint8_t flags = 0;
+		const auto add = [&flags](xucrun::broker::RelatedApprovalMismatch mismatch) {
+			flags |= static_cast<std::uint8_t>(mismatch);
+		};
+		if (stored.programScope !=
+				xucrun::approval::BrokerApprovalProgramScope::General &&
+			stored.targetHash != context.targetHash)
+		{
+			add(xucrun::broker::RelatedApprovalMismatch::TargetHash);
+		}
+		if (stored.accountScope !=
+				xucrun::approval::BrokerApprovalAccountScope::AllAccounts &&
+			_wcsicmp(stored.targetAccountSid.c_str(),
+				context.targetAccountSid.c_str()) != 0)
+		{
+			add(xucrun::broker::RelatedApprovalMismatch::TargetAccount);
+		}
+		if (stored.elevationMode != context.elevationMode)
+			add(xucrun::broker::RelatedApprovalMismatch::ElevationMode);
+		if (stored.programScope ==
+			xucrun::approval::BrokerApprovalProgramScope::ExactInvocation)
+		{
+			if (stored.argumentHash != context.argumentHash)
+				add(xucrun::broker::RelatedApprovalMismatch::Arguments);
+			if (_wcsicmp(stored.workingDirectory.c_str(),
+				context.workingDirectory.c_str()) != 0)
+			{
+				add(xucrun::broker::RelatedApprovalMismatch::WorkingDirectory);
+			}
+			if (stored.visibility != context.visibility)
+				add(xucrun::broker::RelatedApprovalMismatch::Visibility);
+			if (_wcsicmp(stored.scriptPath.c_str(),
+					context.scriptPath.c_str()) != 0 ||
+				stored.scriptHash != context.scriptHash)
+			{
+				add(xucrun::broker::RelatedApprovalMismatch::Script);
+			}
+		}
+		return flags;
+	}
+
+	xucrun::broker::RelatedApprovalSummary BuildRelatedApprovalSummary(
+		const xucrun::approval::BrokerApprovalValue& stored,
+		const xucrun::approval::BrokerApprovalValue& context)
+	{
+		xucrun::broker::RelatedApprovalSummary summary;
+		summary.programScope = stored.programScope;
+		summary.accountScope = stored.accountScope;
+		summary.lifetime = stored.lifetime;
+		summary.elevationMode =
+			static_cast<xucrun::broker::ElevationMode>(stored.elevationMode);
+		summary.visibility =
+			static_cast<xucrun::broker::LaunchVisibility>(stored.visibility);
+		summary.mismatchFlags = BuildRelatedApprovalMismatchFlags(stored, context);
+		summary.expiresAt = stored.expiresAt;
+		if (stored.programScope !=
+			xucrun::approval::BrokerApprovalProgramScope::General)
+		{
+			summary.targetSha256 = stored.targetHash;
+		}
+		return summary;
+	}
+
 	// Checks the current challenge context against stored approvals that are still valid.
 	bool HasStoredApproval(const PendingApprovalChallenge& pending,
 		bool& matches, DWORD& error)
@@ -2930,6 +2999,56 @@ namespace
 		return !RequiresBroadInterpreterApprovalConfirmation(pending, request);
 	}
 
+	bool RunRelatedApprovalSummarySelfTest()
+	{
+		xucrun::approval::BrokerApprovalValue context;
+		context.programScope =
+			xucrun::approval::BrokerApprovalProgramScope::TargetProgram;
+		context.accountScope =
+			xucrun::approval::BrokerApprovalAccountScope::CurrentAccount;
+		context.lifetime = xucrun::approval::BrokerApprovalLifetime::Forever;
+		context.elevationMode = static_cast<std::uint8_t>(
+			xucrun::broker::ElevationMode::RequireElevated);
+		context.visibility = static_cast<std::uint8_t>(
+			xucrun::broker::LaunchVisibility::Normal);
+		context.targetAccountSid = L"S-1-5-21-1";
+		context.targetHash[0] = 1;
+		context.argumentHash[0] = 2;
+		context.workingDirectory = L"C:\\Work";
+		context.scriptPath = L"C:\\Scripts\\task.cmd";
+		context.scriptHash[0] = 3;
+		xucrun::approval::BrokerApprovalValue stored = context;
+		stored.programScope =
+			xucrun::approval::BrokerApprovalProgramScope::ExactInvocation;
+		if (BuildRelatedApprovalMismatchFlags(stored, context) != 0)
+			return false;
+		stored.targetHash[0] = 4;
+		stored.targetAccountSid = L"S-1-5-21-2";
+		stored.elevationMode = static_cast<std::uint8_t>(
+			xucrun::broker::ElevationMode::PreserveToken);
+		stored.argumentHash[0] = 5;
+		stored.workingDirectory = L"C:\\Other";
+		stored.visibility = static_cast<std::uint8_t>(
+			xucrun::broker::LaunchVisibility::Hidden);
+		stored.scriptHash[0] = 6;
+		const std::uint8_t expected =
+			static_cast<std::uint8_t>(
+				xucrun::broker::RelatedApprovalMismatch::TargetHash) |
+			static_cast<std::uint8_t>(
+				xucrun::broker::RelatedApprovalMismatch::TargetAccount) |
+			static_cast<std::uint8_t>(
+				xucrun::broker::RelatedApprovalMismatch::ElevationMode) |
+			static_cast<std::uint8_t>(
+				xucrun::broker::RelatedApprovalMismatch::Arguments) |
+			static_cast<std::uint8_t>(
+				xucrun::broker::RelatedApprovalMismatch::WorkingDirectory) |
+			static_cast<std::uint8_t>(
+				xucrun::broker::RelatedApprovalMismatch::Visibility) |
+			static_cast<std::uint8_t>(
+				xucrun::broker::RelatedApprovalMismatch::Script);
+		return BuildRelatedApprovalMismatchFlags(stored, context) == expected;
+	}
+
 	bool RunSystemApprovalChallengeLifecycleSelfTest()
 	{
 		const std::uint64_t legacyRequestId = 0x1122334455667788ULL;
@@ -3112,6 +3231,7 @@ bool RunApprovalChallengeIdentitySelfTest()
 		!RunApprovalHelperDirectScriptBindingSelfTest() ||
 		!RunWindowsCommandTrustSelfTest() ||
 		!RunBroadInterpreterApprovalConfirmationSelfTest() ||
+		!RunRelatedApprovalSummarySelfTest() ||
 		!RunSystemApprovalChallengeLifecycleSelfTest() ||
 		!ShouldRejectPreElevatedCrossAccountLaunch(
 			xucrun::broker::ElevationMode::RequireElevated, true, true) ||

@@ -14,7 +14,7 @@
 
 namespace xucrun::broker
 {
-	inline constexpr std::uint32_t ProtocolVersion = 44;
+	inline constexpr std::uint32_t ProtocolVersion = 45;
 	inline constexpr std::uint32_t PolicyDeniedWindowsError = 5;
 	inline constexpr std::size_t MaximumAccountSidLength = 184;
 	inline constexpr std::size_t MaximumPathLength = 32767;
@@ -26,6 +26,7 @@ namespace xucrun::broker
 	inline constexpr std::size_t MaximumCredentialListEntries = 64;
 	inline constexpr std::size_t MaximumAdministrativeCredentialEntries = 256;
 	inline constexpr std::size_t MaximumAdministrativeApprovalEntries = 256;
+	inline constexpr std::size_t MaximumRelatedApprovalEntries = 4;
 	inline constexpr std::size_t MaximumBackupEntries = 128;
 	inline constexpr std::size_t BackupIdLength = 32;
 	inline constexpr std::size_t MaximumTrackedProcessEntries = 128;
@@ -285,6 +286,35 @@ namespace xucrun::broker
 		None,
 		CurrentAccount,
 		AllAccounts
+	};
+
+	enum class RelatedApprovalMismatch : std::uint8_t
+	{
+		None = 0,
+		TargetHash = 1 << 0,
+		TargetAccount = 1 << 1,
+		ElevationMode = 1 << 2,
+		Arguments = 1 << 3,
+		WorkingDirectory = 1 << 4,
+		Visibility = 1 << 5,
+		Script = 1 << 6
+	};
+
+	struct RelatedApprovalSummary
+	{
+		approval::BrokerApprovalProgramScope programScope =
+			approval::BrokerApprovalProgramScope::General;
+		approval::BrokerApprovalAccountScope accountScope =
+			approval::BrokerApprovalAccountScope::CurrentAccount;
+		approval::BrokerApprovalLifetime lifetime =
+			approval::BrokerApprovalLifetime::Forever;
+		ElevationMode elevationMode = ElevationMode::PreserveToken;
+		LaunchVisibility visibility = LaunchVisibility::Normal;
+		std::uint8_t mismatchFlags = 0;
+		std::uint64_t expiresAt = 0;
+		std::array<std::uint8_t, 32> targetSha256 = {};
+
+		bool operator==(const RelatedApprovalSummary&) const = default;
 	};
 
 	enum class ApprovalConfirmationStatus : std::uint8_t
@@ -875,6 +905,8 @@ namespace xucrun::broker
 		std::array<std::uint8_t, 32> newProgramSha256 = {};
 		std::uint32_t affectedApprovalCount = 0;
 		std::uint32_t affectedAccountCount = 0;
+		std::uint32_t totalRelatedApprovalCount = 0;
+		std::vector<RelatedApprovalSummary> relatedApprovals;
 		std::wstring authenticityMarker;
 	};
 

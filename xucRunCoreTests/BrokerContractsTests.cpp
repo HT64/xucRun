@@ -637,7 +637,7 @@ namespace
 			xucrun::broker::ElevationMode::RequireElevated);
 		const std::vector<std::uint8_t> expectedFrame = {
 			'X', 'U', 'C', 'R', 1, 1, 0, 0,
-			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
 			'S', 0, 'E', 0, 'W', 0
 		};
@@ -692,7 +692,7 @@ namespace
 		expected.windowsError = 5;
 		const std::vector<std::uint8_t> expectedFrame = {
 			'X', 'U', 'C', 'S', 2, 5, 0, 0,
-			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			5, 0, 0, 0
 		};
 		if (xucrun::broker::SerializeLaunchResult(expected) != expectedFrame)
@@ -713,7 +713,7 @@ namespace
 			xucrun::broker::SerializeSystemLaunchRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'E', 'S', 58, 0, 0, 0,
-			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,
 			'E', 0, 'A', 0, 'W', 0
 		};
@@ -749,7 +749,7 @@ namespace
 			xucrun::broker::SerializeSystemLaunchResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'E', 'T', 59, 0, 0, 0,
-			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			0, 0, 0, 0, 210, 4, 0, 0
 		};
 		xucrun::broker::SystemLaunchResult parsedResult;
@@ -861,7 +861,7 @@ namespace
 		xucrun::broker::CredentialMetadataRequest parsedRequest;
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'M', 6, 0, 0, 0,
-			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			3, 0, 0, 0, 'S', 0, '-', 0, '1', 0
 		};
 		if (requestFrame != expectedRequestFrame ||
@@ -919,7 +919,7 @@ namespace
 			xucrun::broker::SerializeSessionTestRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'T', 8, 0, 0, 0,
-			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
+			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
 		};
 		xucrun::broker::SessionTestRequest parsedRequest;
 		if (requestFrame != expectedRequestFrame ||
@@ -938,7 +938,7 @@ namespace
 			xucrun::broker::SerializeSessionTestResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'C', 'U', 9, 0, 0, 0,
-			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			0, 0, 0, 0, 0x44, 0x33, 0x22, 0x11
 		};
 		xucrun::broker::SessionTestResult parsedResult;
@@ -968,7 +968,7 @@ namespace
 			xucrun::broker::SerializeCredentialStoreTestRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'V', 10, 0, 0, 0,
-			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
+			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
 		};
 		xucrun::broker::CredentialStoreTestRequest parsedRequest;
 		if (requestFrame != expectedRequestFrame ||
@@ -988,7 +988,7 @@ namespace
 			xucrun::broker::SerializeCredentialStoreTestResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'C', 'W', 11, 1, 0, 0,
-			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			13, 0, 0, 0
 		};
 		xucrun::broker::CredentialStoreTestResult parsedResult;
@@ -1608,6 +1608,24 @@ namespace
 		result.newProgramSha256[0] = 0x22;
 		result.affectedApprovalCount = 5;
 		result.affectedAccountCount = 2;
+		xucrun::broker::RelatedApprovalSummary relatedApproval;
+		relatedApproval.programScope =
+			xucrun::approval::BrokerApprovalProgramScope::ExactInvocation;
+		relatedApproval.accountScope =
+			xucrun::approval::BrokerApprovalAccountScope::CurrentAccount;
+		relatedApproval.lifetime =
+			xucrun::approval::BrokerApprovalLifetime::Until;
+		relatedApproval.elevationMode =
+			xucrun::broker::ElevationMode::RequireElevated;
+		relatedApproval.visibility = xucrun::broker::LaunchVisibility::Hidden;
+		relatedApproval.mismatchFlags = static_cast<std::uint8_t>(
+			xucrun::broker::RelatedApprovalMismatch::Arguments) |
+			static_cast<std::uint8_t>(
+				xucrun::broker::RelatedApprovalMismatch::Visibility);
+		relatedApproval.expiresAt = 0x12345678;
+		relatedApproval.targetSha256[0] = 0x44;
+		result.totalRelatedApprovalCount = 3;
+		result.relatedApprovals.push_back(relatedApproval);
 		const std::vector<std::uint8_t> resultFrame =
 			xucrun::broker::SerializeApprovalChallengeResult(result);
 		xucrun::broker::ApprovalChallengeResult parsedResult;
@@ -1651,9 +1669,44 @@ namespace
 			parsedResult.newProgramSha256 != result.newProgramSha256 ||
 			parsedResult.affectedApprovalCount != result.affectedApprovalCount ||
 			parsedResult.affectedAccountCount != result.affectedAccountCount ||
+			parsedResult.totalRelatedApprovalCount !=
+				result.totalRelatedApprovalCount ||
+			parsedResult.relatedApprovals.size() != 1 ||
+			parsedResult.relatedApprovals[0].programScope !=
+				relatedApproval.programScope ||
+			parsedResult.relatedApprovals[0].mismatchFlags !=
+				relatedApproval.mismatchFlags ||
+			parsedResult.relatedApprovals[0].expiresAt != relatedApproval.expiresAt ||
+			parsedResult.relatedApprovals[0].targetSha256 !=
+				relatedApproval.targetSha256 ||
 			parsedResult.authenticityMarker != result.authenticityMarker)
 		{
 			std::cerr << "approval challenge result serialization failed\n";
+			failures++;
+		}
+		xucrun::broker::ApprovalChallengeResult invalidRelatedResult = result;
+		invalidRelatedResult.totalRelatedApprovalCount = 0;
+		if (!xucrun::broker::SerializeApprovalChallengeResult(
+			invalidRelatedResult).empty())
+		{
+			std::cerr << "related approval count mismatch accepted\n";
+			failures++;
+		}
+		invalidRelatedResult = result;
+		invalidRelatedResult.relatedApprovals[0].mismatchFlags = 0;
+		if (!xucrun::broker::SerializeApprovalChallengeResult(
+			invalidRelatedResult).empty())
+		{
+			std::cerr << "related approval without mismatch accepted\n";
+			failures++;
+		}
+		invalidRelatedResult = result;
+		invalidRelatedResult.totalRelatedApprovalCount = 5;
+		invalidRelatedResult.relatedApprovals.assign(5, relatedApproval);
+		if (!xucrun::broker::SerializeApprovalChallengeResult(
+			invalidRelatedResult).empty())
+		{
+			std::cerr << "too many related approval summaries accepted\n";
 			failures++;
 		}
 		xucrun::broker::ApprovalChallengeResult untrustedSignatureResult = result;
@@ -1894,6 +1947,15 @@ namespace
 		failedResult.windowsError = ERROR_BUSY;
 		failedResult.failureReason =
 			xucrun::broker::ApprovalFailureReason::ChallengeSidLimitReached;
+		failedResult.totalRelatedApprovalCount = 1;
+		failedResult.relatedApprovals.push_back(relatedApproval);
+		if (!xucrun::broker::SerializeApprovalChallengeResult(failedResult).empty())
+		{
+			std::cerr << "failed approval result with related approvals accepted\n";
+			failures++;
+		}
+		failedResult.totalRelatedApprovalCount = 0;
+		failedResult.relatedApprovals.clear();
 		const std::vector<std::uint8_t> failedResultFrame =
 			xucrun::broker::SerializeApprovalChallengeResult(failedResult);
 		if (!xucrun::broker::DeserializeApprovalChallengeResult(

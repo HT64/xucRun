@@ -207,6 +207,9 @@
 						pending->storedApprovalPresenceConfirmation;
 					result.writableElevatedTargetReason =
 						pending->writableElevatedTargetReason;
+					result.totalRelatedApprovalCount =
+						pending->totalRelatedApprovalCount;
+					result.relatedApprovals = pending->relatedApprovals;
 					result.programUpdateAvailable = pending->programUpdate.available;
 					if (pending->programUpdate.available)
 					{
@@ -1190,6 +1193,43 @@
 				updateTimestamp.LowPart = updateNow.dwLowDateTime;
 				updateTimestamp.HighPart = updateNow.dwHighDateTime;
 				if (!storedApprovalMatches &&
+					!BuildApprovalContext(pending, updateContext))
+				{
+					result = {};
+					result.requestId = request.requestId;
+					result.status = xucrun::broker::ApprovalChallengeStatus::Failed;
+					result.windowsError = ERROR_INVALID_DATA;
+				}
+				else if (!storedApprovalMatches)
+				{
+					std::vector<xucrun::approval::BrokerApprovalValue> related;
+					if (!xucrun::approval_store::ListRelated(updateContext,
+						updateTimestamp.QuadPart,
+						xucrun::broker::MaximumRelatedApprovalEntries, related,
+						pending.totalRelatedApprovalCount, challengeError))
+					{
+						result = {};
+						result.requestId = request.requestId;
+						result.status =
+							xucrun::broker::ApprovalChallengeStatus::Failed;
+						result.windowsError = challengeError;
+					}
+					else
+					{
+						pending.relatedApprovals.reserve(related.size());
+						for (const auto& approval : related)
+						{
+							pending.relatedApprovals.push_back(
+								BuildRelatedApprovalSummary(approval, updateContext));
+						}
+						result.totalRelatedApprovalCount =
+							pending.totalRelatedApprovalCount;
+						result.relatedApprovals = pending.relatedApprovals;
+					}
+				}
+				if (result.status ==
+						xucrun::broker::ApprovalChallengeStatus::Issued &&
+					!storedApprovalMatches &&
 					(!BuildApprovalContext(pending, updateContext) ||
 					 !xucrun::approval_store::FindProgramUpdate(updateContext,
 						 updateTimestamp.QuadPart, pending.programUpdate, challengeError)))

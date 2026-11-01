@@ -824,6 +824,15 @@ SHA-256 identity. The available approval durations are:
 - until sign-out,
 - permanently.
 
+If the current launch differs from approvals already stored for the same target program, the
+scrollable details summarize up to four of the most relevant approvals and name the differing
+bindings, such as the program file, target account, elevation mode, arguments, working directory,
+visibility, or direct script. The "Effect of this selection" area explains whether the new choice
+adds a separate approval, broadens existing approvals, replaces an otherwise identical approval
+with a different elevation mode, or remains overlaid by a broader approval. Existing narrower or
+broader approvals are not deleted automatically; `/showapprovals` remains the complete management
+view. Plain-text arguments are not reconstructed or displayed.
+
 See [Approvals and UAC in xucRun](#approvals-and-uac-in-xucrun) for the relationship between a
 reusable approval and Windows UAC confirmation that remains required for a specific launch.
 
@@ -832,7 +841,9 @@ the currently displayed launch. The corresponding controls are therefore disable
 approval can be bound to one program or all programs and to one target account or all stored
 accounts of the current Windows user. Program-specific approvals include the SHA-256 hash of the
 executable. If the file changes, transferring the approval to the new version requires explicit
-confirmation.
+confirmation. This also applies to **"Exactly this invocation"** approvals; their argument,
+working-directory, visibility, and direct-script bindings remain unchanged when the confirmed
+program hash is transferred.
 
 ![Approval after a program hash has changed](docs/en/images/program-hash-change-approval.png)
 

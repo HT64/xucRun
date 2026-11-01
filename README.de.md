@@ -881,6 +881,16 @@ SHA-256-Identität ergänzt, aber nicht ersetzt. Als Freigabedauer stehen zur Ve
 - bis zur Abmeldung,
 - dauerhaft.
 
+Unterscheidet sich der aktuelle Start von bereits für dasselbe Zielprogramm gespeicherten
+Freigaben, fassen die scrollbaren Details bis zu vier der relevantesten Freigaben zusammen und
+nennen die abweichenden Bindungen, etwa Programmdatei, Zielkonto, Erhöhungsmodus, Argumente,
+Arbeitsverzeichnis, Sichtbarkeit oder direktes Skript. Der Bereich „Wirkung der Auswahl“ erklärt,
+ob die neue Auswahl eine separate Freigabe ergänzt, bestehende Freigaben erweitert, eine ansonsten
+identische Freigabe mit anderem Erhöhungsmodus ersetzt oder weiterhin von einer weiterreichenden
+Freigabe überlagert wird. Bestehende engere oder weiterreichende Freigaben werden nicht automatisch
+gelöscht; `/showapprovals` bleibt die vollständige Verwaltungsansicht. Argumente werden nicht im
+Klartext rekonstruiert oder angezeigt.
+
 Das Verhältnis einer wiederverwendbaren Freigabe zu einer weiterhin erforderlichen
 Windows-UAC-Bestätigung beschreibt der Abschnitt
 [Freigaben und UAC in xucRun](#freigaben-und-uac-in-xucrun).
@@ -891,7 +901,9 @@ deaktiviert. Eine wiederverwendbare Freigabe kann an ein bestimmtes Programm ode
 sowie an ein bestimmtes Zielkonto oder an alle gespeicherten Konten des aktuellen Windows-Benutzers
 gebunden werden. Programmspezifische Freigaben berücksichtigen den SHA-256-Hash der Startdatei.
 Ändert sich die Datei, muss die Übernahme der Freigabe auf die neue Version ausdrücklich bestätigt
-werden.
+werden. Dies gilt auch für Freigaben **„Genau dieser Aufruf“**; ihre Bindungen an Argumente,
+Arbeitsverzeichnis, Sichtbarkeit und direkt erkannte Skripte bleiben bei der bestätigten Übernahme
+des Programmhashs unverändert.
 
 ![Freigabe nach Änderung eines Programmhashs](docs/de/images/program-hash-change-approval.png)
 
