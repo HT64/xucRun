@@ -83,7 +83,8 @@ den Anwendungsfall, Programme aus einem Standardkonto unter einem anderen lokale
 gespeicherten Anmeldedaten und einmaligen oder zeitlich begrenzbaren Freigaben zu starten. Wenn
 Windows für den Zielprogrammstart eine UAC-Bestätigung verlangt, bleibt diese interaktiv.
 
-Eine weitere Windows-eigene Möglichkeit, die mehr Ähnlichkeit mit xucRun hat, ist `runas.exe`.
+Eine weitere Windows-eigene Möglichkeit, die mehr Ähnlichkeit mit xucRun hat, ist
+[`runas.exe`](https://learn.microsoft.com/windows-server/administration/windows-commands/runas).
 Damit lassen sich einzelne Programme gezielt unter einem anderen Benutzerkonto starten. Mit dem
 Parameter `/savecred` werden die dafür verwendeten Anmeldedaten nach der ersten Kennworteingabe in
 der Windows-Anmeldeinformationsverwaltung des angemeldeten Benutzers gespeichert. Danach kann
