@@ -3,6 +3,8 @@
 // Retains file and directory locks for sensitive authorization decisions.
 #pragma once
 
+#include "AuthenticodeTrust.h"
+
 #include <Windows.h>
 
 #include <array>
@@ -15,7 +17,15 @@ struct ClientImageIdentity
 {
 	std::wstring path;
 	std::vector<std::uint8_t> sha256;
+	std::wstring signerSubject;
+	std::wstring issuerSubject;
+	std::wstring timestampSignerSubject;
 	std::vector<std::uint8_t> signerCertificateSha256;
+	xucrun::authenticode::SignatureKind signatureKind =
+		xucrun::authenticode::SignatureKind::None;
+	std::uint64_t certificateValidFrom = 0;
+	std::uint64_t certificateValidUntil = 0;
+	std::uint64_t timestamp = 0;
 	std::uint64_t volumeSerialNumber = 0;
 	std::array<std::uint8_t, 16> fileId = {};
 	LONG trustStatus = TRUST_E_NOSIGNATURE;

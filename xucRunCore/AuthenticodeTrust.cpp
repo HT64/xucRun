@@ -15,13 +15,41 @@
 
 namespace
 {
-	PCCERT_CONTEXT GetSignerCertificate(const WINTRUST_DATA& trustData)
+	std::uint64_t FileTimeValue(const FILETIME& value)
+	{
+		ULARGE_INTEGER combined = {};
+		combined.LowPart = value.dwLowDateTime;
+		combined.HighPart = value.dwHighDateTime;
+		return combined.QuadPart;
+	}
+
+	std::wstring GetCertificateName(PCCERT_CONTEXT certificate, DWORD flags)
+	{
+		const DWORD length = CertGetNameStringW(certificate,
+			CERT_NAME_SIMPLE_DISPLAY_TYPE, flags, nullptr, nullptr, 0);
+		if (length <= 1)
+			return {};
+		std::vector<wchar_t> name(length);
+		return CertGetNameStringW(certificate,
+			CERT_NAME_SIMPLE_DISPLAY_TYPE, flags, nullptr,
+			name.data(), length) == length
+			? std::wstring(name.data(), length - 1)
+			: std::wstring();
+	}
+
+	CRYPT_PROVIDER_SGNR* GetProviderSigner(
+		const WINTRUST_DATA& trustData, bool counterSigner)
 	{
 		CRYPT_PROVIDER_DATA* providerData =
 			WTHelperProvDataFromStateData(trustData.hWVTStateData);
-		CRYPT_PROVIDER_SGNR* signer = providerData
-			? WTHelperGetProvSignerFromChain(providerData, 0, FALSE, 0)
+		return providerData
+			? WTHelperGetProvSignerFromChain(
+				providerData, 0, counterSigner ? TRUE : FALSE, 0)
 			: nullptr;
+	}
+
+	PCCERT_CONTEXT GetSignerCertificate(CRYPT_PROVIDER_SGNR* signer)
+	{
 		return signer && signer->csCertChain > 0
 			? signer->pasCertChain[0].pCert
 			: nullptr;
@@ -30,13 +58,22 @@ namespace
 	void ReadSigner(const WINTRUST_DATA& trustData,
 		xucrun::authenticode::VerificationResult& result)
 	{
-		PCCERT_CONTEXT certificate = GetSignerCertificate(trustData);
+		CRYPT_PROVIDER_SGNR* signer = GetProviderSigner(trustData, false);
+		PCCERT_CONTEXT certificate = GetSignerCertificate(signer);
 		if (!certificate)
 			return;
 
 		result.signerCertificate.assign(
 			certificate->pbCertEncoded,
 			certificate->pbCertEncoded + certificate->cbCertEncoded);
+		result.signerSubject = GetCertificateName(certificate, 0);
+		result.issuerSubject =
+			GetCertificateName(certificate, CERT_NAME_ISSUER_FLAG);
+		result.certificateValidFrom =
+			FileTimeValue(certificate->pCertInfo->NotBefore);
+		result.certificateValidUntil =
+			FileTimeValue(certificate->pCertInfo->NotAfter);
+
 		DWORD fingerprintSize =
 			static_cast<DWORD>(result.signerCertificateSha256.size());
 		if (!CertGetCertificateContextProperty(
@@ -54,6 +91,16 @@ namespace
 			static_cast<DWORD>(std::size(organization)));
 		result.microsoftPublisher = organizationLength > 1 &&
 			_wcsicmp(organization, L"Microsoft Corporation") == 0;
+		CRYPT_PROVIDER_SGNR* counterSigner =
+			GetProviderSigner(trustData, true);
+		PCCERT_CONTEXT timestampCertificate =
+			GetSignerCertificate(counterSigner);
+		if (timestampCertificate)
+		{
+			result.timestampSignerSubject =
+				GetCertificateName(timestampCertificate, 0);
+			result.timestamp = FileTimeValue(counterSigner->sftVerifyAsOf);
+		}
 	}
 
 	bool VerifyCatalog(const std::wstring& filePath, HANDLE suppliedFile,
@@ -140,9 +187,9 @@ namespace
 
 		GUID policy = WINTRUST_ACTION_GENERIC_VERIFY_V2;
 		result.trustStatus = WinVerifyTrust(nullptr, &policy, &trustData);
+		result.signatureKind = xucrun::authenticode::SignatureKind::Catalog;
 		result.trusted = result.trustStatus == ERROR_SUCCESS;
-		if (result.trusted)
-			ReadSigner(trustData, result);
+		ReadSigner(trustData, result);
 
 		trustData.dwStateAction = WTD_STATEACTION_CLOSE;
 		WinVerifyTrust(nullptr, &policy, &trustData);
@@ -174,8 +221,10 @@ bool xucrun::authenticode::Verify(const std::wstring& filePath, HANDLE file,
 
 	GUID policy = WINTRUST_ACTION_GENERIC_VERIFY_V2;
 	result.trustStatus = WinVerifyTrust(nullptr, &policy, &trustData);
+	if (result.trustStatus != TRUST_E_NOSIGNATURE)
+		result.signatureKind = SignatureKind::Embedded;
 	result.trusted = result.trustStatus == ERROR_SUCCESS;
-	if (result.trusted)
+	if (result.signatureKind != SignatureKind::None)
 		ReadSigner(trustData, result);
 
 	trustData.dwStateAction = WTD_STATEACTION_CLOSE;

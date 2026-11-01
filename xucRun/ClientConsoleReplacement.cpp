@@ -82,6 +82,12 @@ namespace xucrun::console_replacement
 		DWORD selectionError = NO_ERROR;
 		broker_credential_selection::BrokerCredentialSelectionOutcome selection =
 			broker_credential_selection::BrokerCredentialSelectionOutcome::NotFound;
+		const bool automaticCurrentAdmin =
+			same_user_launch::ShouldUseAutomaticCurrentAdministrator(
+				account_identity::IsUserInAdminGroup(),
+				!selectedUsername.empty(),
+				request.selectCredentialWithoutElevation,
+				request.selectLocalAccount);
 
 		if (!selectedUsername.empty())
 		{
@@ -104,6 +110,17 @@ namespace xucrun::console_replacement
 				useBrokerCredential = selection ==
 					broker_credential_selection::BrokerCredentialSelectionOutcome::Selected;
 			}
+		}
+		else if (automaticCurrentAdmin)
+		{
+			sameUserLaunchMode = account_identity::IsRunningAsAdministrator()
+				? same_user_launch::SameUserLaunchMode::CurrentToken
+				: same_user_launch::SameUserLaunchMode::ElevateCurrentToken;
+			client_logging::Write(L"Info",
+				sameUserLaunchMode ==
+					same_user_launch::SameUserLaunchMode::ElevateCurrentToken
+				? L"Current administrator account requires elevation -> request UAC elevation"
+				: L"Current administrator account already elevated -> use current token");
 		}
 		else if (request.requestElevation)
 		{
@@ -143,16 +160,6 @@ namespace xucrun::console_replacement
 			useBrokerCredential = selection ==
 				broker_credential_selection::BrokerCredentialSelectionOutcome::Selected;
 		}
-		else
-		{
-			sameUserLaunchMode = account_identity::IsRunningAsAdministrator()
-				? same_user_launch::SameUserLaunchMode::CurrentToken
-				: same_user_launch::SameUserLaunchMode::ElevateCurrentToken;
-			client_logging::Write(L"Info", sameUserLaunchMode == same_user_launch::SameUserLaunchMode::ElevateCurrentToken
-				? L"Non-elevated admin account without user switch -> request UAC elevation"
-				: L"Already elevated admin account without user switch -> use current token");
-		}
-
 		if ((!selectedUsername.empty() || request.requestElevation) &&
 			sameUserLaunchMode == same_user_launch::SameUserLaunchMode::Credentials &&
 			selection == broker_credential_selection::BrokerCredentialSelectionOutcome::NotFound)

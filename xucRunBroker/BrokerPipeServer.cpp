@@ -11,6 +11,7 @@
 
 #include "AccountIdentity.h"
 #include "ApprovalStore.h"
+#include "AuthenticodeTrust.h"
 #include "AuthenticityMarkerStore.h"
 #include "BrokerPipeClient.h"
 #include "BrokerSerialization.h"
@@ -48,6 +49,56 @@ namespace
 		L"D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;0x00100183;;;AU)S:(ML;;NW;;;ME)";
 	constexpr DWORD ClientIoTimeoutMilliseconds = 5000;
 	constexpr std::size_t MaximumPendingApprovalChallenges = 64;
+
+	xucrun::broker::AuthenticodeSignatureKind ToBrokerSignatureKind(
+		xucrun::authenticode::SignatureKind kind)
+	{
+		switch (kind)
+		{
+		case xucrun::authenticode::SignatureKind::Embedded:
+			return xucrun::broker::AuthenticodeSignatureKind::Embedded;
+		case xucrun::authenticode::SignatureKind::Catalog:
+			return xucrun::broker::AuthenticodeSignatureKind::Catalog;
+		default:
+			return xucrun::broker::AuthenticodeSignatureKind::None;
+		}
+	}
+
+	xucrun::broker::ApprovalSignatureDetails GetSignatureDetails(
+		const ClientImageIdentity& identity)
+	{
+		xucrun::broker::ApprovalSignatureDetails details;
+		details.kind = ToBrokerSignatureKind(identity.signatureKind);
+		details.signerSubject = identity.signerSubject;
+		details.issuerSubject = identity.issuerSubject;
+		details.timestampSignerSubject = identity.timestampSignerSubject;
+		if (identity.signerCertificateSha256.size() ==
+			details.certificateSha256.size())
+		{
+			std::copy(identity.signerCertificateSha256.begin(),
+				identity.signerCertificateSha256.end(),
+				details.certificateSha256.begin());
+		}
+		details.certificateValidFrom = identity.certificateValidFrom;
+		details.certificateValidUntil = identity.certificateValidUntil;
+		details.timestamp = identity.timestamp;
+		return details;
+	}
+
+	xucrun::broker::ApprovalSignatureDetails GetSignatureDetails(
+		const xucrun::authenticode::VerificationResult& trust)
+	{
+		xucrun::broker::ApprovalSignatureDetails details;
+		details.kind = ToBrokerSignatureKind(trust.signatureKind);
+		details.signerSubject = trust.signerSubject;
+		details.issuerSubject = trust.issuerSubject;
+		details.timestampSignerSubject = trust.timestampSignerSubject;
+		details.certificateSha256 = trust.signerCertificateSha256;
+		details.certificateValidFrom = trust.certificateValidFrom;
+		details.certificateValidUntil = trust.certificateValidUntil;
+		details.timestamp = trust.timestamp;
+		return details;
+	}
 	constexpr std::size_t MaximumPendingApprovalChallengesPerSid = 8;
 	constexpr std::size_t MaximumPendingApprovalChallengesPerSession = 16;
 	constexpr std::size_t MaximumPendingApprovalChallengesPerProcess = 4;
@@ -278,11 +329,15 @@ namespace
 		std::array<std::uint8_t, 32> executableSha256 = {};
 		LONG executableTrustStatus = TRUST_E_NOSIGNATURE;
 		bool executableSignatureTrusted = false;
+		xucrun::broker::ApprovalSignatureDetails executableSignatureDetails;
 		std::wstring argumentTail;
 		std::wstring workingDirectory;
 		std::array<std::uint8_t, 32> argumentHash = {};
 		std::wstring directScriptPath;
 		std::array<std::uint8_t, 32> directScriptSha256 = {};
+		LONG directScriptTrustStatus = TRUST_E_NOSIGNATURE;
+		bool directScriptSignatureTrusted = false;
+		xucrun::broker::ApprovalSignatureDetails directScriptSignatureDetails;
 		std::wstring scriptPath;
 		std::array<std::uint8_t, 32> scriptSha256 = {};
 		xucrun::broker::ElevationMode elevationMode =
@@ -355,6 +410,10 @@ namespace
 	{
 		result.directScriptPath = pending.directScriptPath;
 		result.directScriptSha256 = pending.scriptSha256;
+		result.directScriptTrustStatus = pending.directScriptTrustStatus;
+		result.directScriptSignatureTrusted = pending.directScriptSignatureTrusted;
+		result.directScriptSignatureDetails =
+			pending.directScriptSignatureDetails;
 	}
 
 	bool IsUniversalInterpreter(const std::wstring& executablePath)
@@ -1943,11 +2002,16 @@ namespace
 		const std::wstring& executablePath, const std::wstring& argumentTail,
 		const std::wstring& workingDirectory, std::wstring& displayedScriptPath,
 		std::array<std::uint8_t, 32>& displayedScriptHash,
+		LONG& scriptTrustStatus, bool& scriptSignatureTrusted,
+		xucrun::broker::ApprovalSignatureDetails& scriptSignatureDetails,
 		std::wstring& boundScriptPath,
 		std::array<std::uint8_t, 32>& boundScriptHash)
 	{
 		displayedScriptPath.clear();
 		displayedScriptHash = {};
+		scriptTrustStatus = TRUST_E_NOSIGNATURE;
+		scriptSignatureTrusted = false;
+		scriptSignatureDetails = {};
 		boundScriptPath.clear();
 		boundScriptHash = {};
 		std::wstring scriptArgument;
@@ -1970,6 +2034,7 @@ namespace
 			return;
 		std::wstring finalPath;
 		std::vector<std::uint8_t> hash;
+		std::vector<std::uint8_t> verifiedHash;
 		BY_HANDLE_FILE_INFORMATION information = {};
 		const bool identityRead =
 			GetFileInformationByHandle(script, &information) == TRUE &&
@@ -1977,11 +2042,22 @@ namespace
 			xucrun::files::ResolveFinalFilePathFromHandle(script, finalPath) &&
 			xucrun::files::ComputeFileSHA256FromHandle(script, hash) &&
 			hash.size() == boundScriptHash.size();
+		xucrun::authenticode::VerificationResult trust;
+		if (identityRead)
+		{
+			xucrun::authenticode::Verify(finalPath, script, trust);
+		}
+		const bool identityStable = identityRead &&
+			xucrun::files::ComputeFileSHA256FromHandle(script, verifiedHash) &&
+			hash == verifiedHash;
 		CloseHandle(script);
-		if (!identityRead)
+		if (!identityStable)
 			return;
 		displayedScriptPath = finalPath;
 		std::copy(hash.begin(), hash.end(), displayedScriptHash.begin());
+		scriptTrustStatus = trust.trustStatus;
+		scriptSignatureTrusted = trust.trusted;
+		scriptSignatureDetails = GetSignatureDetails(trust);
 
 		if (!IsDirectScriptPathProtected(clientProcess, finalPath))
 			return;

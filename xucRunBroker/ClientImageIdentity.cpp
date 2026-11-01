@@ -143,6 +143,14 @@ bool ReadFileImageIdentity(
 		xucrun::authenticode::Verify(identity.path, image, trust);
 		identity.trustStatus = trust.trustStatus;
 		identity.signatureTrusted = trust.trusted;
+		identity.signerSubject = std::move(trust.signerSubject);
+		identity.issuerSubject = std::move(trust.issuerSubject);
+		identity.timestampSignerSubject =
+			std::move(trust.timestampSignerSubject);
+		identity.signatureKind = trust.signatureKind;
+		identity.certificateValidFrom = trust.certificateValidFrom;
+		identity.certificateValidUntil = trust.certificateValidUntil;
+		identity.timestamp = trust.timestamp;
 		if (trust.trusted && std::any_of(
 			trust.signerCertificateSha256.begin(),
 			trust.signerCertificateSha256.end(),

@@ -637,7 +637,7 @@ namespace
 			xucrun::broker::ElevationMode::RequireElevated);
 		const std::vector<std::uint8_t> expectedFrame = {
 			'X', 'U', 'C', 'R', 1, 1, 0, 0,
-			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
 			'S', 0, 'E', 0, 'W', 0
 		};
@@ -692,7 +692,7 @@ namespace
 		expected.windowsError = 5;
 		const std::vector<std::uint8_t> expectedFrame = {
 			'X', 'U', 'C', 'S', 2, 5, 0, 0,
-			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			5, 0, 0, 0
 		};
 		if (xucrun::broker::SerializeLaunchResult(expected) != expectedFrame)
@@ -713,7 +713,7 @@ namespace
 			xucrun::broker::SerializeSystemLaunchRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'E', 'S', 58, 0, 0, 0,
-			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,
 			'E', 0, 'A', 0, 'W', 0
 		};
@@ -749,7 +749,7 @@ namespace
 			xucrun::broker::SerializeSystemLaunchResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'E', 'T', 59, 0, 0, 0,
-			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			0, 0, 0, 0, 210, 4, 0, 0
 		};
 		xucrun::broker::SystemLaunchResult parsedResult;
@@ -861,7 +861,7 @@ namespace
 		xucrun::broker::CredentialMetadataRequest parsedRequest;
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'M', 6, 0, 0, 0,
-			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			3, 0, 0, 0, 'S', 0, '-', 0, '1', 0
 		};
 		if (requestFrame != expectedRequestFrame ||
@@ -919,7 +919,7 @@ namespace
 			xucrun::broker::SerializeSessionTestRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'T', 8, 0, 0, 0,
-			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
+			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
 		};
 		xucrun::broker::SessionTestRequest parsedRequest;
 		if (requestFrame != expectedRequestFrame ||
@@ -938,7 +938,7 @@ namespace
 			xucrun::broker::SerializeSessionTestResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'C', 'U', 9, 0, 0, 0,
-			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			0, 0, 0, 0, 0x44, 0x33, 0x22, 0x11
 		};
 		xucrun::broker::SessionTestResult parsedResult;
@@ -968,7 +968,7 @@ namespace
 			xucrun::broker::SerializeCredentialStoreTestRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'V', 10, 0, 0, 0,
-			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
+			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
 		};
 		xucrun::broker::CredentialStoreTestRequest parsedRequest;
 		if (requestFrame != expectedRequestFrame ||
@@ -988,7 +988,7 @@ namespace
 			xucrun::broker::SerializeCredentialStoreTestResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'C', 'W', 11, 1, 0, 0,
-			40, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			44, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			13, 0, 0, 0
 		};
 		xucrun::broker::CredentialStoreTestResult parsedResult;
@@ -1568,11 +1568,33 @@ namespace
 		result.clientSignatureTrusted = true;
 		result.finalExecutablePath = request.executablePath;
 		result.executableSha256[31] = 0xA5;
-		result.executableTrustStatus = static_cast<std::int32_t>(0x800B0100u);
+		result.executableTrustStatus = 0;
+		result.executableSignatureTrusted = true;
+		result.executableSignatureDetails.kind =
+			xucrun::broker::AuthenticodeSignatureKind::Catalog;
+		result.executableSignatureDetails.signerSubject = L"Target Test Signer";
+		result.executableSignatureDetails.issuerSubject = L"Target Test Issuer";
+		result.executableSignatureDetails.timestampSignerSubject =
+			L"Timestamp Test Authority";
+		result.executableSignatureDetails.certificateSha256[0] = 0x22;
+		result.executableSignatureDetails.certificateValidFrom = 300;
+		result.executableSignatureDetails.certificateValidUntil = 400;
+		result.executableSignatureDetails.timestamp = 350;
 		result.argumentTail = request.argumentTail;
 		result.workingDirectory = request.workingDirectory;
 		result.directScriptPath = L"C:\\Scripts\\task.ps1";
 		result.directScriptSha256[0] = 0x3C;
+		result.directScriptTrustStatus = 0;
+		result.directScriptSignatureTrusted = true;
+		result.directScriptSignatureDetails.kind =
+			xucrun::broker::AuthenticodeSignatureKind::Embedded;
+		result.directScriptSignatureDetails.signerSubject =
+			L"Example Script Publisher";
+		result.directScriptSignatureDetails.issuerSubject =
+			L"Example Script Issuer";
+		result.directScriptSignatureDetails.certificateSha256[0] = 0x33;
+		result.directScriptSignatureDetails.certificateValidFrom = 500;
+		result.directScriptSignatureDetails.certificateValidUntil = 600;
 		result.elevationMode = request.elevationMode;
 		result.visibility = request.visibility;
 		result.programUpdateAvailable = true;
@@ -1602,10 +1624,17 @@ namespace
 			parsedResult.executableSha256 != result.executableSha256 ||
 			parsedResult.executableTrustStatus != result.executableTrustStatus ||
 			parsedResult.executableSignatureTrusted != result.executableSignatureTrusted ||
+			parsedResult.executableSignatureDetails !=
+				result.executableSignatureDetails ||
 			parsedResult.argumentTail != result.argumentTail ||
 			parsedResult.workingDirectory != result.workingDirectory ||
 			parsedResult.directScriptPath != result.directScriptPath ||
 			parsedResult.directScriptSha256 != result.directScriptSha256 ||
+			parsedResult.directScriptTrustStatus != result.directScriptTrustStatus ||
+			parsedResult.directScriptSignatureTrusted !=
+				result.directScriptSignatureTrusted ||
+			parsedResult.directScriptSignatureDetails !=
+				result.directScriptSignatureDetails ||
 			parsedResult.elevationMode != result.elevationMode ||
 			parsedResult.visibility != result.visibility ||
 			parsedResult.programUpdateAvailable != result.programUpdateAvailable ||
@@ -1625,6 +1654,30 @@ namespace
 			parsedResult.authenticityMarker != result.authenticityMarker)
 		{
 			std::cerr << "approval challenge result serialization failed\n";
+			failures++;
+		}
+		xucrun::broker::ApprovalChallengeResult untrustedSignatureResult = result;
+		untrustedSignatureResult.executableTrustStatus =
+			static_cast<std::int32_t>(0x800B0109u);
+		untrustedSignatureResult.executableSignatureTrusted = false;
+		const std::vector<std::uint8_t> untrustedSignatureFrame =
+			xucrun::broker::SerializeApprovalChallengeResult(
+				untrustedSignatureResult);
+		if (!xucrun::broker::DeserializeApprovalChallengeResult(
+				untrustedSignatureFrame, parsedResult) ||
+			parsedResult.executableSignatureTrusted ||
+			parsedResult.executableSignatureDetails !=
+				untrustedSignatureResult.executableSignatureDetails)
+		{
+			std::cerr << "untrusted signature details roundtrip failed\n";
+			failures++;
+		}
+		untrustedSignatureResult.executableSignatureDetails.kind =
+			xucrun::broker::AuthenticodeSignatureKind::None;
+		if (!xucrun::broker::SerializeApprovalChallengeResult(
+			untrustedSignatureResult).empty())
+		{
+			std::cerr << "signature details without signature kind accepted\n";
 			failures++;
 		}
 		result.writableElevatedTargetReason =

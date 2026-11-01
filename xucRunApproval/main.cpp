@@ -4,6 +4,7 @@
 #include <CommCtrl.h>
 #include <shellapi.h>
 #include <wincred.h>
+#include <wintrust.h>
 
 #include <atomic>
 #include <algorithm>
@@ -40,9 +41,14 @@ namespace
 	constexpr int ApprovalCountdownControl = 1500;
 	constexpr int ApprovalExplanationControl = 1501;
 	constexpr int ApprovalInterpreterWarningY = 167;
-	constexpr int ApprovalInterpreterWarningHeight = 52;
-	constexpr int ApprovalInterpreterLayoutOffset = 56;
-	constexpr int ApprovalUacMessageLayoutOffset = 30;
+	constexpr int ApprovalShortInterpreterWarningHeight = 20;
+	constexpr int ApprovalShortInterpreterLayoutOffset = 22;
+	constexpr int ApprovalLongInterpreterWarningHeight = 52;
+	constexpr int ApprovalLongInterpreterLayoutOffset = 56;
+	constexpr int ApprovalUacMessageLayoutOffset = 22;
+	constexpr int ApprovalFixedDetailsLayoutOffset = 0;
+	constexpr int ApprovalContentLayoutOffset =
+		ApprovalUacMessageLayoutOffset + ApprovalFixedDetailsLayoutOffset;
 	constexpr int ApprovalExistingContentBottom = 337;
 	constexpr int ApprovalMarkerY = 342;
 	constexpr int ApprovalMarkerHeight = 24;
@@ -537,9 +543,162 @@ namespace
 	{
 		wchar_t statusCode[11] = {};
 		swprintf_s(statusCode, L"0x%08X", static_cast<std::uint32_t>(status));
-		return std::wstring(trusted
-			? Text(L"Vertrauenswürdig", L"Trusted")
-			: Text(L"Nicht vertrauenswürdig", L"Not trusted")) + L" (" + statusCode + L")";
+		const wchar_t* description = nullptr;
+		if (trusted)
+		{
+			description = Text(L"Vertrauenswürdig", L"Trusted");
+		}
+		else
+		{
+			switch (static_cast<LONG>(status))
+			{
+			case TRUST_E_NOSIGNATURE:
+				description = Text(
+					L"Keine Signaturzuordnung",
+					L"No signature association");
+				break;
+			case TRUST_E_BAD_DIGEST:
+				description = Text(L"Signatur ungültig", L"Invalid signature");
+				break;
+			case CERT_E_EXPIRED:
+				description = Text(
+					L"Zertifikat abgelaufen oder noch nicht gültig",
+					L"Certificate expired or not yet valid");
+				break;
+			case CERT_E_REVOKED:
+				description = Text(L"Zertifikat widerrufen", L"Certificate revoked");
+				break;
+			case CERT_E_UNTRUSTEDROOT:
+			case CERT_E_CHAINING:
+				description = Text(
+					L"Zertifikatskette nicht vertrauenswürdig",
+					L"Certificate chain not trusted");
+				break;
+			case CERT_E_WRONG_USAGE:
+				description = Text(
+					L"Zertifikat nicht für Codesignatur gültig",
+					L"Certificate not valid for code signing");
+				break;
+			case CERT_E_REVOCATION_FAILURE:
+				description = Text(
+					L"Zertifikatswiderruf nicht überprüfbar",
+					L"Certificate revocation could not be checked");
+				break;
+			case TRUST_E_EXPLICIT_DISTRUST:
+				description = Text(
+					L"Zertifikat ausdrücklich nicht vertrauenswürdig",
+					L"Certificate explicitly distrusted");
+				break;
+			case CRYPT_E_SECURITY_SETTINGS:
+				description = Text(
+					L"Signatur durch Sicherheitsrichtlinie abgelehnt",
+					L"Signature rejected by security policy");
+				break;
+			default:
+				description = Text(L"Nicht vertrauenswürdig", L"Not trusted");
+				break;
+			}
+		}
+		return std::wstring(description) + L" (" + statusCode + L")";
+	}
+
+	std::wstring SignatureStatusDetails(std::int32_t status)
+	{
+		return static_cast<LONG>(status) == TRUST_E_NOSIGNATURE
+			? Text(
+				L"\nSignaturprüfung: Keine auswertbare eingebettete Signatur und keine "
+					L"zum aktuellen Dateiinhalt passende Windows-Katalogsignatur gefunden.",
+				L"\nSignature check: No usable embedded signature or Windows catalog "
+					L"signature matching the current file contents was found.")
+			: std::wstring();
+	}
+
+	std::wstring FormatFileTime(std::uint64_t value, bool includeTime)
+	{
+		if (value == 0)
+			return {};
+		ULARGE_INTEGER combined = {};
+		combined.QuadPart = value;
+		FILETIME fileTime = { combined.LowPart, combined.HighPart };
+		SYSTEMTIME systemTime = {};
+		if (!FileTimeToSystemTime(&fileTime, &systemTime))
+			return {};
+		wchar_t text[21] = {};
+		if (includeTime)
+		{
+			swprintf_s(text, L"%04u-%02u-%02u %02u:%02u:%02uZ",
+				systemTime.wYear, systemTime.wMonth, systemTime.wDay,
+				systemTime.wHour, systemTime.wMinute, systemTime.wSecond);
+		}
+		else
+		{
+			swprintf_s(text, L"%04u-%02u-%02u",
+				systemTime.wYear, systemTime.wMonth, systemTime.wDay);
+		}
+		return text;
+	}
+
+	std::wstring SignatureDetails(
+		const xucrun::broker::ApprovalSignatureDetails& details)
+	{
+		std::wstring text;
+		switch (details.kind)
+		{
+		case xucrun::broker::AuthenticodeSignatureKind::Embedded:
+			text += Text(L"\nSignaturart: Eingebettet",
+				L"\nSignature type: Embedded");
+			break;
+		case xucrun::broker::AuthenticodeSignatureKind::Catalog:
+			text += Text(L"\nSignaturart: Windows-Katalog",
+				L"\nSignature type: Windows catalog");
+			break;
+		default:
+			break;
+		}
+		if (!details.signerSubject.empty())
+		{
+			text += Text(L"\nSignierer: ", L"\nSigner: ") +
+				details.signerSubject;
+		}
+		const bool fingerprintPresent = std::any_of(
+			details.certificateSha256.begin(),
+			details.certificateSha256.end(),
+			[](std::uint8_t value) { return value != 0; });
+		if (fingerprintPresent)
+		{
+			text += Text(L"\nZertifikat SHA-256: ",
+				L"\nCertificate SHA-256: ") +
+				Hex(details.certificateSha256);
+		}
+		if (!details.issuerSubject.empty())
+		{
+			text += Text(L"\nAussteller: ", L"\nIssuer: ") +
+				details.issuerSubject;
+		}
+		const std::wstring validFrom =
+			FormatFileTime(details.certificateValidFrom, false);
+		const std::wstring validUntil =
+			FormatFileTime(details.certificateValidUntil, false);
+		if (!validFrom.empty() && !validUntil.empty())
+		{
+			text += Text(L"\nZertifikatsgültigkeit: ",
+				L"\nCertificate validity: ") +
+				validFrom + Text(L" bis ", L" to ") + validUntil;
+		}
+		const std::wstring timestamp =
+			FormatFileTime(details.timestamp, true);
+		if (!timestamp.empty())
+		{
+			text += Text(L"\nSignaturzeitstempel: ",
+				L"\nSignature timestamp: ") + timestamp;
+			if (!details.timestampSignerSubject.empty())
+			{
+				text += Text(L"\nZeitstempelaussteller: ",
+					L"\nTimestamp authority: ") +
+					details.timestampSignerSubject;
+			}
+		}
+		return text;
 	}
 
 	bool ActivateApprovalWindow(HWND window)
@@ -953,66 +1112,87 @@ namespace
 			HFONT font = static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
 
 			AddControl(dialog, L"STATIC", Text(
-				L"Start unter einem anderen Benutzerkonto freigeben?",
-				L"Approve launch under another user account?"),
+				L"Diesen Start freigeben?",
+				L"Approve this launch?"),
 				SS_LEFT, 8, 8, 374, 12, 0, font);
-			AddControl(dialog, L"STATIC", Text(
-				L"Die xucRun-Freigabe und Windows-UAC erfüllen unterschiedliche Aufgaben. "
-					L"Falls Windows eine UAC-Bestätigung verlangt, bleibt sie erforderlich; "
-					L"der UAC-Dialog zeigt den Umfang dieser Freigabe nicht an.",
-				L"The xucRun approval and Windows UAC serve different purposes. If Windows "
-					L"requires UAC confirmation, it remains required; the UAC dialog does not "
-					L"show the scope of this approval."),
-				SS_LEFT, 8, 24, 374, 25, 0, font);
 			const std::wstring formattedFixedDetails =
 				ToWindowsLineEndings(*context->fixedDetails);
 			AddControl(dialog, L"STATIC", formattedFixedDetails,
-				SS_LEFT, 8, 24 + ApprovalUacMessageLayoutOffset, 374, 43, 0, font);
+				SS_LEFT, 8, 24, 374,
+				43 + ApprovalFixedDetailsLayoutOffset, 0, font);
+			AddControl(dialog, L"STATIC", Text(
+				L"Die xucRun-Freigabe bestimmt den unten ausgewählten Freigabeumfang. "
+					L"Eine gegebenenfalls erforderliche Windows-UAC-Bestätigung bleibt "
+					L"zusätzlich erforderlich.",
+				L"The xucRun approval determines the approval scope selected below. "
+					L"Any Windows UAC confirmation that may be required remains "
+					L"additionally necessary."),
+				SS_LEFT, 8, 69 + ApprovalFixedDetailsLayoutOffset, 374, 18, 0, font);
 			const std::wstring formattedDetails = ToWindowsLineEndings(*context->details);
 			HWND detailsControl = AddControl(dialog, L"EDIT", formattedDetails,
 				ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
-				8, 69 + ApprovalUacMessageLayoutOffset, 374, 92,
+				8, 69 + ApprovalContentLayoutOffset, 374, 92,
 				ApprovalDetailsControl, font, WS_EX_CLIENTEDGE);
 			SendMessageW(detailsControl, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN,
 				MAKELPARAM(6, 6));
 
 			const bool showInterpreterWarning =
 				context->interpreterWarningType != InterpreterWarningType::None;
-			const int layoutOffset = showInterpreterWarning
-				? ApprovalInterpreterLayoutOffset : 0;
+			const bool showLongInterpreterWarning =
+				showInterpreterWarning && !context->exactInvocationReusableAllowed;
+			const int warningHeight = showLongInterpreterWarning
+				? ApprovalLongInterpreterWarningHeight
+				: ApprovalShortInterpreterWarningHeight;
+			const int layoutOffset = !showInterpreterWarning
+				? 0
+				: showLongInterpreterWarning
+					? ApprovalLongInterpreterLayoutOffset
+					: ApprovalShortInterpreterLayoutOffset;
 			if (showInterpreterWarning)
 			{
 				const std::wstring warning = !context->exactInvocationReusableAllowed
 					? Text(
-						L"WARNUNG: Dieser Interpreter kann beliebige Befehle und Skripte "
+						L"Dieser Interpreter kann beliebige Befehle und Skripte "
 						L"ausführen. Der ausgeführte Inhalt kann nicht sicher in „Genau dieser "
 						L"Aufruf“ einbezogen werden, weil er nicht als direkt bindbares Skript "
 						L"erkannt wurde oder Pfad beziehungsweise Inhalt nicht sicher geprüft "
 						L"werden konnten. Für eine "
 						L"wiederverwendbare Freigabe stehen deshalb nur die weiterreichenden "
 						L"Freigabeumfänge zur Verfügung; sie müssen zusätzlich bestätigt werden.",
-						L"WARNING: This interpreter can run arbitrary commands and scripts. "
+						L"This interpreter can run arbitrary commands and scripts. "
 						L"The executed content cannot be included safely in \"Exactly this "
 						L"invocation\" because it was not recognized as a directly bindable script "
 						L"or because its path or contents could not be verified safely. Only "
 						L"broader approval scopes are therefore available "
 						L"for a reusable approval; they require an additional confirmation.")
 					: Text(
-						L"WARNUNG: Dieser Interpreter kann beliebige Befehle und Skripte "
+						L"Dieser Interpreter kann beliebige Befehle und Skripte "
 						L"ausführen. Für wiederverwendbare Freigaben ist deshalb „Genau dieser "
 						L"Aufruf“ vorausgewählt. Nur dieser Umfang bindet die angezeigten "
 						L"Argumente und das Arbeitsverzeichnis.",
-						L"WARNING: This interpreter can run arbitrary commands and scripts. "
+						L"This interpreter can run arbitrary commands and scripts. "
 						L"\"Exactly this invocation\" is therefore preselected for reusable "
 						L"approvals. Only this scope binds the displayed arguments and working "
 						L"directory.");
+				HICON warningIcon = LoadIconW(nullptr, IDI_WARNING);
+				const int warningTextX = warningIcon ? 34 : 8;
+				if (warningIcon)
+				{
+					HWND warningIconControl = AddControl(
+						dialog, L"STATIC", L"", SS_ICON,
+						8, ApprovalInterpreterWarningY + ApprovalContentLayoutOffset,
+						20, 20, 0, font);
+					SendMessageW(warningIconControl, STM_SETICON,
+						reinterpret_cast<WPARAM>(warningIcon), 0);
+				}
 				AddControl(dialog, L"STATIC", warning, SS_LEFT,
-					8, ApprovalInterpreterWarningY + ApprovalUacMessageLayoutOffset, 374,
-					ApprovalInterpreterWarningHeight, 0, font);
+					warningTextX,
+					ApprovalInterpreterWarningY + ApprovalContentLayoutOffset,
+					382 - warningTextX, warningHeight, 0, font);
 			}
 
 			AddControl(dialog, L"STATIC", Text(L"Freigabedauer:", L"Approval duration:"),
-				SS_LEFT, 8, 167 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				SS_LEFT, 8, 167 + ApprovalContentLayoutOffset + layoutOffset,
 				180, 10, 0, font);
 			const wchar_t* choices[] = {
 				Text(L"Nur dieses eine Mal", L"This time only"),
@@ -1025,37 +1205,37 @@ namespace
 			{
 				AddControl(dialog, L"BUTTON", choices[index], BS_AUTORADIOBUTTON |
 					WS_TABSTOP | (index == 0 ? WS_GROUP : 0),
-					11, 179 + ApprovalUacMessageLayoutOffset + layoutOffset + index * 13,
+					11, 179 + ApprovalContentLayoutOffset + layoutOffset + index * 13,
 					180, 11, ApprovalDurationFirst + index, font);
 			}
 			AddControl(dialog, L"STATIC", Text(L"Freigabeumfang:", L"Approval scope:"),
-				SS_LEFT, 8, 247 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				SS_LEFT, 8, 247 + ApprovalContentLayoutOffset + layoutOffset,
 				180, 10, 0, font);
 			AddControl(dialog, L"BUTTON", Text(L"Nur für dieses Zielprogramm",
 				L"Only for this target program"),
 				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
-				11, 259 + ApprovalUacMessageLayoutOffset + layoutOffset, 210, 11,
+				11, 259 + ApprovalContentLayoutOffset + layoutOffset, 210, 11,
 				ApprovalTargetProgram, font);
 			AddControl(dialog, L"BUTTON", Text(L"Genau dieser Aufruf",
 				L"Exactly this invocation"),
 				BS_AUTORADIOBUTTON | WS_TABSTOP,
-				11, 272 + ApprovalUacMessageLayoutOffset + layoutOffset, 210, 11,
+				11, 272 + ApprovalContentLayoutOffset + layoutOffset, 210, 11,
 				ApprovalExactInvocation, font);
 			AddControl(dialog, L"BUTTON", Text(L"Für alle Programme",
 				L"For all programs"), BS_AUTORADIOBUTTON | WS_TABSTOP,
-				11, 285 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				11, 285 + ApprovalContentLayoutOffset + layoutOffset,
 				210, 11, ApprovalProgramGeneral, font);
 			AddControl(dialog, L"STATIC", Text(L"Zielkonten:", L"Target accounts:"),
-				SS_LEFT, 8, 301 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				SS_LEFT, 8, 301 + ApprovalContentLayoutOffset + layoutOffset,
 				180, 10, 0, font);
 			AddControl(dialog, L"BUTTON", Text(L"Nur für dieses Zielkonto",
 				L"Only for this target account"),
 				BS_AUTORADIOBUTTON | WS_TABSTOP | WS_GROUP,
-				11, 313 + ApprovalUacMessageLayoutOffset + layoutOffset, 210, 11,
+				11, 313 + ApprovalContentLayoutOffset + layoutOffset, 210, 11,
 				ApprovalAccountCurrent, font);
 			AddControl(dialog, L"BUTTON", Text(L"Für alle gespeicherten Zielkonten",
 				L"For all stored target accounts"), BS_AUTORADIOBUTTON | WS_TABSTOP,
-				11, 326 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				11, 326 + ApprovalContentLayoutOffset + layoutOffset,
 				210, 11, ApprovalAccountAll, font);
 			const xucrun::broker::ApprovalPersistence initialPersistence =
 				context->restoreSelection
@@ -1084,11 +1264,11 @@ namespace
 
 			AddControl(dialog, L"STATIC",
 				Text(L"Wirkung der Auswahl:", L"Effect of this selection:"),
-				SS_LEFT, 228, 167 + ApprovalUacMessageLayoutOffset + layoutOffset,
+				SS_LEFT, 228, 167 + ApprovalContentLayoutOffset + layoutOffset,
 				154, 10, 0, font);
 			HWND explanationControl = AddControl(dialog, L"EDIT", L"",
 				ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
-				228, 179 + ApprovalUacMessageLayoutOffset + layoutOffset, 154, 158,
+				228, 179 + ApprovalContentLayoutOffset + layoutOffset, 154, 158,
 				ApprovalExplanationControl, font, WS_EX_CLIENTEDGE);
 			SendMessageW(explanationControl, EM_SETMARGINS,
 				EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(5, 5));
@@ -1096,18 +1276,18 @@ namespace
 
 			AddControl(dialog, L"STATIC", AuthenticityMarkerText(
 				*context->authenticityMarker, *context->clientName), SS_CENTER,
-				8, ApprovalMarkerY + ApprovalUacMessageLayoutOffset + layoutOffset, 374,
+				8, ApprovalMarkerY + ApprovalContentLayoutOffset + layoutOffset, 374,
 				ApprovalMarkerHeight, 0, font);
 			AddControl(dialog, L"STATIC", L"", SS_LEFT,
-				11, 361 + ApprovalUacMessageLayoutOffset + layoutOffset, 130, 10,
+				11, 361 + ApprovalContentLayoutOffset + layoutOffset, 130, 10,
 				ApprovalCountdownControl, font);
 			AddControl(dialog, L"BUTTON", Text(L"Freigeben", L"Approve"),
 				BS_DEFPUSHBUTTON | WS_TABSTOP,
-				278, ApprovalButtonY + ApprovalUacMessageLayoutOffset + layoutOffset, 50,
+				278, ApprovalButtonY + ApprovalContentLayoutOffset + layoutOffset, 50,
 				ApprovalButtonHeight, IDOK, font);
 			AddControl(dialog, L"BUTTON", Text(L"Abbrechen", L"Cancel"),
 				BS_PUSHBUTTON | WS_TABSTOP,
-				332, ApprovalButtonY + ApprovalUacMessageLayoutOffset + layoutOffset, 50,
+				332, ApprovalButtonY + ApprovalContentLayoutOffset + layoutOffset, 50,
 				ApprovalButtonHeight, IDCANCEL, font);
 
 			UpdateCountdown(dialog, 0);
@@ -1262,10 +1442,25 @@ namespace
 		dialogTemplate->width = 390;
 		const InterpreterWarningType interpreterWarningType =
 			GetInterpreterWarningType(challenge.finalExecutablePath);
+		const bool directScriptBound =
+			!challenge.directScriptPath.empty() &&
+			std::any_of(challenge.directScriptSha256.begin(),
+				challenge.directScriptSha256.end(),
+				[](std::uint8_t value) { return value != 0; });
+		const bool exactInvocationReusableAllowed =
+			directScriptBound ||
+			(challenge.directScriptPath.empty() &&
+				interpreterWarningType != InterpreterWarningType::PowerShell);
+		const bool showInterpreterWarning =
+			interpreterWarningType != InterpreterWarningType::None;
+		const int interpreterLayoutOffset = !showInterpreterWarning
+			? 0
+			: exactInvocationReusableAllowed
+				? ApprovalShortInterpreterLayoutOffset
+				: ApprovalLongInterpreterLayoutOffset;
 		dialogTemplate->height = ApprovalDialogHeight +
-			ApprovalUacMessageLayoutOffset +
-			(interpreterWarningType != InterpreterWarningType::None
-				? ApprovalInterpreterLayoutOffset : 0);
+			ApprovalContentLayoutOffset +
+			interpreterLayoutOffset;
 		WORD* data = reinterpret_cast<WORD*>(buffer + sizeof(DialogTemplateHeader));
 		*data++ = 0;
 		*data++ = 0;
@@ -1277,15 +1472,6 @@ namespace
 		const std::wstring displayedClientName =
 			xucrun::documentation_names::DisplayAccount(
 				challenge.canonicalClientName);
-		const bool directScriptBound =
-			!challenge.directScriptPath.empty() &&
-			std::any_of(challenge.directScriptSha256.begin(),
-				challenge.directScriptSha256.end(),
-				[](std::uint8_t value) { return value != 0; });
-		const bool exactInvocationReusableAllowed =
-			directScriptBound ||
-			(challenge.directScriptPath.empty() &&
-				interpreterWarningType != InterpreterWarningType::PowerShell);
 		ApprovalDialogContext context = {
 			&decision, &fixedDetails, &details, &challenge.authenticityMarker,
 			&displayedClientName, interpreterWarningType,
@@ -1407,18 +1593,17 @@ namespace
 		{
 		case xucrun::broker::ApprovalHelperStartMode::BrokerStarted:
 			launchDetails = Text(
-				L"Der xucRun-Dienst hat diesen Freigabeassistenten mit hoher Integrität gestartet, "
-				L"damit Sie diese Freigabe auf einem geschützten privaten Desktop bestätigen können.",
-				L"The xucRun service started this approval helper with high integrity so that you "
-				L"can confirm this approval on a protected private desktop.");
+				L"Der xucRun-Dienst hat diesen Freigabeassistenten mit hoher Integrität auf "
+				L"einem geschützten privaten Desktop gestartet.",
+				L"The xucRun service started this approval helper with high integrity on a "
+				L"protected private desktop.");
 			break;
 		case xucrun::broker::ApprovalHelperStartMode::ClientRunAsRequired:
 			launchDetails = Text(
 				L"Der xucRun-Client hat diesen Freigabeassistenten über Windows-UAC mit hoher "
-				L"Integrität gestartet, damit Sie diese Freigabe auf einem geschützten privaten "
-				L"Desktop bestätigen können.",
+				L"Integrität auf einem geschützten privaten Desktop gestartet.",
 				L"The xucRun client started this approval helper with high integrity through "
-				L"Windows UAC so that you can confirm this approval on a protected private desktop.");
+				L"Windows UAC on a protected private desktop.");
 			break;
 		default:
 			return false;
@@ -1426,15 +1611,18 @@ namespace
 		const std::wstring accountDetails = std::wstring(Text(
 			L"Aufrufendes Konto: ", L"Calling account: ")) + displayedClientName +
 			Text(L"\nZielkonto: ", L"\nTarget account: ") + displayedAccountName;
+		const std::wstring verifiedClient = std::wstring(Text(
+			L"Brokergeprüfter xucRun-Client: ",
+			L"Broker-verified xucRun client: ")) + challenge.clientPath;
 		std::wstring details = std::wstring(Text(
-			L"Geprüfter xucRun-Client: ", L"Verified xucRun client: ")) + challenge.clientPath +
-			L"\nSHA-256: " + Hex(challenge.clientSha256) +
-			Text(L"\nAuthenticode: ", L"\nAuthenticode: ") +
-			TrustStatus(challenge.clientTrustStatus, challenge.clientSignatureTrusted) +
-			Text(L"\n\nZiel: ", L"\n\nTarget: ") + challenge.finalExecutablePath +
+			L"Ziel: ", L"Target: ")) + challenge.finalExecutablePath +
 			L"\nSHA-256: " + Hex(challenge.executableSha256) +
 			Text(L"\nAuthenticode: ", L"\nAuthenticode: ") +
-			TrustStatus(challenge.executableTrustStatus, challenge.executableSignatureTrusted) +
+			TrustStatus(challenge.executableTrustStatus,
+				challenge.executableSignatureTrusted) +
+			SignatureStatusDetails(challenge.executableTrustStatus) +
+			SignatureDetails(challenge.executableSignatureDetails);
+		details +=
 			Text(L"\n\nArgumente: ", L"\n\nArguments: ") + challenge.argumentTail +
 			Text(L"\nArbeitsverzeichnis: ", L"\nWorking directory: ") +
 			challenge.workingDirectory;
@@ -1445,7 +1633,12 @@ namespace
 				challenge.directScriptSha256.end(),
 				[](std::uint8_t value) { return value != 0; });
 			details += Text(L"\nDirektes Skript: ", L"\nDirect script: ") +
-				challenge.directScriptPath;
+				challenge.directScriptPath +
+				Text(L"\nAuthenticode: ", L"\nAuthenticode: ") +
+				TrustStatus(challenge.directScriptTrustStatus,
+					challenge.directScriptSignatureTrusted) +
+				SignatureStatusDetails(challenge.directScriptTrustStatus) +
+				SignatureDetails(challenge.directScriptSignatureDetails);
 			if (scriptContentBound)
 			{
 				details += L"\nSHA-256: " + Hex(challenge.directScriptSha256) +
@@ -1462,7 +1655,8 @@ namespace
 					L"\nScript binding: unavailable (no safely usable script hash).");
 			}
 		}
-		const std::wstring fixedDetails = launchDetails + L"\n\n" + accountDetails;
+		const std::wstring fixedDetails =
+			accountDetails + L"\n\n" + verifiedClient + L"\n\n" + launchDetails;
 		const std::wstring firstStepDetails = fixedDetails + L"\n\n" + details;
 		if (challenge.writableElevatedTargetReason !=
 			xucrun::broker::ApprovalFailureReason::None)

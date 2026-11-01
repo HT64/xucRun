@@ -16,6 +16,27 @@ namespace xucrun::same_user_launch
 		ElevateCurrentToken
 	};
 
+	constexpr bool ShouldUseAutomaticCurrentAdministrator(
+		bool currentUserIsAdministrator,
+		bool hasSelectedAccount,
+		bool selectCredentialWithoutElevation,
+		bool selectLocalAccount) noexcept
+	{
+		return currentUserIsAdministrator && !hasSelectedAccount &&
+			!selectCredentialWithoutElevation && !selectLocalAccount;
+	}
+
+	static_assert(ShouldUseAutomaticCurrentAdministrator(
+		true, false, false, false));
+	static_assert(!ShouldUseAutomaticCurrentAdministrator(
+		false, false, false, false));
+	static_assert(!ShouldUseAutomaticCurrentAdministrator(
+		true, true, false, false));
+	static_assert(!ShouldUseAutomaticCurrentAdministrator(
+		true, false, true, false));
+	static_assert(!ShouldUseAutomaticCurrentAdministrator(
+		true, false, false, true));
+
 	SameUserLaunchMode GetSameUserLaunchMode(
 		const std::wstring& accountName,
 		bool requestElevation);

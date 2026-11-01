@@ -281,8 +281,10 @@ int RunNormalProgramLaunch(int argc, LPWSTR* argv,
 	SameUserLaunchMode sameUserLaunchMode = selectedUserParam.empty()
 		? SameUserLaunchMode::Credentials
 		: GetSameUserLaunchMode(selectedUserParam, requestElevation);
-	const bool automaticCurrentAdmin = IsUserInAdminGroup() &&
-		selectedUserParam.empty() && !requestElevation;
+	const bool automaticCurrentAdmin =
+		xucrun::same_user_launch::ShouldUseAutomaticCurrentAdministrator(
+			IsUserInAdminGroup(), !selectedUserParam.empty(),
+			selectCredentialWithoutElevation, selectLocalAccount);
 	if (automaticCurrentAdmin)
 	{
 		sameUserLaunchMode = IsRunningAsAdministrator()
@@ -301,8 +303,8 @@ int RunNormalProgramLaunch(int argc, LPWSTR* argv,
 		WriteLog(L"Info", sameUserLaunchMode != SameUserLaunchMode::Credentials
 			? (automaticCurrentAdmin
 				? (elevateCurrentToken
-					? L"Non-elevated admin account without user switch - request UAC elevation"
-					: L"Already elevated admin account without user switch - use current token")
+					? L"Current administrator account requires elevation - request UAC elevation"
+					: L"Current administrator account already elevated - use current token")
 				: L"User switch refers to current account - launch program with matching token without credentials")
 			: L"Current admin token is used directly");
 

@@ -193,6 +193,8 @@
 					result.executableSha256 = pending->executableSha256;
 					result.executableTrustStatus = pending->executableTrustStatus;
 					result.executableSignatureTrusted = pending->executableSignatureTrusted;
+					result.executableSignatureDetails =
+						pending->executableSignatureDetails;
 					result.argumentTail = pending->argumentTail;
 					result.workingDirectory = pending->workingDirectory;
 					PopulateApprovalHelperDirectScriptBinding(*pending, result);
@@ -838,6 +840,8 @@
 				result.executableSha256.begin());
 			result.executableTrustStatus = targetImageIdentity.trustStatus;
 			result.executableSignatureTrusted = targetImageIdentity.signatureTrusted;
+			result.executableSignatureDetails =
+				GetSignatureDetails(targetImageIdentity);
 			result.argumentTail = request.argumentTail;
 			result.workingDirectory = workingDirectory;
 			result.userConfirmationRequired = true;
@@ -860,6 +864,8 @@
 			pending.executableTrustStatus = targetImageIdentity.trustStatus;
 			pending.executableSignatureTrusted =
 				targetImageIdentity.signatureTrusted;
+			pending.executableSignatureDetails =
+				GetSignatureDetails(targetImageIdentity);
 			pending.argumentTail = result.argumentTail;
 			pending.workingDirectory = result.workingDirectory;
 			pending.elevationMode =
@@ -1028,9 +1034,14 @@
 		else
 		{
 			std::array<std::uint8_t, 32> displayedScriptHash = {};
+			LONG displayedScriptTrustStatus = TRUST_E_NOSIGNATURE;
+			bool displayedScriptSignatureTrusted = false;
+			xucrun::broker::ApprovalSignatureDetails
+				displayedScriptSignatureDetails;
 			ResolveDirectScriptBinding(clientProcess, targetIdentity.path,
 				request.argumentTail, finalWorkingDirectory, displayedScriptPath,
-				displayedScriptHash,
+				displayedScriptHash, displayedScriptTrustStatus,
+				displayedScriptSignatureTrusted, displayedScriptSignatureDetails,
 				boundScriptPath, boundScriptHash);
 			result.status = xucrun::broker::ApprovalChallengeStatus::Issued;
 			result.canonicalClientName = clientAccountIdentity.canonicalName;
@@ -1045,10 +1056,16 @@
 				result.executableSha256.begin());
 			result.executableTrustStatus = targetImageIdentity.trustStatus;
 			result.executableSignatureTrusted = targetImageIdentity.signatureTrusted;
+			result.executableSignatureDetails =
+				GetSignatureDetails(targetImageIdentity);
 			result.argumentTail = request.argumentTail;
 			result.workingDirectory = finalWorkingDirectory;
 			result.directScriptPath = displayedScriptPath;
 			result.directScriptSha256 = boundScriptHash;
+			result.directScriptTrustStatus = displayedScriptTrustStatus;
+			result.directScriptSignatureTrusted = displayedScriptSignatureTrusted;
+			result.directScriptSignatureDetails =
+				displayedScriptSignatureDetails;
 			result.writableElevatedTargetReason = writableElevatedTargetReason;
 
 			PendingApprovalChallenge pending;
@@ -1069,10 +1086,16 @@
 			pending.executableSha256 = result.executableSha256;
 			pending.executableTrustStatus = targetImageIdentity.trustStatus;
 			pending.executableSignatureTrusted = targetImageIdentity.signatureTrusted;
+			pending.executableSignatureDetails =
+				GetSignatureDetails(targetImageIdentity);
 			pending.argumentTail = result.argumentTail;
 			pending.workingDirectory = result.workingDirectory;
 			pending.directScriptPath = displayedScriptPath;
 			pending.directScriptSha256 = displayedScriptHash;
+			pending.directScriptTrustStatus = displayedScriptTrustStatus;
+			pending.directScriptSignatureTrusted = displayedScriptSignatureTrusted;
+			pending.directScriptSignatureDetails =
+				std::move(displayedScriptSignatureDetails);
 			pending.scriptPath = boundScriptPath;
 			pending.scriptSha256 = boundScriptHash;
 			pending.elevationMode = result.elevationMode;

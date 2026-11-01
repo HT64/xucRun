@@ -14,7 +14,7 @@
 
 namespace xucrun::broker
 {
-	inline constexpr std::uint32_t ProtocolVersion = 40;
+	inline constexpr std::uint32_t ProtocolVersion = 44;
 	inline constexpr std::uint32_t PolicyDeniedWindowsError = 5;
 	inline constexpr std::size_t MaximumAccountSidLength = 184;
 	inline constexpr std::size_t MaximumPathLength = 32767;
@@ -22,6 +22,7 @@ namespace xucrun::broker
 	inline constexpr std::size_t MaximumPasswordLength = 256;
 	inline constexpr std::size_t MaximumCanonicalAccountNameLength = 512;
 	inline constexpr std::size_t MaximumAuthenticityMarkerLength = 9;
+	inline constexpr std::size_t MaximumSignerSubjectLength = 256;
 	inline constexpr std::size_t MaximumCredentialListEntries = 64;
 	inline constexpr std::size_t MaximumAdministrativeCredentialEntries = 256;
 	inline constexpr std::size_t MaximumAdministrativeApprovalEntries = 256;
@@ -812,6 +813,27 @@ namespace xucrun::broker
 		bool systemLaunch = false;
 	};
 
+	enum class AuthenticodeSignatureKind : std::uint8_t
+	{
+		None,
+		Embedded,
+		Catalog
+	};
+
+	struct ApprovalSignatureDetails
+	{
+		AuthenticodeSignatureKind kind = AuthenticodeSignatureKind::None;
+		std::wstring signerSubject;
+		std::wstring issuerSubject;
+		std::wstring timestampSignerSubject;
+		std::array<std::uint8_t, 32> certificateSha256 = {};
+		std::uint64_t certificateValidFrom = 0;
+		std::uint64_t certificateValidUntil = 0;
+		std::uint64_t timestamp = 0;
+
+		bool operator==(const ApprovalSignatureDetails&) const = default;
+	};
+
 	struct ApprovalChallengeResult
 	{
 		std::uint32_t protocolVersion = ProtocolVersion;
@@ -830,10 +852,14 @@ namespace xucrun::broker
 		std::array<std::uint8_t, 32> executableSha256 = {};
 		std::int32_t executableTrustStatus = static_cast<std::int32_t>(0x800B0100u);
 		bool executableSignatureTrusted = false;
+		ApprovalSignatureDetails executableSignatureDetails;
 		std::wstring argumentTail;
 		std::wstring workingDirectory;
 		std::wstring directScriptPath;
 		std::array<std::uint8_t, 32> directScriptSha256 = {};
+		std::int32_t directScriptTrustStatus = static_cast<std::int32_t>(0x800B0100u);
+		bool directScriptSignatureTrusted = false;
+		ApprovalSignatureDetails directScriptSignatureDetails;
 		ElevationMode elevationMode = ElevationMode::PreserveToken;
 		LaunchVisibility visibility = LaunchVisibility::Normal;
 		bool userConfirmationRequired = true;

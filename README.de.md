@@ -630,8 +630,9 @@ Unterstützte Eltern-Shells sind `cmd.exe`, `powershell.exe`, `pwsh.exe` und `tc
 
 Eine Batchdatei kann am Anfang prüfen, ob sie bereits mit erhöhten Rechten läuft. Andernfalls
 startet sie sich über xucRun erneut und beendet den ursprünglichen, nicht erhöhten Durchlauf. Mit
-`/user-elevated` wählt xucRun ein Administratorkonto aus und fordert die erforderliche
-UAC-Bestätigung an:
+`/user-elevated` verwendet das aktuelle Konto weiter, wenn es bereits ein Administratorkonto ist,
+und fordert nur bei Bedarf die UAC-Erhöhung an. Andernfalls wählt xucRun ein Administratorkonto
+aus:
 
 ```cmd
 @echo off
@@ -820,7 +821,7 @@ Konto mit xucRun-Anmeldedaten, wird es automatisch gewählt; bei mehreren ersche
 | `xucRun.exe /user <Programm> [Argumente ...]` | Konto wählen, für das xucRun-Anmeldedaten gespeichert sind, ohne zusätzliche Erhöhung durch xucRun |
 | `xucRun.exe /user:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, ohne zusätzliche Erhöhung durch xucRun |
 | `xucRun.exe /user:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden, ohne zusätzliche Erhöhung durch xucRun |
-| `xucRun.exe /user-elevated <Programm> [Argumente ...]` | Administratorkonto wählen, für das xucRun-Anmeldedaten gespeichert sind, und erhöht starten |
+| `xucRun.exe /user-elevated <Programm> [Argumente ...]` | aktuelles Administratorkonto verwenden und bei Bedarf über UAC erhöhen; andernfalls Administratorkonto mit gespeicherten xucRun-Anmeldedaten wählen |
 | `xucRun.exe /user-elevated:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Administratorkonto wählen und erhöht starten |
 | `xucRun.exe /user-elevated:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden und erhöht starten |
 
@@ -831,11 +832,11 @@ Token verwendet. Fehlen für ein anderes ausgewähltes Konto xucRun-Anmeldedaten
 geschützte Kennworteingabe; nach erfolgreicher Speicherung wird der ursprüngliche Startauftrag
 fortgesetzt.
 
-Sind beim ersten Aufruf mit `/user-elevated` noch keine Anmeldedaten für ein geeignetes
-Administratorkonto gespeichert, bietet xucRun automatisch die Auswahl eines Administratorkontos
-und die geschützte Kennworteingabe an. Nach erfolgreicher Speicherung wird der ursprüngliche
-Startauftrag fortgesetzt. `/addcred` kann weiterhin verwendet werden, um Anmeldedaten unabhängig
-von einem Startauftrag vorab zu speichern.
+Ist das aktuelle Konto kein Administratorkonto und sind beim ersten Aufruf mit `/user-elevated`
+noch keine Anmeldedaten für ein geeignetes Administratorkonto gespeichert, bietet xucRun
+automatisch die Auswahl eines Administratorkontos und die geschützte Kennworteingabe an. Nach
+erfolgreicher Speicherung wird der ursprüngliche Startauftrag fortgesetzt. `/addcred` kann
+weiterhin verwendet werden, um Anmeldedaten unabhängig von einem Startauftrag vorab zu speichern.
 
 Gespeicherte Anmeldedaten umgehen Windows-UAC nicht. Ist eine Erhöhung erforderlich, bleibt die
 UAC-Bestätigung interaktiv. Bei einer neuen Freigabe für einen erhöhten Start können zunächst der
@@ -855,9 +856,24 @@ Wiederverwendung.
 
 Der differenzierte Freigabedialog ermöglicht es, Freigabedauer, Programm- und Aufrufbindung sowie
 die einbezogenen Zielkonten an den konkreten Anwendungsfall und das gewünschte Schutzniveau
-anzupassen. Er erklärt die Wirkung der aktuellen Auswahl und zeigt außerdem den Signaturstatus des
-Zielprogramms; xucRun erkennt dabei sowohl direkt eingebettete Authenticode-Signaturen als auch
-vertrauenswürdige Windows-Katalogsignaturen. Als Freigabedauer stehen zur Verfügung:
+anzupassen. Sein fester Kopfbereich oberhalb der scrollbaren Aufrufdetails kennzeichnet den
+angezeigten xucRun-Clientpfad als erfolgreich vom Broker geprüft und zeigt aufrufendes Konto,
+Zielkonto und geschützte Herkunft des Freigabeassistenten vor dem erläuternden UAC-Hinweis. Der
+Scrollbereich zeigt ausführliche Authenticode-Informationen für das Zielprogramm. Bei einer
+vertrauenswürdigen Zielsignatur umfassen sie Signierer, vollständigen
+SHA-256-Zertifikatfingerabdruck, Aussteller, Zertifikatsgültigkeit, Signaturart sowie einen
+vorhandenen Signaturzeitstempel und dessen Aussteller. Schlägt die Vertrauensprüfung fehl,
+unterscheidet der Dialog eine fehlende Signaturzuordnung von häufigen Signatur-,
+Zertifikatsketten-, Gültigkeits-, Widerrufs- und Richtlinienfehlern. Eine fehlende Zuordnung
+bedeutet, dass keine auswertbare eingebettete Signatur und keine zum aktuellen Dateiinhalt passende
+Windows-Katalogsignatur gefunden wurde. Eine Katalogsignatur ordnet die Datei über ihren Hash zu;
+jede Byteänderung hebt diese Zuordnung auf, obwohl der Katalog und sein Zertifikat auf dem System
+weiterhin existieren und der geänderten Datei nicht mehr zugerechnet werden dürfen. Der Dialog
+zeigt außerdem Signierer- und Zertifikatsdetails an, die Windows für eine nicht vertrauenswürdige
+Signatur noch bereitstellt. xucRun erkennt dabei sowohl direkt eingebettete
+Authenticode-Signaturen als auch Windows-Katalogsignaturen. Ein unsigniertes oder nicht
+vertrauenswürdiges Ziel bleibt freigebbar, weil die Signaturinformation die genaue Pfad- und
+SHA-256-Identität ergänzt, aber nicht ersetzt. Als Freigabedauer stehen zur Verfügung:
 
 - nur dieser eine Start,
 - 10 Minuten,
@@ -913,7 +929,9 @@ Die Skriptdatei selbst darf beschreibbar sein: Ändert sich ihr Inhalt später, 
 mehr und xucRun verlangt eine neue Freigabe. Unmittelbar vor jedem Start prüft der Broker finalen
 Pfad und Hash erneut und hält die geprüfte Datei bis zum Programmstart gegen Änderung und
 Austausch gesperrt. Eine aktive Skriptbindung ist daran erkennbar, dass oben im Freigabedialog
-das direkte Skript mit Pfad und SHA-256-Hash angezeigt wird. Für PowerShell ist eine
+das direkte Skript mit Pfad und SHA-256-Hash angezeigt wird. Der Dialog zeigt außerdem dieselben
+Authenticode- und Zertifikatsdetails für das direkte Skript. Diese Information setzt keine
+Skriptsignatur voraus und ersetzt nicht die Pfad- und Hashbindung. Für PowerShell ist eine
 wiederverwendbare Freigabe „Genau dieser Aufruf“ nur mit einer solchen sicher gebundenen direkten
 Skriptdatei verfügbar. Insbesondere `-Command`, interaktive Aufrufe und andere nicht als direkte
 `-File`-Ausführung erkannte Formen können nur einmalig oder bewusst mit einem weiterreichenden

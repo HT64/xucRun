@@ -584,8 +584,8 @@ Supported parent shells are `cmd.exe`, `powershell.exe`, `pwsh.exe`, and `tcc.ex
 
 A batch file can check at startup whether it is already running with elevated privileges.
 Otherwise, it relaunches itself through xucRun and ends the original non-elevated run. With
-`/user-elevated`, xucRun selects an administrator account and requests the required UAC
-confirmation:
+`/user-elevated`, xucRun reuses the current account when it is already an administrator and
+requests UAC elevation only if necessary. Otherwise, xucRun selects an administrator account:
 
 ```cmd
 @echo off
@@ -767,7 +767,7 @@ shown.
 | `xucRun.exe /user <Program> [Arguments ...]` | select an account for which xucRun credentials are stored, without additional elevation by xucRun |
 | `xucRun.exe /user:* <Program> [Arguments ...]` | always select an enabled local account, without additional elevation by xucRun |
 | `xucRun.exe /user:<Account> <Program> [Arguments ...]` | use a specific account without additional elevation by xucRun |
-| `xucRun.exe /user-elevated <Program> [Arguments ...]` | select an administrator account for which xucRun credentials are stored and start elevated |
+| `xucRun.exe /user-elevated <Program> [Arguments ...]` | use the current administrator account with UAC elevation if necessary; otherwise select an administrator account with stored xucRun credentials |
 | `xucRun.exe /user-elevated:* <Program> [Arguments ...]` | always select an enabled local administrator account and start elevated |
 | `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated |
 
@@ -777,10 +777,11 @@ credentials are identified in the dialog. Selecting the current account uses its
 selecting another account without stored xucRun credentials starts protected password entry and
 continues the original launch after the credentials have been stored successfully.
 
-If no credentials for a suitable administrator account are stored on the first invocation with
-`/user-elevated`, xucRun automatically offers administrator-account selection and protected
-password entry. After the credentials are stored successfully, the original launch request
-continues. `/addcred` remains available for storing credentials before a separate launch request.
+If the current account is not an administrator and no credentials for a suitable administrator
+account are stored on the first invocation with `/user-elevated`, xucRun automatically offers
+administrator-account selection and protected password entry. After the credentials are stored
+successfully, the original launch request continues. `/addcred` remains available for storing
+credentials before a separate launch request.
 
 Stored credentials do not bypass Windows UAC. When elevation is required, UAC confirmation remains
 interactive. For a new approval involving an elevated start, the approval dialog on the separate
@@ -800,9 +801,22 @@ be reused.
 
 The differentiated approval dialog allows the approval duration, program and invocation binding,
 and included target accounts to be adapted to the specific use case and desired level of
-protection. It explains the effect of the current selection and also shows the target program's
-signature status; xucRun recognizes both embedded Authenticode signatures and trusted Windows
-catalog signatures. The available approval durations are:
+protection. Its fixed header above the scrollable launch details identifies the xucRun client path
+as successfully verified by the broker and shows the calling account, target account, and
+protected approval-helper origin before the explanatory UAC note. The scrollable area shows
+detailed Authenticode information for the target program. For a trusted target signature, these
+details include the signer, full SHA-256 certificate fingerprint, issuer, certificate validity
+period, signature type, and any available timestamp and timestamp authority. If trust verification
+fails, the dialog distinguishes a missing signature association from common signature,
+certificate-chain, validity, revocation, and policy failures. A missing association means that no
+usable embedded signature and no Windows catalog signature matching the current file contents was
+found. A catalog signature associates the file through its hash; changing any byte breaks that
+association, even though the catalog and its certificate continue to exist on the system and must
+no longer be attributed to the changed file. The dialog also shows any signer and certificate
+details that Windows can still provide for an untrusted signature. xucRun recognizes both embedded
+Authenticode signatures and Windows catalog signatures. An unsigned or untrusted target remains
+approvable because the signature information supplements rather than replaces the exact path and
+SHA-256 identity. The available approval durations are:
 
 - this start only,
 - 10 minutes,
@@ -854,7 +868,9 @@ writable: if its contents change later, its hash no longer matches and xucRun re
 approval. Immediately before every launch, the broker rechecks the final path and hash and keeps
 the verified file locked against modification and replacement until the program starts. An active
 script binding is visible when the direct script's path and SHA-256 hash are shown at the top of
-the approval dialog. For PowerShell, a reusable "Exactly this invocation" approval is available
+the approval dialog. The dialog also shows the same Authenticode and certificate details for the
+direct script. This information does not require a script to be signed and does not replace the
+path and hash binding. For PowerShell, a reusable "Exactly this invocation" approval is available
 only with such a safely bound direct script. In particular, `-Command`, interactive invocations,
 and other forms not recognized as direct `-File` execution can be approved only once or
 deliberately with a broader approval scope.

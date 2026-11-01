@@ -27,6 +27,55 @@ namespace
 		return true;
 	}
 
+	bool IsEmptySignatureDetails(
+		const xucrun::broker::ApprovalSignatureDetails& details) noexcept
+	{
+		return details.kind ==
+				xucrun::broker::AuthenticodeSignatureKind::None &&
+			details.signerSubject.empty() &&
+			details.issuerSubject.empty() &&
+			details.timestampSignerSubject.empty() &&
+			std::all_of(details.certificateSha256.begin(),
+				details.certificateSha256.end(),
+				[](std::uint8_t value) { return value == 0; }) &&
+			details.certificateValidFrom == 0 &&
+			details.certificateValidUntil == 0 &&
+			details.timestamp == 0;
+	}
+
+	bool IsValidSignatureDetails(
+		const xucrun::broker::ApprovalSignatureDetails& details,
+		bool trusted) noexcept
+	{
+		if (details.kind >
+				xucrun::broker::AuthenticodeSignatureKind::Catalog ||
+			details.signerSubject.size() >
+				xucrun::broker::MaximumSignerSubjectLength ||
+			details.issuerSubject.size() >
+				xucrun::broker::MaximumSignerSubjectLength ||
+			details.timestampSignerSubject.size() >
+				xucrun::broker::MaximumSignerSubjectLength ||
+			(!details.timestampSignerSubject.empty() && details.timestamp == 0))
+		{
+			return false;
+		}
+		const bool fingerprintPresent = std::any_of(
+			details.certificateSha256.begin(),
+			details.certificateSha256.end(),
+			[](std::uint8_t value) { return value != 0; });
+		if (details.kind ==
+			xucrun::broker::AuthenticodeSignatureKind::None)
+		{
+			return !trusted && IsEmptySignatureDetails(details);
+		}
+		if (!trusted)
+			return true;
+		return !details.signerSubject.empty() &&
+			fingerprintPresent &&
+			details.certificateValidFrom != 0 &&
+			details.certificateValidUntil >= details.certificateValidFrom;
+	}
+
 	bool IsValidBackupDescription(const std::wstring& description) noexcept
 	{
 		return description.size() <= xucrun::backup::MaximumDescriptionLength &&
@@ -975,6 +1024,18 @@ namespace xucrun::broker
 				result.changedProgramPath.size() > MaximumPathLength ||
 				result.clientSignatureTrusted != (result.clientTrustStatus == 0) ||
 				result.executableSignatureTrusted != (result.executableTrustStatus == 0) ||
+				result.directScriptSignatureTrusted !=
+					(result.directScriptTrustStatus == 0) ||
+				!IsValidSignatureDetails(result.executableSignatureDetails,
+					result.executableSignatureTrusted) ||
+				!IsValidSignatureDetails(result.directScriptSignatureDetails,
+					result.directScriptSignatureTrusted) ||
+				(result.directScriptPath.empty() &&
+				 (result.directScriptTrustStatus !=
+					 static_cast<std::int32_t>(0x800B0100u) ||
+				  result.directScriptSignatureTrusted ||
+				  !IsEmptySignatureDetails(
+					  result.directScriptSignatureDetails))) ||
 				(result.elevationMode != ElevationMode::PreserveToken &&
 				 result.elevationMode != ElevationMode::RequireElevated) ||
 				 (result.visibility != LaunchVisibility::Normal &&
@@ -1014,6 +1075,11 @@ namespace xucrun::broker
 				!result.clientPath.empty() || !result.finalExecutablePath.empty() ||
 				!result.argumentTail.empty() || !result.workingDirectory.empty() ||
 				!result.directScriptPath.empty() ||
+				!IsEmptySignatureDetails(result.executableSignatureDetails) ||
+				result.directScriptTrustStatus !=
+					static_cast<std::int32_t>(0x800B0100u) ||
+				result.directScriptSignatureTrusted ||
+				!IsEmptySignatureDetails(result.directScriptSignatureDetails) ||
 				std::any_of(result.directScriptSha256.begin(),
 					result.directScriptSha256.end(),
 					[](std::uint8_t value) { return value != 0; }) ||

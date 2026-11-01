@@ -114,6 +114,12 @@
 			HasEmbeddedNull(result.finalExecutablePath) ||
 			HasEmbeddedNull(result.argumentTail) || HasEmbeddedNull(result.workingDirectory) ||
 			HasEmbeddedNull(result.directScriptPath) ||
+			HasEmbeddedNull(result.executableSignatureDetails.signerSubject) ||
+			HasEmbeddedNull(result.executableSignatureDetails.issuerSubject) ||
+			HasEmbeddedNull(result.executableSignatureDetails.timestampSignerSubject) ||
+			HasEmbeddedNull(result.directScriptSignatureDetails.signerSubject) ||
+			HasEmbeddedNull(result.directScriptSignatureDetails.issuerSubject) ||
+			HasEmbeddedNull(result.directScriptSignatureDetails.timestampSignerSubject) ||
 			HasEmbeddedNull(result.changedProgramPath) ||
 			HasEmbeddedNull(result.authenticityMarker))
 		{
@@ -123,6 +129,12 @@
 			result.canonicalAccountName.size() + result.clientPath.size() +
 			result.finalExecutablePath.size() + result.argumentTail.size() +
 			result.workingDirectory.size() + result.directScriptPath.size() +
+			result.executableSignatureDetails.signerSubject.size() +
+			result.executableSignatureDetails.issuerSubject.size() +
+			result.executableSignatureDetails.timestampSignerSubject.size() +
+			result.directScriptSignatureDetails.signerSubject.size() +
+			result.directScriptSignatureDetails.issuerSubject.size() +
+			result.directScriptSignatureDetails.timestampSignerSubject.size() +
 			result.changedProgramPath.size() +
 			result.authenticityMarker.size();
 		std::vector<std::uint8_t> frame;
@@ -167,6 +179,45 @@
 		frame.insert(frame.end(), result.directScriptSha256.begin(),
 			result.directScriptSha256.end());
 		WriteUint32(frame, static_cast<std::uint32_t>(result.directScriptPath.size()));
+		WriteUint32(frame, 0);
+		WriteUint32(frame, static_cast<std::uint32_t>(result.directScriptTrustStatus));
+		WriteUint32(frame, static_cast<std::uint32_t>(
+			result.executableSignatureDetails.signerSubject.size()));
+		WriteUint32(frame, static_cast<std::uint32_t>(
+			result.directScriptSignatureDetails.signerSubject.size()));
+		WriteUint32(frame, 0);
+		WriteUint32(frame, 0);
+		WriteUint32(frame, static_cast<std::uint32_t>(
+			result.executableSignatureDetails.issuerSubject.size()));
+		WriteUint32(frame, static_cast<std::uint32_t>(
+			result.executableSignatureDetails.timestampSignerSubject.size()));
+		WriteUint32(frame, static_cast<std::uint32_t>(
+			result.directScriptSignatureDetails.issuerSubject.size()));
+		WriteUint32(frame, static_cast<std::uint32_t>(
+			result.directScriptSignatureDetails.timestampSignerSubject.size()));
+		frame.push_back(static_cast<std::uint8_t>(
+			AuthenticodeSignatureKind::None));
+		frame.push_back(static_cast<std::uint8_t>(
+			result.executableSignatureDetails.kind));
+		frame.push_back(static_cast<std::uint8_t>(
+			result.directScriptSignatureDetails.kind));
+		frame.push_back(0);
+		frame.insert(frame.end(), 32, 0);
+		frame.insert(frame.end(),
+			result.executableSignatureDetails.certificateSha256.begin(),
+			result.executableSignatureDetails.certificateSha256.end());
+		frame.insert(frame.end(),
+			result.directScriptSignatureDetails.certificateSha256.begin(),
+			result.directScriptSignatureDetails.certificateSha256.end());
+		WriteUint64(frame, 0);
+		WriteUint64(frame, 0);
+		WriteUint64(frame, 0);
+		WriteUint64(frame, result.executableSignatureDetails.certificateValidFrom);
+		WriteUint64(frame, result.executableSignatureDetails.certificateValidUntil);
+		WriteUint64(frame, result.executableSignatureDetails.timestamp);
+		WriteUint64(frame, result.directScriptSignatureDetails.certificateValidFrom);
+		WriteUint64(frame, result.directScriptSignatureDetails.certificateValidUntil);
+		WriteUint64(frame, result.directScriptSignatureDetails.timestamp);
 		WriteString(frame, result.canonicalClientName);
 		WriteString(frame, result.canonicalAccountName);
 		WriteString(frame, result.clientPath);
@@ -176,6 +227,12 @@
 		WriteString(frame, result.directScriptPath);
 		WriteString(frame, result.changedProgramPath);
 		WriteString(frame, result.authenticityMarker);
+		WriteString(frame, result.executableSignatureDetails.signerSubject);
+		WriteString(frame, result.directScriptSignatureDetails.signerSubject);
+		WriteString(frame, result.executableSignatureDetails.issuerSubject);
+		WriteString(frame, result.executableSignatureDetails.timestampSignerSubject);
+		WriteString(frame, result.directScriptSignatureDetails.issuerSubject);
+		WriteString(frame, result.directScriptSignatureDetails.timestampSignerSubject);
 		return frame;
 	}
 
@@ -193,6 +250,18 @@
 			frame[220] > static_cast<std::uint8_t>(
 				ApprovalHelperStartMode::ClientRunAsRequired) ||
 			frame[221] > 3 || frame[222] > 1 ||
+			frame[304] != static_cast<std::uint8_t>(
+				AuthenticodeSignatureKind::None) ||
+			frame[305] > static_cast<std::uint8_t>(
+				AuthenticodeSignatureKind::Catalog) ||
+			frame[306] > static_cast<std::uint8_t>(
+				AuthenticodeSignatureKind::Catalog) ||
+			frame[307] != 0 ||
+			std::any_of(frame.begin() + 308, frame.begin() + 340,
+				[](std::uint8_t value) { return value != 0; }) ||
+			ReadUint64(frame, 404) != 0 ||
+			ReadUint64(frame, 412) != 0 ||
+			ReadUint64(frame, 420) != 0 ||
 			(frame[223] != static_cast<std::uint8_t>(ApprovalFailureReason::None) &&
 			 frame[223] != static_cast<std::uint8_t>(
 				 ApprovalFailureReason::ElevatedTargetWritable)))
@@ -208,12 +277,32 @@
 		const std::size_t changedProgramPathLength = ReadUint32(frame, 216);
 		const std::size_t authenticityMarkerLength = ReadUint32(frame, 224);
 		const std::size_t directScriptPathLength = ReadUint32(frame, 260);
+		const std::size_t clientSignerSubjectLength = ReadUint32(frame, 264);
+		const std::size_t executableSignerSubjectLength = ReadUint32(frame, 272);
+		const std::size_t directScriptSignerSubjectLength = ReadUint32(frame, 276);
+		const std::size_t clientIssuerSubjectLength = ReadUint32(frame, 280);
+		const std::size_t clientTimestampSignerSubjectLength = ReadUint32(frame, 284);
+		const std::size_t executableIssuerSubjectLength = ReadUint32(frame, 288);
+		const std::size_t executableTimestampSignerSubjectLength =
+			ReadUint32(frame, 292);
+		const std::size_t directScriptIssuerSubjectLength = ReadUint32(frame, 296);
+		const std::size_t directScriptTimestampSignerSubjectLength =
+			ReadUint32(frame, 300);
 		if (clientNameLength > MaximumCanonicalAccountNameLength ||
 			accountLength > MaximumCanonicalAccountNameLength ||
 			clientPathLength > MaximumPathLength ||
 			executableLength > MaximumPathLength || argumentLength > MaximumArgumentLength ||
 			workingDirectoryLength > MaximumPathLength ||
 			directScriptPathLength > MaximumPathLength ||
+			clientSignerSubjectLength != 0 ||
+			executableSignerSubjectLength > MaximumSignerSubjectLength ||
+			directScriptSignerSubjectLength > MaximumSignerSubjectLength ||
+			clientIssuerSubjectLength != 0 ||
+			clientTimestampSignerSubjectLength != 0 ||
+			executableIssuerSubjectLength > MaximumSignerSubjectLength ||
+			executableTimestampSignerSubjectLength > MaximumSignerSubjectLength ||
+			directScriptIssuerSubjectLength > MaximumSignerSubjectLength ||
+			directScriptTimestampSignerSubjectLength > MaximumSignerSubjectLength ||
 			changedProgramPathLength > MaximumPathLength ||
 			authenticityMarkerLength > MaximumAuthenticityMarkerLength)
 		{
@@ -222,7 +311,12 @@
 		const std::size_t characterCount = clientNameLength + accountLength +
 			clientPathLength + executableLength + argumentLength +
 			workingDirectoryLength + directScriptPathLength +
-			changedProgramPathLength + authenticityMarkerLength;
+			changedProgramPathLength + authenticityMarkerLength +
+			executableSignerSubjectLength + directScriptSignerSubjectLength +
+			executableIssuerSubjectLength +
+			executableTimestampSignerSubjectLength +
+			directScriptIssuerSubjectLength +
+			directScriptTimestampSignerSubjectLength;
 		if (frame.size() != ApprovalChallengeResultHeaderSize + 2 * characterCount)
 			return false;
 
@@ -266,6 +360,30 @@
 			static_cast<ApprovalFailureReason>(frame[223]);
 		std::copy_n(frame.begin() + 228, parsed.directScriptSha256.size(),
 			parsed.directScriptSha256.begin());
+		parsed.directScriptTrustStatus =
+			static_cast<std::int32_t>(ReadUint32(frame, 268));
+		parsed.directScriptSignatureTrusted =
+			parsed.directScriptTrustStatus == 0;
+		parsed.executableSignatureDetails.kind =
+			static_cast<AuthenticodeSignatureKind>(frame[305]);
+		parsed.directScriptSignatureDetails.kind =
+			static_cast<AuthenticodeSignatureKind>(frame[306]);
+		std::copy_n(frame.begin() + 340,
+			parsed.executableSignatureDetails.certificateSha256.size(),
+			parsed.executableSignatureDetails.certificateSha256.begin());
+		std::copy_n(frame.begin() + 372,
+			parsed.directScriptSignatureDetails.certificateSha256.size(),
+			parsed.directScriptSignatureDetails.certificateSha256.begin());
+		parsed.executableSignatureDetails.certificateValidFrom =
+			ReadUint64(frame, 428);
+		parsed.executableSignatureDetails.certificateValidUntil =
+			ReadUint64(frame, 436);
+		parsed.executableSignatureDetails.timestamp = ReadUint64(frame, 444);
+		parsed.directScriptSignatureDetails.certificateValidFrom =
+			ReadUint64(frame, 452);
+		parsed.directScriptSignatureDetails.certificateValidUntil =
+			ReadUint64(frame, 460);
+		parsed.directScriptSignatureDetails.timestamp = ReadUint64(frame, 468);
 		std::size_t offset = ApprovalChallengeResultHeaderSize;
 		if (!ReadString(frame, offset, clientNameLength, parsed.canonicalClientName) ||
 			!ReadString(frame, offset, accountLength, parsed.canonicalAccountName) ||
@@ -277,6 +395,18 @@
 			!ReadString(frame, offset, changedProgramPathLength, parsed.changedProgramPath) ||
 			!ReadString(frame, offset, authenticityMarkerLength,
 				parsed.authenticityMarker) ||
+			!ReadString(frame, offset, executableSignerSubjectLength,
+				parsed.executableSignatureDetails.signerSubject) ||
+			!ReadString(frame, offset, directScriptSignerSubjectLength,
+				parsed.directScriptSignatureDetails.signerSubject) ||
+			!ReadString(frame, offset, executableIssuerSubjectLength,
+				parsed.executableSignatureDetails.issuerSubject) ||
+			!ReadString(frame, offset, executableTimestampSignerSubjectLength,
+				parsed.executableSignatureDetails.timestampSignerSubject) ||
+			!ReadString(frame, offset, directScriptIssuerSubjectLength,
+				parsed.directScriptSignatureDetails.issuerSubject) ||
+			!ReadString(frame, offset, directScriptTimestampSignerSubjectLength,
+				parsed.directScriptSignatureDetails.timestampSignerSubject) ||
 			ValidateApprovalChallengeResult(parsed) != ResultValidationError::None)
 		{
 			return false;
