@@ -420,7 +420,7 @@ it is first started.
 
 The easiest installation method is
 `xucRun-Installer-<Version>-x64.exe`, for example
-`xucRun-Installer-0.9.1.0-x64.exe`. Before starting it, obtain the file only from the
+`xucRun-Installer-0.9.1.1-x64.exe`. Before starting it, obtain the file only from the
 [official xucRun releases](https://github.com/HT64/xucRun/releases), compare its SHA-256 checksum
 with the checksum published there, and verify any available Authenticode signature.
 

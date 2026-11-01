@@ -8,6 +8,25 @@ aufgeführt.
 
 ## [Unveröffentlicht]
 
+## [0.9.1.1] - 2026-11-01
+
+### Hinzugefügt
+
+- In `/showcred` öffnet ein Doppelklick auf ein Zielkonto mit Freigaben jetzt die für dieses Konto
+  geltenden Freigaben. Das Kontextmenü bietet dieselbe gefilterte Ansicht und eine kopierbare
+  Detailansicht der Anmeldedaten. Die gefilterte Liste enthält Freigaben für das ausgewählte Konto
+  sowie profilweite Freigaben, die für alle Zielkonten gelten.
+- `/showapprovals` und `/admin-status` bieten jetzt kopierbare Zeilendetails per Doppelklick und
+  über **Details anzeigen...** im Kontextmenü. Anmeldedatendetails und Freigaben für ein bestimmtes
+  Zielkonto enthalten dessen SID. Freigabedetails enthalten den vollständigen Zielhash, sofern
+  vorhanden.
+
+### Geändert
+
+- Zielhashes werden nicht mehr in den Tabellen der Freigaben- und administrativen Statusansicht
+  angezeigt. Sie bleiben in den zugehörigen Details verfügbar. Die Detailansichten lassen Felder
+  weg, die leer sind oder für den ausgewählten Eintrag nicht gelten.
+
 ## [0.9.1.0] - 2026-11-01
 
 ### Hinzugefügt
@@ -86,7 +105,8 @@ aufgeführt.
   Der grafische Installer prüft diese Voraussetzung und bietet bei Bedarf den offiziellen
   Microsoft-Download an.
 
-[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.0...HEAD
+[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.1...HEAD
+[0.9.1.1]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.1
 [0.9.1.0]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.0
 [0.9.0.3]: https://github.com/HT64/xucRun/releases/tag/v0.9.0.3
 [0.9.0.2]: https://github.com/HT64/xucRun/releases/tag/v0.9.0.2

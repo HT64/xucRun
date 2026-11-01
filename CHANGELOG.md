@@ -7,6 +7,24 @@ and publication processes are not listed.
 
 ## [Unreleased]
 
+## [0.9.1.1] - 2026-11-01
+
+### Added
+
+- In `/showcred`, double-clicking a target account with approvals now opens the approvals that
+  apply to that account. The context menu provides the same filtered view and a copyable credential
+  detail view. The filtered list includes approvals bound to the selected account and profile-wide
+  approvals that apply to all target accounts.
+- `/showapprovals` and `/admin-status` now provide copyable row details through double-click and
+  **Show details...** in the context menu. Credential details and approvals tied to a specific
+  target account include its SID. Approval details include the complete target hash when present.
+
+### Changed
+
+- Target hashes are no longer shown in the approval and administrative-status tables. They remain
+  available in the corresponding details. Detail views omit fields that are empty or do not apply
+  to the selected entry.
+
 ## [0.9.1.0] - 2026-11-01
 
 ### Added
@@ -78,7 +96,8 @@ and publication processes are not listed.
   The graphical installer checks this requirement and offers the official Microsoft download if
   necessary.
 
-[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.0...HEAD
+[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.1...HEAD
+[0.9.1.1]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.1
 [0.9.1.0]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.0
 [0.9.0.3]: https://github.com/HT64/xucRun/releases/tag/v0.9.0.3
 [0.9.0.2]: https://github.com/HT64/xucRun/releases/tag/v0.9.0.2
