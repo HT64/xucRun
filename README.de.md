@@ -1076,13 +1076,27 @@ angemeldeten Benutzers. Verwenden Sie diesen Modus nur bewusst für Wartung und 
 
 `/showcred` zeigt die Zielkonten, für die xucRun-Anmeldedaten gespeichert sind. `/showapprovals`
 zeigt die aktiven allgemeinen, zielprogrammspezifischen und an einen genauen Aufruf gebundenen
-Freigaben; Freigabeumfang, Ziel, Aufrufbindung und Zielhash stehen dabei in getrennten Spalten. Die
-gespeicherten Kennwörter werden nicht angezeigt oder an den Client übertragen. In beiden
-grafischen Listen kann die ausgewählte Zeile unmittelbar gelöscht werden. Die Anmeldedatenansicht
-kann außerdem alle angezeigten Anmeldedaten löschen; deren kontogebundene Freigaben werden dabei
-mit entfernt, profilweite Freigaben bleiben gespeichert. Die Freigabenansicht kann alle
-angezeigten Freigaben löschen. Jeder Löschvorgang verlangt eine eigene Bestätigung; ohne markierte
-Zeile bleibt die Einzelaktion deaktiviert.
+Freigaben; Freigabeumfang, Ziel und Aufrufbindung stehen dabei in getrennten Spalten. Die
+gespeicherten Kennwörter werden nicht angezeigt oder an den Client übertragen.
+
+In der Freigabenansicht öffnet ein Doppelklick auf eine Zeile oder **Details anzeigen...** in deren
+Kontextmenü alle anwendbaren, nicht leeren Felder in einer schreibgeschützten, markierbaren Ansicht
+zum Kopieren. Die Details enthalten den vollständigen Zielhash, sofern vorhanden. Bei einer
+Freigabe für ein bestimmtes Zielkonto zeigen sie außerdem dessen SID, damit sich das Konto
+eindeutig identifizieren lässt. Eine Freigabe für alle Zielkonten besitzt keine einzelne
+Zielkonto-SID; deshalb wird dieses Feld dort nicht angezeigt.
+
+In der Anmeldedatenansicht stellt **Details anzeigen...** dieselben kopierbaren Informationen zum
+Zielkonto einschließlich seiner SID bereit. Ein Doppelklick auf ein Zielkonto mit Freigaben öffnet
+die für dieses Konto geltenden Freigaben. Das Kontextmenü bietet dieselbe Aktion; für Zeilen ohne
+Freigaben ist sie deaktiviert.
+
+Löschaktionen bleiben ausschließlich auf den sichtbaren Schaltflächen unterhalb der Tabellen. In
+beiden Ansichten kann die ausgewählte Zeile gelöscht werden. Die Anmeldedatenansicht kann außerdem
+alle angezeigten Anmeldedaten löschen; deren kontogebundene Freigaben werden dabei mit entfernt,
+profilweite Freigaben bleiben gespeichert. Die Freigabenansicht kann alle angezeigten Freigaben
+löschen. Jeder Löschvorgang verlangt eine eigene Bestätigung; ohne markierte Zeile bleibt die
+Einzelaktion deaktiviert.
 
 | Gespeicherte Anmeldedaten | Aktive Freigaben |
 |:---:|:---:|
@@ -1104,7 +1118,12 @@ Windows-Benutzer dieses Rechners. Lokale Sicherungen bleiben erhalten und könne
 | ![Bestätigung vor dem Löschen gespeicherter Anmeldedaten](docs/de/images/delete-credential.png) | ![Bestätigung vor dem Zurücksetzen von Freigaben](docs/de/images/reset-approvals.png) |
 
 Für eine rechnerweite Übersicht zeigt `/admin-status` die gespeicherten xucRun-Daten aller
-Windows-Benutzer und stellt die verfügbaren administrativen Bereinigungsaktionen bereit.
+Windows-Benutzer und stellt die verfügbaren administrativen Bereinigungsaktionen bereit. Ein
+Doppelklick auf eine Zeile oder **Details anzeigen...** in deren Kontextmenü öffnet die anwendbaren,
+nicht leeren Anmeldedaten- oder Freigabefelder zum Markieren und Kopieren. Bei Anmeldedaten und
+Freigaben für ein bestimmtes Zielkonto zeigen die Details außerdem die Zielkonto-SID, damit sich
+das Konto eindeutig identifizieren lässt. Freigabedetails enthalten zusätzlich den vollständigen
+Zielhash, sofern vorhanden.
 
 ![Administrativer Status aller Benutzer](docs/de/images/administrative-status.png)
 

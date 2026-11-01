@@ -19,6 +19,14 @@ namespace xucrun::table_dialog
 
 	using Row = std::vector<std::wstring>;
 
+	struct DetailsOptions
+	{
+		std::wstring actionText;
+		std::wstring heading;
+		std::vector<Column> columns;
+		std::vector<Row> rows;
+	};
+
 	enum class TableDialogAction
 	{
 		Closed,
@@ -39,5 +47,6 @@ namespace xucrun::table_dialog
 		const std::wstring& actionText = L"",
 		const std::wstring& secondaryActionText = L"",
 		const std::wstring& selectionActionText = L"",
-		int initialWidth = 560, int minimumWidth = 720);
+		int initialWidth = 560, int minimumWidth = 720,
+		const DetailsOptions* detailsOptions = nullptr);
 }

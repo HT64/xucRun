@@ -8,5 +8,5 @@
 namespace xucrun::approval_management
 {
 	int ResetBrokerApprovals(const std::wstring& specificUser);
-	int ShowBrokerApprovals();
+	int ShowBrokerApprovals(const std::wstring& targetAccountSid = L"");
 }

@@ -39,12 +39,15 @@ namespace xucrun::broker_credential_management
 		constexpr int CredentialTableNoteId = 1702;
 		constexpr int CredentialTableDeleteAllId = 1703;
 		constexpr int CredentialTableDeleteSelectedId = 1705;
+		constexpr int CredentialTableShowApprovalsId = 1706;
+		constexpr UINT CredentialTableDetailsMenuId = 1707;
 
 		enum class CredentialTableAction
 		{
 			Closed,
 			DeleteAll,
-			DeleteSelected
+			DeleteSelected,
+			ShowApprovals
 		};
 
 		struct CredentialTableResult
@@ -86,7 +89,7 @@ namespace xucrun::broker_credential_management
 			const UINT dpi = GetDpiForWindow(dialog);
 			const int margin = MulDiv(12, dpi ? dpi : 96, 96);
 			const int summaryHeight = MulDiv(54, dpi ? dpi : 96, 96);
-			const int noteHeight = MulDiv(46, dpi ? dpi : 96, 96);
+			const int noteHeight = MulDiv(68, dpi ? dpi : 96, 96);
 			const int buttonWidth = MulDiv(76, dpi ? dpi : 96, 96);
 			const int actionWidth = MulDiv(170, dpi ? dpi : 96, 96);
 			const int buttonHeight = MulDiv(26, dpi ? dpi : 96, 96);
@@ -134,6 +137,133 @@ namespace xucrun::broker_credential_management
 		{
 			ListView_SetItemText(
 				list, row, column, const_cast<LPWSTR>(text.c_str()));
+		}
+
+		int GetSelectedCredentialRow(HWND dialog)
+		{
+			return ListView_GetNextItem(
+				GetDlgItem(dialog, CredentialTableListId), -1, LVNI_SELECTED);
+		}
+
+		void ShowCredentialDetails(HWND dialog)
+		{
+			const auto* context = reinterpret_cast<const CredentialTableContext*>(
+				GetWindowLongPtrW(dialog, DWLP_USER));
+			const int selectedRow = GetSelectedCredentialRow(dialog);
+			if (!context || selectedRow < 0 ||
+				static_cast<std::size_t>(selectedRow) >= context->credentials->size())
+			{
+				return;
+			}
+
+			const auto& credential =
+				(*context->credentials)[static_cast<std::size_t>(selectedRow)];
+			const bool isAdministrator =
+				account_identity::IsUserInAdminGroup(credential.username);
+			std::wstring content =
+				localization::GetText(
+					localization::TextId::ShowCredentialsColumnAccount) +
+				L":\n" + DisplayAccount(credential.username);
+			if (!credential.accountSid.empty())
+			{
+				content += L"\n\n" + localization::GetText(
+					localization::TextId::ShowCredentialsTargetAccountSid) +
+					L":\n" + credential.accountSid;
+			}
+			content += L"\n\n" +
+				localization::GetText(
+					localization::TextId::ShowCredentialsColumnStored) +
+				L":\n" +
+				credential_formatting::FormatCredentialTimestamp(
+					credential.lastWritten) + L"\n\n" +
+				localization::GetText(
+					localization::TextId::ShowCredentialsColumnAccountType) +
+				L":\n" + localization::GetText(isAdministrator
+					? localization::TextId::ShowCredentialsAdministratorAccount
+					: localization::TextId::ShowCredentialsStandardAccount) +
+				L"\n\n" +
+				localization::GetText(
+					localization::TextId::ShowCredentialsColumnApprovals) +
+				L":\n" + std::to_wstring(
+					(*context->approvalCounts)[static_cast<std::size_t>(selectedRow)]);
+			text_dialog::Show(*context->title,
+				localization::GetText(
+					localization::TextId::ShowCredentialsDetailsHeading),
+				content, dialog);
+		}
+
+		void ShowCredentialContextMenu(HWND dialog, LPARAM position)
+		{
+			auto* context = reinterpret_cast<CredentialTableContext*>(
+				GetWindowLongPtrW(dialog, DWLP_USER));
+			if (!context)
+				return;
+
+			HWND list = GetDlgItem(dialog, CredentialTableListId);
+			POINT menuPosition = {
+				static_cast<short>(LOWORD(position)),
+				static_cast<short>(HIWORD(position))
+			};
+			int selectedRow = -1;
+			if (menuPosition.x == -1 && menuPosition.y == -1)
+			{
+				selectedRow = GetSelectedCredentialRow(dialog);
+				if (selectedRow < 0)
+					return;
+				RECT itemRect = {};
+				if (!ListView_GetItemRect(
+					list, selectedRow, &itemRect, LVIR_BOUNDS))
+				{
+					return;
+				}
+				menuPosition = {
+					(itemRect.left + itemRect.right) / 2,
+					(itemRect.top + itemRect.bottom) / 2
+				};
+				ClientToScreen(list, &menuPosition);
+			}
+			else
+			{
+				POINT clientPosition = menuPosition;
+				ScreenToClient(list, &clientPosition);
+				LVHITTESTINFO hit = {};
+				hit.pt = clientPosition;
+				selectedRow = ListView_HitTest(list, &hit);
+				if (selectedRow < 0)
+					return;
+				ListView_SetItemState(list, selectedRow,
+					LVIS_SELECTED | LVIS_FOCUSED,
+					LVIS_SELECTED | LVIS_FOCUSED);
+				SetFocus(list);
+			}
+
+			const bool hasApprovals =
+				static_cast<std::size_t>(selectedRow) <
+					context->approvalCounts->size() &&
+				(*context->approvalCounts)[static_cast<std::size_t>(selectedRow)] > 0;
+			HMENU menu = CreatePopupMenu();
+			if (!menu)
+				return;
+			AppendMenuW(menu, MF_STRING | (hasApprovals ? 0 : MF_GRAYED),
+				CredentialTableShowApprovalsId,
+				localization::GetText(
+					localization::TextId::ShowCredentialsRelatedApprovals).c_str());
+			AppendMenuW(menu, MF_STRING, CredentialTableDetailsMenuId,
+				localization::GetText(
+					localization::TextId::ShowCredentialsDetails).c_str());
+			const UINT command = TrackPopupMenu(menu,
+				TPM_RETURNCMD | TPM_RIGHTBUTTON, menuPosition.x, menuPosition.y,
+				0, dialog, nullptr);
+			DestroyMenu(menu);
+			if (command == CredentialTableShowApprovalsId)
+			{
+				context->selectedRow = selectedRow;
+				EndDialog(dialog, CredentialTableShowApprovalsId);
+			}
+			else if (command == CredentialTableDetailsMenuId)
+			{
+				ShowCredentialDetails(dialog);
+			}
 		}
 
 		INT_PTR CALLBACK CredentialTableDialogProc(
@@ -235,8 +365,35 @@ namespace xucrun::broker_credential_management
 							-1, LVNI_SELECTED) >= 0);
 					return TRUE;
 				}
+				if (header && header->idFrom == CredentialTableListId &&
+					header->code == NM_DBLCLK)
+				{
+					const auto* activation =
+						reinterpret_cast<const NMITEMACTIVATE*>(lParam);
+					auto* context = reinterpret_cast<CredentialTableContext*>(
+						GetWindowLongPtrW(dialog, DWLP_USER));
+					if (context && activation->iItem >= 0 &&
+						static_cast<std::size_t>(activation->iItem) <
+							context->approvalCounts->size() &&
+						(*context->approvalCounts)[
+							static_cast<std::size_t>(activation->iItem)] > 0)
+					{
+						context->selectedRow = activation->iItem;
+						EndDialog(dialog, CredentialTableShowApprovalsId);
+					}
+					return TRUE;
+				}
 				break;
 			}
+
+			case WM_CONTEXTMENU:
+				if (reinterpret_cast<HWND>(wParam) ==
+					GetDlgItem(dialog, CredentialTableListId))
+				{
+					ShowCredentialContextMenu(dialog, lParam);
+					return TRUE;
+				}
+				break;
 
 			case WM_GETMINMAXINFO:
 			{
@@ -324,6 +481,8 @@ namespace xucrun::broker_credential_management
 				return { CredentialTableAction::DeleteAll, -1 };
 			if (result == CredentialTableDeleteSelectedId)
 				return { CredentialTableAction::DeleteSelected, context.selectedRow };
+			if (result == CredentialTableShowApprovalsId)
+				return { CredentialTableAction::ShowApprovals, context.selectedRow };
 			return {};
 		}
 
@@ -874,7 +1033,8 @@ namespace xucrun::broker_credential_management
 		}
 	}
 
-	int ShowBrokerCredentials(const std::wstring& programExecutableName)
+	int ShowBrokerCredentials(const std::wstring& programExecutableName,
+		const std::function<int(const std::wstring&)>& showApprovals)
 	{
 		std::wstring currentUser;
 		std::wstring currentDomain;
@@ -1003,7 +1163,9 @@ namespace xucrun::broker_credential_management
 					localization::TextId::ShowCredentialsApproval));
 			const CredentialTableResult dialogResult = ShowCredentialTable(title, summary,
 				TrimLineBreaks(localization::GetText(
-					localization::TextId::ShowCredentialsNote)),
+					localization::TextId::ShowCredentialsNote)) + L"\n" +
+					localization::GetText(
+						localization::TextId::ShowCredentialsTableLegend),
 				credentials, approvalCounts, ui::GetDialogOwnerWindow());
 			if (dialogResult.action == CredentialTableAction::Closed)
 				return 0;
@@ -1041,6 +1203,12 @@ namespace xucrun::broker_credential_management
 			}
 			const CredentialInfo& credential =
 				credentials[static_cast<std::size_t>(dialogResult.selectedRow)];
+			if (dialogResult.action == CredentialTableAction::ShowApprovals)
+			{
+				if (showApprovals(credential.accountSid) != 0)
+					return 1;
+				continue;
+			}
 			const std::wstring confirmation = localization::Format(
 				localization::TextId::CredentialDeleteConfirmation,
 				{ DisplayAccount(invokingAccount),

@@ -231,7 +231,7 @@ namespace xucrun::approval_management
 		}
 	}
 
-	int ShowBrokerApprovals()
+	int ShowBrokerApprovals(const std::wstring& targetAccountSid)
 	{
 		std::wstring currentUser;
 		std::wstring currentDomain;
@@ -248,7 +248,7 @@ namespace xucrun::approval_management
 		{
 		broker::ApprovalListRequest request;
 		request.requestId = broker::GenerateBrokerRequestId();
-		const auto response = broker::SubmitApprovalListRequest(request);
+		auto response = broker::SubmitApprovalListRequest(request);
 		if (response.status != broker::PipeApprovalManagementStatus::Succeeded ||
 			response.result.status != broker::ApprovalManagementStatus::Succeeded)
 		{
@@ -261,6 +261,16 @@ namespace xucrun::approval_management
 				L"Retrieving broker approvals failed. Windows error: " +
 					std::to_wstring(approvalError));
 			return 1;
+		}
+		if (!targetAccountSid.empty())
+		{
+			std::erase_if(response.result.entries,
+				[&targetAccountSid](const auto& approvalValue) {
+					return approvalValue.accountScope !=
+						approval::BrokerApprovalAccountScope::AllAccounts &&
+						_wcsicmp(approvalValue.targetAccountSid.c_str(),
+							targetAccountSid.c_str()) != 0;
+				});
 		}
 		std::vector<CredentialInfo> brokerCredentials;
 		DWORD credentialListError = NO_ERROR;
@@ -386,12 +396,21 @@ namespace xucrun::approval_management
 				{ localization::GetText(
 					localization::TextId::ShowApprovalsColumnLifetime), 130 },
 				{ localization::GetText(
-					localization::TextId::ShowApprovalsColumnPrivilegeMode), 110 },
-				{ localization::GetText(
-					localization::TextId::ShowApprovalsColumnTargetHash), 180, true }
+					localization::TextId::ShowApprovalsColumnPrivilegeMode), 110 }
 			};
+			std::vector<table_dialog::Column> detailsColumns = columns;
+			detailsColumns.push_back({
+				localization::GetText(
+					localization::TextId::ShowCredentialsTargetAccountSid), 180
+			});
+			detailsColumns.push_back({
+				localization::GetText(
+					localization::TextId::ShowApprovalsColumnTargetHash), 180
+			});
 			std::vector<table_dialog::Row> rows;
 			rows.reserve(response.result.entries.size());
+			std::vector<table_dialog::Row> detailsRows;
+			detailsRows.reserve(response.result.entries.size());
 			for (const auto& approvalValue : response.result.entries)
 			{
 				const bool allAccounts = approvalValue.accountScope ==
@@ -423,7 +442,7 @@ namespace xucrun::approval_management
 					lifetime = credential_formatting::FormatCredentialTimestamp(
 						approvalValue.expiresAt);
 				}
-				rows.push_back({
+				table_dialog::Row row = {
 					allAccounts
 						? localization::GetText(
 							localization::TextId::ShowApprovalsAllAccountsValue)
@@ -439,19 +458,52 @@ namespace xucrun::approval_management
 					std::move(lifetime),
 					localization::GetText(approvalValue.elevationMode == 0
 						? localization::TextId::ShowApprovalsPrivilegeUnchangedValue
-						: localization::TextId::ShowApprovalsPrivilegeElevatedValue),
+						: localization::TextId::ShowApprovalsPrivilegeElevatedValue)
+				};
+				rows.push_back(row);
+				row.push_back(allAccounts ? L"" : approvalValue.targetAccountSid);
+				row.push_back(
 					general ? L"" : targets::BytesToUpperHex(approvalValue.targetHash)
-				});
+				);
+				detailsRows.push_back(std::move(row));
+			}
+			const table_dialog::DetailsOptions detailsOptions = {
+				localization::GetText(
+					localization::TextId::ShowApprovalsDetails),
+				localization::GetText(
+					localization::TextId::ShowApprovalsDetailsHeading),
+				std::move(detailsColumns),
+				std::move(detailsRows)
+			};
+			std::wstring note = localization::GetText(
+				localization::TextId::ShowApprovalsLegend);
+			if (!targetAccountSid.empty())
+			{
+				const auto filteredCredential = std::find_if(
+					brokerCredentials.begin(), brokerCredentials.end(),
+					[&targetAccountSid](const CredentialInfo& credential) {
+						return _wcsicmp(credential.accountSid.c_str(),
+							targetAccountSid.c_str()) == 0;
+					});
+				note = localization::Format(
+					localization::TextId::ShowApprovalsFilter,
+					{ filteredCredential == brokerCredentials.end()
+						? localization::GetText(
+							localization::TextId::ValueNotAvailable)
+						: DisplayAccount(filteredCredential->username) }) +
+					L"\n" + note;
 			}
 			const auto dialogResult = table_dialog::Show(ui::GetWindowTitle(title),
 				localization::Format(localization::TextId::ShowApprovalsIntro,
-					{ DisplayAccount(fullCurrentUser) }), L"", columns, rows,
+					{ DisplayAccount(fullCurrentUser) }),
+				note, columns, rows,
 				ui::GetDialogOwnerWindow(),
 				localization::GetText(
 					localization::TextId::ShowApprovalsDeleteAll),
 				L"",
 				localization::GetText(
-					localization::TextId::ShowApprovalsDeleteSelected));
+					localization::TextId::ShowApprovalsDeleteSelected),
+				560, 720, &detailsOptions);
 			if (dialogResult.action == table_dialog::TableDialogAction::Closed)
 				return 0;
 

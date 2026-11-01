@@ -320,7 +320,11 @@ namespace xucrun::administrative_commands
 		if (firstArg == L"/showcred")
 		{
 			client_logging::Write(L"Info", L"=== /showcred: Show stored credentials ===");
-			const int result = broker_credential_management::ShowBrokerCredentials(programExecutableName);
+			const int result = broker_credential_management::ShowBrokerCredentials(
+				programExecutableName,
+				[](const std::wstring& targetAccountSid) {
+					return approval_management::ShowBrokerApprovals(targetAccountSid);
+				});
 			client_logging::Write(result == 0 ? L"Info" : L"Error",
 				result == 0 ? L"Program exit (/showcred)"
 					: L"Program exit (/showcred - display failed)");

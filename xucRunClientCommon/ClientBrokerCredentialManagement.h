@@ -5,6 +5,7 @@
 
 #include <Windows.h>
 
+#include <functional>
 #include <string>
 
 namespace xucrun::broker_credential_management
@@ -18,5 +19,6 @@ namespace xucrun::broker_credential_management
 	int DeleteBrokerCredential(
 		const std::wstring& accountName, HWND owner = nullptr);
 	int DeleteStoredCredential(const std::wstring& specificUser = L"");
-	int ShowBrokerCredentials(const std::wstring& programExecutableName);
+	int ShowBrokerCredentials(const std::wstring& programExecutableName,
+		const std::function<int(const std::wstring&)>& showApprovals);
 }

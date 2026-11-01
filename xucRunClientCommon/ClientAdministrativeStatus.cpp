@@ -54,6 +54,8 @@ namespace xucrun::administrative_status
 			std::size_t approvalCount = 0;
 			std::vector<table_dialog::Column> columns;
 			std::vector<table_dialog::Row> rows;
+			std::vector<table_dialog::Column> detailsColumns;
+			std::vector<table_dialog::Row> detailsRows;
 			std::vector<broker::AdministrativeDeleteRequest> deleteRequests;
 		};
 
@@ -165,10 +167,17 @@ namespace xucrun::administrative_status
 				{ localization::GetText(
 					localization::TextId::AdministrativeStatusColumnTime), 125 },
 				{ localization::GetText(
-					localization::TextId::ShowApprovalsColumnPrivilegeMode), 100 },
-				{ localization::GetText(
-					localization::TextId::ShowApprovalsColumnTargetHash), 140, true }
+					localization::TextId::ShowApprovalsColumnPrivilegeMode), 100 }
 			};
+			view.detailsColumns = view.columns;
+			view.detailsColumns.push_back({
+				localization::GetText(
+					localization::TextId::ShowCredentialsTargetAccountSid), 140
+			});
+			view.detailsColumns.push_back({
+				localization::GetText(
+					localization::TextId::ShowApprovalsColumnTargetHash), 140
+			});
 			std::map<std::wstring, std::wstring> accountNames;
 			for (const auto& credential : response.result.credentials)
 				accountNames.try_emplace(
@@ -176,6 +185,7 @@ namespace xucrun::administrative_status
 			struct RowRecord
 			{
 				table_dialog::Row row;
+				table_dialog::Row detailsRow;
 				broker::AdministrativeDeleteRequest deleteRequest;
 			};
 			std::vector<RowRecord> records;
@@ -192,14 +202,19 @@ namespace xucrun::administrative_status
 					deleteRequest.kind = broker::AdministrativeDeleteKind::Credential;
 					deleteRequest.ownerUserSid = ownerSid;
 					deleteRequest.accountSid = credential->accountSid;
-					records.push_back({ { displayedOwnerName, localization::GetText(
+					table_dialog::Row detailsRow = {
+						displayedOwnerName, localization::GetText(
 							localization::TextId::AdministrativeStatusTypeCredential),
 						documentation_names::DisplayAccount(
 							credential->canonicalAccountName), L"",
 						L"", L"",
 						credential_formatting::FormatCredentialTimestamp(
 							credential->lastWritten),
-						L"", L"" },
+						L"", credential->accountSid, L""
+					};
+					table_dialog::Row row = detailsRow;
+					row.resize(view.columns.size());
+					records.push_back({ std::move(row), std::move(detailsRow),
 						std::move(deleteRequest) });
 				}
 				for (const auto* approvalValue : data.approvals)
@@ -223,7 +238,8 @@ namespace xucrun::administrative_status
 					deleteRequest.kind = broker::AdministrativeDeleteKind::Approval;
 					deleteRequest.ownerUserSid = ownerSid;
 					deleteRequest.approval = *approvalValue;
-					records.push_back({ { displayedOwnerName, localization::GetText(
+					table_dialog::Row detailsRow = {
+						displayedOwnerName, localization::GetText(
 							localization::TextId::AdministrativeStatusTypeApproval),
 						account,
 						credential_formatting::FormatBrokerApprovalScope(*approvalValue),
@@ -238,9 +254,13 @@ namespace xucrun::administrative_status
 								ShowApprovalsPrivilegeUnchangedValue
 							: localization::TextId::
 								ShowApprovalsPrivilegeElevatedValue),
+						allAccounts ? L"" : approvalValue->targetAccountSid,
 						general ? L"" :
 							targets::BytesToUpperHex(approvalValue->targetHash)
-						},
+					};
+					table_dialog::Row row = detailsRow;
+					row.resize(view.columns.size());
+					records.push_back({ std::move(row), std::move(detailsRow),
 						std::move(deleteRequest) });
 				}
 			}
@@ -258,10 +278,12 @@ namespace xucrun::administrative_status
 				return false;
 			});
 			view.rows.reserve(records.size());
+			view.detailsRows.reserve(records.size());
 			view.deleteRequests.reserve(records.size());
 			for (RowRecord& record : records)
 			{
 				view.rows.push_back(std::move(record.row));
+				view.detailsRows.push_back(std::move(record.detailsRow));
 				view.deleteRequests.push_back(std::move(record.deleteRequest));
 			}
 			error = NO_ERROR;
@@ -305,20 +327,22 @@ namespace xucrun::administrative_status
 			{
 				output += L"\n\n[" + std::to_wstring(rowIndex + 1) + L"]\n";
 				for (std::size_t column = 0;
-					column < view.columns.size() && column < view.rows[rowIndex].size();
+					column < view.detailsColumns.size() &&
+						column < view.detailsRows[rowIndex].size();
 					column++)
 				{
-					if (!view.rows[rowIndex][column].empty())
+					if (!view.detailsRows[rowIndex][column].empty())
 					{
 						const std::wstring heading = column == TimeColumn
-							? localization::GetText(view.rows[rowIndex][TypeColumn] ==
+							? localization::GetText(
+								view.detailsRows[rowIndex][TypeColumn] ==
 								localization::GetText(localization::TextId::
 									AdministrativeStatusTypeCredential)
 								? localization::TextId::ShowCredentialsColumnStored
 								: localization::TextId::ShowApprovalsColumnLifetime)
-							: view.columns[column].heading;
+							: view.detailsColumns[column].heading;
 						output += heading + L": " +
-							view.rows[rowIndex][column] + L"\n";
+							view.detailsRows[rowIndex][column] + L"\n";
 					}
 				}
 				while (!output.empty() && output.back() == L'\n')
@@ -660,6 +684,14 @@ namespace xucrun::administrative_status
 
 		for (;;)
 		{
+			const table_dialog::DetailsOptions detailsOptions = {
+				localization::GetText(
+					localization::TextId::AdministrativeStatusDetails),
+				localization::GetText(
+					localization::TextId::AdministrativeStatusDetailsHeading),
+				view.detailsColumns,
+				view.detailsRows
+			};
 			const auto dialogResult = table_dialog::Show(
 				ui::GetWindowTitle(localization::GetText(
 					localization::TextId::AdministrativeStatusTitle)),
@@ -677,7 +709,7 @@ namespace xucrun::administrative_status
 					localization::TextId::BackupManage),
 				localization::GetText(
 					localization::TextId::AdministrativeStatusDeleteSelected),
-				440, 640);
+				440, 640, &detailsOptions);
 			if (dialogResult.action == table_dialog::TableDialogAction::Closed)
 				return 0;
 			if (dialogResult.action == table_dialog::TableDialogAction::SelectionAction)

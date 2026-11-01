@@ -1009,12 +1009,25 @@ Use this mode only for deliberate maintenance and diagnostic work.
 
 `/showcred` lists target accounts for which xucRun credentials are stored. `/showapprovals` lists
 active general, target-program, and exact-invocation approvals, with separate columns for scope,
-target, invocation binding, and target hash. Stored passwords are neither displayed nor returned
-to the client. In each graphical list, the selected row can be deleted directly. The credential
-view can also delete all displayed credentials; their account-bound approvals are removed with
-them, while profile-wide approvals remain stored. The approval view can delete all displayed
-approvals. Each deletion requires a separate confirmation, and the selected-row action remains
-disabled until a row is selected.
+target, and invocation binding. Stored passwords are neither displayed nor returned
+to the client.
+
+In the approval view, double-clicking a row or choosing **Show details...** from its context menu
+opens all applicable nonempty fields in a read-only, selectable view for copying. The details
+include the complete target hash when present. For approvals tied to a specific target account,
+they also show its SID so that the account can be identified unambiguously. An approval for all
+target accounts has no single target account SID, so that field is omitted.
+
+In the credential view, **Show details...** provides the same copyable target account information,
+including its SID. Double-clicking a target account with approvals opens the approvals that apply
+to that account. The context menu provides the same action; it is unavailable for rows without
+approvals.
+
+Delete actions remain exclusively on the visible buttons below the tables. A selected row can be
+deleted from either view. The credential view can also delete all displayed credentials; their
+account-bound approvals are removed with them, while profile-wide approvals remain stored. The
+approval view can delete all displayed approvals. Each deletion requires a separate confirmation,
+and the selected-row action remains disabled until a row is selected.
 
 | Stored credentials | Active approvals |
 |:---:|:---:|
@@ -1035,7 +1048,11 @@ removed separately with `/backup-delete-all`.
 | ![Confirmation before deleting stored credentials](docs/en/images/delete-credential.png) | ![Confirmation before resetting approvals](docs/en/images/reset-approvals.png) |
 
 For a computer-wide overview, `/admin-status` displays the stored xucRun data of all Windows users
-and provides the available administrative cleanup actions.
+and provides the available administrative cleanup actions. Double-clicking a row or choosing
+**Show details...** from its context menu opens the applicable nonempty credential or approval
+fields for selection and copying. Credential details and approvals tied to a specific target
+account show the target account SID so that the account can be identified unambiguously.
+Approval details also include the complete target hash when present.
 
 ![Administrative status for all users](docs/en/images/administrative-status.png)
 

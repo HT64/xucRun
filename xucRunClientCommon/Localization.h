@@ -210,6 +210,9 @@ namespace xucrun::localization
 			IDS_ADMINISTRATIVE_STATUS_DELETE_APPROVAL_CONFIRM,
 		AdministrativeStatusDeleteFailed = IDS_ADMINISTRATIVE_STATUS_DELETE_FAILED,
 		AdministrativeStatusDeleteNotFound = IDS_ADMINISTRATIVE_STATUS_DELETE_NOT_FOUND,
+		AdministrativeStatusDetails = IDS_ADMINISTRATIVE_STATUS_DETAILS,
+		AdministrativeStatusDetailsHeading =
+			IDS_ADMINISTRATIVE_STATUS_DETAILS_HEADING,
 		BackupManage = IDS_BACKUP_MANAGE,
 		BackupTitle = IDS_BACKUP_TITLE,
 		BackupSummary = IDS_BACKUP_SUMMARY,
@@ -255,6 +258,12 @@ namespace xucrun::localization
 		ShowCredentialsDeleteAllConfirm = IDS_SHOW_CREDENTIALS_DELETE_ALL_CONFIRM,
 		ShowCredentialsAdministratorAccount = IDS_SHOW_CREDENTIALS_ADMINISTRATOR_ACCOUNT,
 		ShowCredentialsStandardAccount = IDS_SHOW_CREDENTIALS_STANDARD_ACCOUNT,
+		ShowCredentialsRelatedApprovals = IDS_SHOW_CREDENTIALS_RELATED_APPROVALS,
+		ShowCredentialsDetails = IDS_SHOW_CREDENTIALS_DETAILS,
+		ShowCredentialsDetailsHeading = IDS_SHOW_CREDENTIALS_DETAILS_HEADING,
+		ShowCredentialsTableLegend = IDS_SHOW_CREDENTIALS_TABLE_LEGEND,
+		ShowCredentialsTargetAccountSid =
+			IDS_SHOW_CREDENTIALS_TARGET_ACCOUNT_SID,
 		BrokerApprovalsQueryFailed = IDS_BROKER_APPROVALS_QUERY_FAILED,
 		ShowApprovalsIntro = IDS_SHOW_APPROVALS_INTRO,
 		ShowApprovalsEmpty = IDS_SHOW_APPROVALS_EMPTY,
@@ -290,6 +299,10 @@ namespace xucrun::localization
 		ShowApprovalsDeleteSelectedConfirm =
 			IDS_SHOW_APPROVALS_DELETE_SELECTED_CONFIRM,
 		ShowApprovalsDeleteFailed = IDS_SHOW_APPROVALS_DELETE_FAILED,
+		ShowApprovalsDetails = IDS_SHOW_APPROVALS_DETAILS,
+		ShowApprovalsDetailsHeading = IDS_SHOW_APPROVALS_DETAILS_HEADING,
+		ShowApprovalsLegend = IDS_SHOW_APPROVALS_LEGEND,
+		ShowApprovalsFilter = IDS_SHOW_APPROVALS_FILTER,
 		ShowApprovalsProgramExactValue = IDS_SHOW_APPROVALS_PROGRAM_EXACT_VALUE,
 		ApprovalBindingArgumentHash = IDS_APPROVAL_BINDING_ARGUMENT_HASH,
 		ApprovalBindingWorkingDirectory = IDS_APPROVAL_BINDING_WORKING_DIRECTORY,

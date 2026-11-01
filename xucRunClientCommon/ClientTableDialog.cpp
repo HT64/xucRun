@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <numeric>
 
+#include "ClientTextDialog.h"
 #include "ClientUiCommon.h"
 
 #pragma comment(lib, "Comctl32.lib")
@@ -20,6 +21,7 @@ namespace
 	constexpr int ActionId = 1703;
 	constexpr int SecondaryActionId = 1704;
 	constexpr int SelectionActionId = 1705;
+	constexpr UINT DetailsMenuId = 1;
 
 	struct TableContext
 	{
@@ -31,6 +33,7 @@ namespace
 		const std::wstring* selectionActionText;
 		const std::vector<xucrun::table_dialog::Column>* columns;
 		const std::vector<xucrun::table_dialog::Row>* rows;
+		const xucrun::table_dialog::DetailsOptions* detailsOptions;
 		HWND tooltip = nullptr;
 		std::wstring tooltipText;
 		int selectedRow = -1;
@@ -123,6 +126,116 @@ namespace
 		return ListView_GetItem(table, &item) ? static_cast<int>(item.lParam) : -1;
 	}
 
+	int MeasureWrappedTextHeight(
+		HWND control, const std::wstring& text, int width, UINT dpi)
+	{
+		if (!control || text.empty() || width <= 0)
+			return 0;
+		HDC deviceContext = GetDC(control);
+		if (!deviceContext)
+			return MulDiv(18, dpi ? dpi : 96, 96);
+		HFONT font = reinterpret_cast<HFONT>(
+			SendMessageW(control, WM_GETFONT, 0, 0));
+		HGDIOBJ previousFont = font
+			? SelectObject(deviceContext, font) : nullptr;
+		RECT bounds = { 0, 0, width, 0 };
+		DrawTextW(deviceContext, text.c_str(), -1, &bounds,
+			DT_CALCRECT | DT_EDITCONTROL | DT_NOPREFIX | DT_WORDBREAK);
+		if (previousFont)
+			SelectObject(deviceContext, previousFont);
+		ReleaseDC(control, deviceContext);
+		return (std::max)(MulDiv(18, dpi ? dpi : 96, 96),
+			static_cast<int>(bounds.bottom - bounds.top));
+	}
+
+	void ShowSelectedDetails(HWND dialog)
+	{
+		const auto* context = reinterpret_cast<const TableContext*>(
+			GetWindowLongPtrW(dialog, DWLP_USER));
+		const int selectedRow = GetSelectedSourceRow(dialog);
+		if (!context || !context->detailsOptions || selectedRow < 0 ||
+			static_cast<std::size_t>(selectedRow) >=
+				context->detailsOptions->rows.size())
+		{
+			return;
+		}
+
+		const auto& columns = context->detailsOptions->columns;
+		const auto& row =
+			context->detailsOptions->rows[static_cast<std::size_t>(selectedRow)];
+		std::wstring content;
+		for (std::size_t column = 0; column < columns.size() &&
+			column < row.size(); column++)
+		{
+			if (row[column].empty())
+				continue;
+			if (!content.empty())
+				content += L"\n\n";
+			content += columns[column].heading;
+			content += L":\n";
+			content += row[column];
+		}
+		xucrun::text_dialog::Show(*context->title,
+			context->detailsOptions->heading, content, dialog);
+	}
+
+	void ShowDetailsContextMenu(HWND dialog, LPARAM position)
+	{
+		const auto* context = reinterpret_cast<const TableContext*>(
+			GetWindowLongPtrW(dialog, DWLP_USER));
+		if (!context || !context->detailsOptions ||
+			context->detailsOptions->actionText.empty())
+		{
+			return;
+		}
+
+		HWND table = GetDlgItem(dialog, TableId);
+		POINT menuPosition = {
+			static_cast<short>(LOWORD(position)),
+			static_cast<short>(HIWORD(position))
+		};
+		if (menuPosition.x == -1 && menuPosition.y == -1)
+		{
+			const int selectedItem =
+				ListView_GetNextItem(table, -1, LVNI_SELECTED);
+			if (selectedItem < 0)
+				return;
+			RECT itemRect = {};
+			if (!ListView_GetItemRect(table, selectedItem, &itemRect, LVIR_BOUNDS))
+				return;
+			menuPosition = {
+				(itemRect.left + itemRect.right) / 2,
+				(itemRect.top + itemRect.bottom) / 2
+			};
+			ClientToScreen(table, &menuPosition);
+		}
+		else
+		{
+			POINT clientPosition = menuPosition;
+			ScreenToClient(table, &clientPosition);
+			LVHITTESTINFO hit = {};
+			hit.pt = clientPosition;
+			const int item = ListView_HitTest(table, &hit);
+			if (item < 0)
+				return;
+			ListView_SetItemState(table, item, LVIS_SELECTED | LVIS_FOCUSED,
+				LVIS_SELECTED | LVIS_FOCUSED);
+			SetFocus(table);
+		}
+
+		HMENU menu = CreatePopupMenu();
+		if (!menu)
+			return;
+		AppendMenuW(menu, MF_STRING, DetailsMenuId,
+			context->detailsOptions->actionText.c_str());
+		const UINT command = TrackPopupMenu(menu,
+			TPM_RETURNCMD | TPM_RIGHTBUTTON, menuPosition.x, menuPosition.y,
+			0, dialog, nullptr);
+		DestroyMenu(menu);
+		if (command == DetailsMenuId)
+			ShowSelectedDetails(dialog);
+	}
+
 	void LayoutTable(HWND dialog)
 	{
 		auto* context = reinterpret_cast<const TableContext*>(
@@ -138,8 +251,9 @@ namespace
 		const int margin = MulDiv(12, dpi ? dpi : 96, 96);
 		const int summaryHeight = context->summary->empty()
 			? 0 : MulDiv(54, dpi ? dpi : 96, 96);
-		const int noteHeight = context->note->empty()
-			? 0 : MulDiv(54, dpi ? dpi : 96, 96);
+		const int contentWidth = (std::max)(1, width - 2 * margin);
+		const int noteHeight = MeasureWrappedTextHeight(
+			GetDlgItem(dialog, NoteId), *context->note, contentWidth, dpi);
 		const int buttonWidth = MulDiv(76, dpi ? dpi : 96, 96);
 		const int actionWidth = MulDiv(170, dpi ? dpi : 96, 96);
 		const int buttonHeight = MulDiv(26, dpi ? dpi : 96, 96);
@@ -149,12 +263,12 @@ namespace
 		const int tableY = margin + summaryHeight;
 
 		MoveWindow(GetDlgItem(dialog, SummaryId), margin, margin,
-			(std::max)(1, width - 2 * margin), summaryHeight, FALSE);
+			contentWidth, summaryHeight, FALSE);
 		HWND table = GetDlgItem(dialog, TableId);
 		MoveWindow(table, margin, tableY, (std::max)(1, width - 2 * margin),
 			(std::max)(1, noteY - gap - tableY), FALSE);
 		MoveWindow(GetDlgItem(dialog, NoteId), margin, noteY,
-			(std::max)(1, width - 2 * margin), noteHeight, FALSE);
+			contentWidth, noteHeight, FALSE);
 		HWND actionButton = GetDlgItem(dialog, ActionId);
 		if (actionButton)
 		{
@@ -368,8 +482,25 @@ namespace
 						-1, LVNI_SELECTED) >= 0);
 				return TRUE;
 			}
+			if (header && header->idFrom == TableId &&
+				header->code == NM_DBLCLK)
+			{
+				const auto* activation =
+					reinterpret_cast<const NMITEMACTIVATE*>(lParam);
+				if (activation->iItem >= 0)
+					ShowSelectedDetails(dialog);
+				return TRUE;
+			}
 			break;
 		}
+
+		case WM_CONTEXTMENU:
+			if (reinterpret_cast<HWND>(wParam) == GetDlgItem(dialog, TableId))
+			{
+				ShowDetailsContextMenu(dialog, lParam);
+				return TRUE;
+			}
+			break;
 
 		case WM_GETMINMAXINFO:
 		{
@@ -434,7 +565,8 @@ namespace xucrun::table_dialog
 		const std::vector<Row>& rows, HWND owner, const std::wstring& actionText,
 		const std::wstring& secondaryActionText,
 		const std::wstring& selectionActionText,
-		int initialWidth, int minimumWidth)
+		int initialWidth, int minimumWidth,
+		const DetailsOptions* detailsOptions)
 	{
 		INITCOMMONCONTROLSEX controls = {
 			sizeof(controls), ICC_LISTVIEW_CLASSES };
@@ -478,6 +610,7 @@ namespace xucrun::table_dialog
 		context.selectionActionText = &selectionActionText;
 		context.columns = &columns;
 		context.rows = &rows;
+		context.detailsOptions = detailsOptions;
 		context.minimumWidth = minimumWidth;
 		const INT_PTR result = DialogBoxIndirectParamW(GetModuleHandleW(nullptr),
 			reinterpret_cast<LPCDLGTEMPLATEW>(buffer), owner, TableDialogProc,
