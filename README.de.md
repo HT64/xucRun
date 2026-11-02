@@ -17,40 +17,584 @@ Approach: Combines conceptual guidance, security boundaries, examples, and links
 > Verhalten. Der aktuelle Stand kann Fehler enthalten, davon abweichen und sich ändern. Der
 > Quellcode kann selbst gebaut und mit einem lokalen Testzertifikat installiert werden.
 
+## Überblick
+
+xucRun führt ein [Programm, einen Befehl oder ein
+Skript](#programme-argumente-und-sonderzeichen) unter dem dafür ausgewählten Benutzerkonto aus,
+während der Anwender in seiner aktuellen Windows-Sitzung bleibt. Das
+[Zielkonto](#kontowahl-und-rechte) kann ein Standardkonto sein oder der lokalen
+Administratorengruppe angehören; im zweiten Fall ist optional ein Start mit erhöhten Rechten
+(Administratorrechten) möglich. Der zentrale Anwendungsfall ist ein erfahrener Windows-Anwender,
+der normalerweise mit einem Standardkonto arbeitet und eine bestimmte administrative Aktion
+ausführen möchte, ohne in eine separate Administratorsitzung zu wechseln oder bei jedem passenden
+Aufruf Kontoname und Kennwort erneut einzugeben.
+
+### Warum mit einem Standardkonto arbeiten?
+
+Für die tägliche Arbeit kann ein Anwender dauerhaft mit einem Konto, das Mitglied der lokalen
+Administratorengruppe ist, oder mit einem Standardkonto angemeldet bleiben. Ein Mitglied der
+Administratorengruppe ist berechtigt, Programme mit Administratorrechten auszuführen. Wie
+Programme diese Rechte erhalten, hängt von der Konfiguration der Windows-Benutzerkontensteuerung
+(User Account Control, UAC) ab: Sie besitzen die Rechte bereits oder fordern über UAC eine
+Erhöhung an. Eine solche Erhöhung kann grundsätzlich jedes Programm anfordern.
+
+Ein Standardkonto besitzt selbst keine Administratorrechte. Systemweite Änderungen an Programmen,
+Diensten oder geschützten Konfigurationen erfordern deshalb ein getrenntes Konto, das Mitglied der
+lokalen Administratorengruppe ist. Dadurch wird begrenzt, was versehentliche Aktionen und Prozesse
+im normalen Benutzerkontext ohne einen getrennten, bewusst bestätigten Autorisierungsschritt
+ändern können.
+
+### Wie xucRun diesen Arbeitsablauf unterstützt
+
+xucRun erhält diese Trennung aufrecht. Es macht den Standardbenutzer weder vorübergehend zum
+Administrator noch erweitert es die Rechte dieses Kontos. Der Anwender bleibt in seiner
+bestehenden Windows-Sitzung angemeldet; nur die angeforderte Ausführung erfolgt unter dem
+ausgewählten anderen Benutzerkonto, das auch Mitglied der lokalen Administratorengruppe sein kann,
+mit dessen Identität und Berechtigungen.
+
+xucRun verbindet Windows-Kontowechsel und UAC mit von xucRun verwalteten Anmeldedaten für
+Zielkonten. Diese Anmeldedaten bleiben geschützt und werden nur verwendet, wenn eine passende
+[xucRun-Freigabe](#freigaben) die angeforderte Ausführung erlaubt. Sie erfolgt ausschließlich
+unter dem für diesen Aufruf ausgewählten Zielkonto; dessen Identität und Berechtigungen werden
+weder auf das angemeldete Standardkonto noch auf ein anderes Benutzerkonto übertragen. Eine an
+ein bestimmtes Zielkonto gebundene Freigabe kann nur für Starts unter diesem Konto verwendet
+werden.
+
+Nach der einmaligen Einrichtung genügt für einen typischen Start die Angabe des Programms, Befehls
+oder Skripts und der zugehörigen Argumente. Bei dieser eingerichteten Nutzung müssen weder
+Kontoname noch Kennwort im eigentlichen xucRun-Aufruf hinterlegt werden – unabhängig davon, ob der
+Start aus einer Konsole, über ein Kontextmenü, über eine Desktopverknüpfung oder aus einem Skript
+erfolgt. xucRun wählt ein geeignetes Konto, fragt fehlende Auswahl- oder Freigabeentscheidungen
+interaktiv ab und verwendet passende Entscheidungen erneut. Eine notwendige
+[Windows-UAC-Bestätigung](#freigaben-und-uac-in-xucrun) bleibt interaktiv.
+
+## Schnellstart
+
+Die Beispiele verwenden den Kurznamen `xucRun.exe`. Das funktioniert, wenn
+`%ProgramFiles%\xucRun` bei der Installation in den maschinenweiten PATH aufgenommen wurde, also
+in den Windows-Suchpfad für Programme, die über ihren Kurznamen aufgerufen werden. Im grafischen
+Installer kann die PATH-Option ausgewählt werden; bei der manuellen Installation wird dafür
+`-AddToSystemPath` angegeben. Ohne den PATH-Eintrag muss der vollständige Pfad
+`"%ProgramFiles%\xucRun\xucRun.exe"` verwendet werden. Die verfügbaren Installationswege
+beschreibt der Abschnitt [Installation in Kürze](#installation-in-kürze).
+
+Nach der Installation können von xucRun verwaltete Anmeldedaten ausdrücklich für ein Zielkonto
+gespeichert werden, also für das Konto, unter dem Programme gestartet werden sollen. Zum Beispiel:
+
+```powershell
+xucRun.exe /addcred Administrator
+```
+
+Wird der Kontoname weggelassen, öffnet xucRun zuerst ein Dialogfenster zur Auswahl eines
+aktivierten lokalen Kontos. Anschließend erscheint unabhängig davon, ob das Konto angegeben oder
+ausgewählt wurde, ein Dialogfenster zur Kennworteingabe auf einem separaten Windows-Desktop, den
+xucRun für geschützte Eingaben verwendet. Für ein Domänenkonto wird `DOMAIN\Benutzername`
+angegeben.
+
+| 1. Lokales Zielkonto auswählen | 2. Anmeldedaten auf separatem Desktop eingeben | 3. Erfolgreiche Speicherung bestätigen |
+|:---:|:---:|:---:|
+| ![Auswahl eines lokalen Zielbenutzers](docs/de/images/target-user-selection.png) | ![Anmeldedateneingabe auf separatem Desktop](docs/de/images/credential-entry.png) | ![Bestätigung gespeicherter Anmeldedaten](docs/de/images/credential-stored.png) |
+
+Die Screenshots zeigen beispielhaft Administratorkonten. Aktivierte lokale Standardkonten können
+ebenfalls ausgewählt werden.
+
+Programme werden mit ihrem normalen Programmpfad und den anschließenden Argumenten aufgerufen:
+
+```powershell
+xucRun.exe notepad.exe
+xucRun.exe regedit.exe
+xucRun.exe powershell.exe -NoExit
+xucRun.exe cmd.exe /c "net stop MyService"
+```
+
+Fehlen ein geeignetes Konto, gespeicherte Anmeldedaten oder eine passende Freigabe, führt xucRun
+im laufenden Aufruf durch die erforderlichen Schritte.
+
+## Anwendungsbeispiele
+
+Gerätemanager aus einem Standardbenutzerkonto öffnen:
+
+```cmd
+xucRun.exe "%windir%\System32\mmc.exe" "%windir%\System32\devmgmt.msc"
+```
+
+Eine administrative PowerShell mit einem Skript starten:
+
+```powershell
+xucRun.exe powershell.exe -File "C:\Scripts\AdminScript.ps1"
+```
+
+Einen Windows-Dienst über `cmd.exe` stoppen:
+
+```cmd
+xucRun.exe cmd.exe /c "net stop MyService"
+```
+
+Eine Datei mit einem Programm unter dem gewählten Zielkonto bearbeiten:
+
+```powershell
+xucRun.exe notepad.exe "C:\Windows\System32\drivers\etc\hosts"
+```
+
+Die aktuelle PowerShell durch eine PowerShell im automatisch gewählten Benutzer- und
+Berechtigungskontext ersetzen:
+
+```powershell
+PS D:\Beispiel\Projekt> xucRun.exe
+```
+
+Bei diesem parameterlosen Aufruf erkennt xucRun die direkte Eltern-Shell, schließt die bisherige
+Konsole nach erfolgreichem Start und öffnet dieselbe Shell im ursprünglichen Arbeitsverzeichnis
+neu. Läuft die bisherige PowerShell unter einem Standardkonto und ist genau ein
+Administratorkonto mit xucRun-Anmeldedaten gespeichert, wählt xucRun dieses Konto automatisch,
+fordert die Windows-UAC-Bestätigung an und startet die neue PowerShell erhöht unter diesem Konto
+wieder in `D:\Beispiel\Projekt`. Das ist der typische Hauptanwendungsfall der Shell-Ersetzung.
+
+Sind für mehrere Administratorkonten xucRun-Anmeldedaten gespeichert, erscheint stattdessen die
+Kontoauswahl. Ist das
+aktuelle Konto selbst ein Administrator, verwendet xucRun dieses Konto und nutzt bereits erteilte
+erhöhte Rechte direkt oder fordert andernfalls UAC an. Nur wenn für ein
+Standardkonto keine xucRun-Anmeldedaten eines Administratorkontos gespeichert sind,
+berücksichtigt xucRun Standardkonten, für die xucRun-Anmeldedaten gespeichert sind, und startet
+die Ersatz-Shell ohne Erhöhung. Das Arbeitsverzeichnis bleibt in allen Fällen erhalten.
+
+Die oben gezeigten Aufrufe mit einem Zielprogramm können auch in Skripten und
+Desktop-Verknüpfungen verwendet werden. Kann xucRun das Zielkonto eindeutig automatisch bestimmen,
+muss im Aufruf kein Kontoname stehen.
+
+Für die Trennung zwischen Standardbenutzer und privilegiertem Zielkonto gilt der Grundsatz:
+**Der Standardbenutzer darf die privilegierte Aktion anfordern, aber nicht unbemerkt deren
+administrativ freigegebenen Inhalt verändern.**
+
+Das ist kein xucRun-spezifisches Problem, sondern gilt allgemein, wenn ein weniger privilegiertes
+Konto Dateien verändern kann, die das Verhalten eines höher privilegierten Prozesses bestimmen.
+
+Skripte, Verknüpfungen, geplante Aufgaben und Konfigurationsdateien, die einen xucRun-Aufruf
+enthalten oder dessen Ziel, Argumente oder Arbeitsverzeichnis bestimmen, müssen deshalb selbst
+vertrauenswürdig und vor unbefugten Änderungen geschützt sein. xucRun kann ihre Integrität nicht
+allgemein prüfen. Konten, die solche Dateien verändern können, müssen bereits als berechtigt
+gelten, den betreffenden privilegierten Aufruf zu kontrollieren. Das gilt auch für übergeordnete
+Verzeichnisse, über die diese Dateien gelöscht, ersetzt, umbenannt oder umgeleitet werden könnten.
+Solche Dateien dürfen nicht in gemeinsam oder unzureichend geschützten beschreibbaren
+Verzeichnissen liegen.
+
+Die parameterlose Shell-Ersetzung ist dagegen für den interaktiven Aufruf aus einer unterstützten
+Shell bestimmt. In einem Skript sollte sie nur verwendet werden, wenn das Schließen der bisherigen
+Konsole und der interaktive Start einer Ersatz-Shell ausdrücklich beabsichtigt sind. Für eine
+normale Desktop-Verknüpfung ist der parameterlose Aufruf nicht geeignet.
+
+Unterstützte Eltern-Shells sind `cmd.exe`, `powershell.exe`, `pwsh.exe` und `tcc.exe`.
+
+### Batchdatei bei Bedarf erhöht neu starten
+
+Eine Batchdatei kann am Anfang prüfen, ob sie bereits mit erhöhten Rechten läuft. Andernfalls
+startet sie sich über xucRun erneut und beendet den ursprünglichen, nicht erhöhten Durchlauf. Mit
+`/user-elevated` verwendet xucRun das aktuelle Konto weiter, wenn es bereits ein
+Administratorkonto ist, und fordert nur bei Bedarf die UAC-Erhöhung an. Andernfalls wählt xucRun
+ein Administratorkonto aus:
+
+```cmd
+@echo off
+NET SESSION >nul 2>&1
+IF ERRORLEVEL 1 (
+  "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%~dpnx0" %*
+  GOTO :eof
+)
+
+REM Ab hier folgen die Befehle, die erhöhte Rechte benötigen.
+```
+
+`%~dpnx0` liefert den vollständig qualifizierten Pfad der laufenden Batchdatei; `%*` reicht alle
+ursprünglichen Argumente weiter. `GOTO :eof` verhindert, dass der nicht erhöhte Durchlauf nach dem
+erneuten Start fortgesetzt wird. Die Prüfung mit `NET SESSION` setzt voraus, dass der Windows-Dienst
+**Server** verfügbar ist.
+
+### Desktop-Verknüpfung für einen erhöhten Explorer
+
+Eine Desktop-Verknüpfung kann ein Explorer-Fenster für ein festgelegtes Verzeichnis direkt unter
+einem bestimmten Administratorkonto, für das xucRun-Anmeldedaten gespeichert sind, und mit
+erhöhten Rechten öffnen. Im Feld **Ziel** der Verknüpfung steht beispielsweise:
+
+```text
+"%ProgramFiles%\xucRun\xucRun.exe" /user-elevated:Administrator "%WINDIR%\explorer.exe" "/root,"D:\Beispiel\Zielordner""
+```
+
+`/user-elevated:Administrator` sollte verwendet werden, wenn die Verknüpfung immer ein bestimmtes
+Administratorkonto wählen, für das xucRun-Anmeldedaten gespeichert sind, und den Explorer
+ausdrücklich mit erhöhten Rechten starten soll. Soll xucRun das passende Konto automatisch
+bestimmen, wird der Schalter weggelassen. Soll der Explorer zwar unter einem bestimmten anderen
+Konto, aber ohne durch xucRun erzwungene Erhöhung starten, wird stattdessen `/user:<Konto>`
+verwendet.
+
+`Administrator` ist durch das gewünschte Administratorkonto, für das xucRun-Anmeldedaten
+gespeichert sind, und der Beispielpfad durch das zu öffnende Verzeichnis zu ersetzen. `/root`
+setzt dieses Verzeichnis als Wurzel des neuen Explorer-Fensters. Die verschachtelten
+Anführungszeichen müssen unverändert erhalten bleiben. Die gespeicherten Anmeldedaten ersetzen
+nicht die interaktive Windows-UAC-Bestätigung.
+
+### Integration in das Explorer-Kontextmenü
+
+Die optionale Datei [ExplorerKontextMenue.reg](ExplorerKontextMenue.reg) enthält ein vollständiges
+Beispiel, das xucRun-Befehle für unterstützte Dateien, Ordner, Ordnerhintergründe und Laufwerke
+ergänzt. Die Befehlseinträge für ausführbare Dateien und Ordnerhintergründe folgen beispielsweise
+diesen Mustern:
+
+```reg
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\xucRun\command]
+@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"%1\""
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\xucRunAdmin\command]
+@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"C:\\Windows\\explorer.exe\" \"/root,\"%V\"\""
+```
+
+Die Datei ist ein Beispiel und kein Bestandteil des Installers. Sie entfernt zuerst die neun von
+ihr verwalteten Einträge und erstellt sie anschließend unter `HKEY_LOCAL_MACHINE` neu, sodass sie
+für alle Benutzer gelten. Der Import erfordert Administratorrechte, setzt eine xucRun-Installation
+unter `C:\Program Files\xucRun` voraus und erzwingt für jeden enthaltenen xucRun-Befehl mit
+`/user-elevated` ausdrücklich ein erhöhtes Administratorkonto.
+
+Diese Einträge verwenden die klassische Win32-Registrierung für Explorer-Kontextmenüs unter
+`Software\Classes\...\shell`. Im standardmäßigen kompakten Kontextmenü von Windows 11 stehen sie
+normalerweise erst unter **Weitere Optionen anzeigen**. Wird stattdessen das klassische
+Kontextmenü verwendet, erscheinen sie unmittelbar.
+
+### Integration in Total Commander
+
+Die folgenden Beispiele zeigen Ausschnitte der Total-Commander-Konfigurationsdatei `usercmd.ini`.
+Sie wurden mit Total Commander 11.58 (64 Bit) getestet. Sie können auch mit anderen Versionen
+funktionieren; deren Kompatibilität wurde jedoch nicht geprüft. Allgemeine Informationen zu Total
+Commander bietet die
+[offizielle Total-Commander-Webseite](https://www.ghisler.com/deutsch.htm).
+
+xucRun kann eine neue erhöhte Total-Commander-Instanz nach seiner automatischen Kontostrategie
+starten. Mitglieder der Administratorengruppe behalten ihr Konto und werden bei Bedarf über UAC
+erhöht. Bei einem Standardbenutzer verwendet xucRun ein gespeichertes Administratorkonto. Der
+Aufruf übernimmt den linken Pfad, den rechten Pfad und das aktive Dateipanel:
+
+```ini
+[em_TCStart_Elevated]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd=%comspec% /v:on /c
+param=SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" "%|COMMANDER_PATH|\TOTALCMD64.EXE" /L="!L!" /R="!R!" /P=!Active!
+menu=Start TC über xucRun mit erhöhten Rechten; Administratormitglieder behalten ihr Konto, Standardbenutzer wechseln zum Administrator
+iconic=1
+
+[em_TCReStart_Elevated]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd=cm_Exit,em_TCStart_Elevated
+param=
+menu=Neustart TC mit erhöhten Rechten
+iconic=1
+```
+
+Der zweite Befehl schließt die aktuelle Total-Commander-Instanz und ruft anschließend den ersten
+Befehl auf. Für den Kontowechsel eines Standardbenutzers muss mindestens ein Administratorkonto in
+xucRun gespeichert sein. Sind mehrere passende Administratorkonten gespeichert, erscheint die
+Kontoauswahl. Eine erforderliche Windows-UAC-Abfrage muss bestätigt werden.
+
+Der folgende Befehl startet eine neue Total-Commander-Instanz als `LocalSystem`, das integrierte
+Windows-Dienstkonto mit weitreichender Kontrolle über den Rechner. Dabei bleiben der linke Pfad,
+der rechte Pfad und das aktive Dateipanel erhalten:
+
+```ini
+[em_TCStart_System]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd="%ProgramFiles%\xucRun\xucRun.exe"
+param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /system "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
+menu=Total Commander über xucRun als LocalSystem starten
+iconic=1
+```
+
+Dieser Befehl muss xucRun zweimal aufrufen, weil `/system` nur aus einem erhöhten
+Administratorkontext verfügbar ist. Der äußere Aufruf startet nach der zuvor beschriebenen
+automatischen Kontostrategie eine erhöhte zwischengeschaltete Eingabeaufforderung und verbirgt sie
+durch `/hidden-monitor`. Der innere xucRun-Aufruf läuft dadurch mit erhöhten Administratorrechten
+und startet Total Commander als `LocalSystem`. Jeder SYSTEM-Start muss separat auf dem geschützten
+privaten xucRun-Desktop bestätigt werden.
+
+Die zwischengeschaltete `cmd.exe /v:on /c` speichert die von Total Commander gelieferten Pfade
+zuerst in Umgebungsvariablen und übergibt sie danach per verzögerter Variablenerweiterung an den
+inneren xucRun-Aufruf. Dadurch werden auch Pfade mit Leer- und Sonderzeichen zuverlässig
+verarbeitet. Der Vergleich der Pfade bestimmt zusätzlich, ob das linke oder rechte Panel aktiv
+ist.
+
+Total Commander besitzt anschließend uneingeschränkte `LocalSystem`-Rechte. Verwenden Sie diesen
+Befehl nur bewusst für Wartung und Diagnose.
+
+xucRun kann Total Commander außerdem unter einem ausdrücklich ausgewählten anderen Windows-Konto
+starten, ohne dass dieses bereits interaktiv angemeldet ist. So lassen sich Dateioperationen aus
+einer normalen Benutzersitzung heraus in einem anderen Kontokontext ausführen. Für erhöhte
+administrative Dateioperationen muss das Zielkonto über Administratorrechte verfügen und die
+Windows-UAC-Abfrage bestätigt werden.
+
+Für dieses Beispiel ist `<Konto>` durch den eingerichteten Kontonamen zu ersetzen; die
+Total-Commander-Variablen und das Quoting müssen unverändert übernommen werden:
+
+```ini
+[em_TCStart_Konto]
+button=%COMMANDER_EXE%
+cmd="%ProgramFiles%\xucRun\xucRun.exe"
+param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /user:<Konto> "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
+menu=Total Commander als <Konto> starten
+iconic=1
+```
+
+Der Befehl verwendet xucRun erneut zweimal, damit ein Administratorkonto als zentraler
+Bevollmächtigter für die Anmeldedaten weiterer Zielkonten dienen kann. Bei diesem Beispiel ist die
+Kaskade im Unterschied zum zuvor beschriebenen LocalSystem-Beispiel für die eigentliche
+Startfunktion nicht erforderlich; sie ist hier eine bewusste Designentscheidung für die
+Speicherung der Anmeldedaten. Der äußere Aufruf verwendet dieselbe zuvor beschriebene verborgene,
+erhöhte Administrator-Zwischenstufe. Der darin ausgeführte innere xucRun-Aufruf läuft deshalb mit
+der Sicherheitskennung (SID), die dieses Windows-Administratorkonto eindeutig identifiziert, und
+kann dessen für `<Konto>` gespeicherte Anmeldedaten verwenden.
+
+Dadurch müssen die Anmeldedaten der weiteren Zielkonten nicht für jeden Standardbenutzer erneut
+gespeichert werden; jeder Standardbenutzer benötigt nur die für ihn gespeicherten Anmeldedaten des
+zentralen Administratorkontos. Ein einzelner xucRun-Aufruf des Standardbenutzers könnte dagegen
+nur dessen eigene, an seine SID gebundenen Anmeldedaten verwenden. Der innere Aufruf verarbeitet
+`/user:<Konto>` und startet die sichtbare Total-Commander-Instanz unter dem Zielkonto. Die
+Erhöhung der äußeren Zwischenstufe wird nicht auf das Zielkonto übertragen; dessen Rechte bleiben
+unverändert.
+
+Der Befehl kann beispielsweise in ein benutzerdefiniertes Menü aufgenommen werden:
+
+```text
+POPUP "Benutzer"
+  MENUITEM "Total Commander für <Konto> starten", em_TCStart_Konto
+END_POPUP
+```
+
+Auf dieselbe Weise können weitere Konten ergänzt werden. Dazu können für jedes weitere Konto ein
+eigener Befehl in `usercmd.ini` sowie ein darauf verweisender `MENUITEM` angelegt werden.
+
+## Kontowahl und Rechte
+
+Ohne Benutzerschalter verwendet xucRun einen passenden aktuellen Benutzerkontext oder ein
+Administratorkonto, für das xucRun-Anmeldedaten gespeichert sind. Gibt es genau ein passendes
+Konto mit xucRun-Anmeldedaten, wird es automatisch gewählt; bei mehreren erscheint eine Auswahl.
+
+| Konto mit gespeicherten Anmeldedaten wählen | Lokalen Zielbenutzer wählen |
+|:---:|:---:|
+| ![Kontowahl für gespeicherte Anmeldedaten](docs/de/images/target-account-selection.png) | ![Auswahl eines lokalen Zielbenutzers](docs/de/images/target-user-selection.png) |
+
+| Aufruf | Verhalten |
+|---|---|
+| `xucRun.exe <Programm> [Argumente ...]` | Konto automatisch bestimmen; bei Bedarf erhöhte Rechte anfordern |
+| `xucRun.exe /user <Programm> [Argumente ...]` | Konto wählen, für das xucRun-Anmeldedaten gespeichert sind, ohne zusätzliche Erhöhung durch xucRun |
+| `xucRun.exe /user:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, ohne zusätzliche Erhöhung durch xucRun |
+| `xucRun.exe /user:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden, ohne zusätzliche Erhöhung durch xucRun |
+| `xucRun.exe /user-elevated <Programm> [Argumente ...]` | aktuelles Administratorkonto verwenden und bei Bedarf über UAC erhöhen; andernfalls Administratorkonto mit gespeicherten xucRun-Anmeldedaten wählen |
+| `xucRun.exe /user-elevated:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Administratorkonto wählen und erhöht starten |
+| `xucRun.exe /user-elevated:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden und erhöht starten |
+
+Die `:*`-Formen zeigen die lokale Zielkontoauswahl immer an, auch wenn nur ein geeignetes Konto
+oder nur ein passender Anmeldedatensatz vorhanden ist. Der Dialog kennzeichnet das aktuelle Konto
+und Konten mit gespeicherten xucRun-Anmeldedaten. Beim aktuellen Konto wird dessen vorhandener
+Windows-Zugriffstoken verwendet, das dessen aktuelle Identität und Berechtigungen abbildet. Fehlen
+für ein anderes ausgewähltes Konto xucRun-Anmeldedaten, folgt die geschützte Kennworteingabe; nach
+erfolgreicher Speicherung wird der ursprüngliche Startauftrag fortgesetzt.
+
+Ist das aktuelle Konto kein Administratorkonto und sind beim ersten Aufruf mit `/user-elevated`
+noch keine Anmeldedaten für ein geeignetes Administratorkonto gespeichert, bietet xucRun
+automatisch die Auswahl eines Administratorkontos und die geschützte Kennworteingabe an. Nach
+erfolgreicher Speicherung wird der ursprüngliche Startauftrag fortgesetzt. `/addcred` kann
+weiterhin verwendet werden, um Anmeldedaten unabhängig von einem Startauftrag vorab zu speichern.
+
+Gespeicherte Anmeldedaten umgehen Windows-UAC nicht. Ist eine Erhöhung erforderlich, bleibt die
+UAC-Bestätigung interaktiv. Bei einer neuen Freigabe für einen erhöhten Start können zunächst der
+Freigabedialog auf dem separaten Desktop und anschließend der UAC-Dialog für das Zielprogramm
+erscheinen. Für kontenübergreifende erhöhte Starts muss für das ausgewählte Administratorkonto der
+Windows-Administratorbestätigungsmodus aktiviert sein. Dieser Windows-Modus stellt die gefilterten
+und erhöhten Zugriffstoken bereit, die für eine ausdrückliche UAC-Bestätigung benötigt werden.
+Stellt Windows stattdessen bereits einen vollständig erhöhten Token bereit, blockiert xucRun den
+Start, weil keine UAC-Bestätigung möglich wäre. Das kann insbesondere das integrierte Konto
+`Administrator` betreffen.
+
+## Programme, Argumente und Sonderzeichen
+
+Der erste Nicht-xucRun-Schalter ist das Zielprogramm. Alle folgenden Argumente gehören
+ausschließlich diesem Programm:
+
+```powershell
+xucRun.exe cmd.exe /c dir
+xucRun.exe /user:Administrator app.exe /config:value
+```
+
+`/c` und `/config:value` werden hier nicht von xucRun ausgewertet. Shell-interne Befehle müssen
+über die jeweilige Shell gestartet werden, beispielsweise `cmd.exe /c dir` oder
+`powershell.exe -Command Get-Process`.
+
+Programmpfade und einzelne Argumente mit Leerzeichen werden wie üblich in Anführungszeichen
+gesetzt. xucRun unterstützt auch Batchdateien und überträgt typische Shell-Sonderzeichen über die
+zusätzlichen Prozessgrenzen. Welche Zeichen von `cmd.exe`, PowerShell oder einer anderen
+aufrufenden Shell schon vor dem Start von xucRun ausgewertet werden, richtet sich weiterhin nach
+dieser Shell.
+
+Bei einem vom xucRun-Brokerdienst – der privilegierten Komponente zur Prüfung und Ausführung
+erlaubter Programmstarts – vermittelten Start einer `.bat`- oder `.cmd`-Datei, deren Dateiname eines
+der CMD-Metazeichen `& | ( ) ! % ^` enthält, erzeugt der Broker einen temporären Wrapper mit dem Namen
+`xucRun_wrapper_<128-Bit-Zufall>.bat`. Er legt ihn bevorzugt auf einem geeigneten Volume namens
+`RamDisk` ab, andernfalls im `%TEMP%`-Verzeichnis des Zielkontos. Der Broker schützt den Wrapper bis
+zum Ende des gestarteten Prozesses und versucht ihn anschließend oder bei einem fehlgeschlagenen
+Start während der Fehlerbereinigung zu löschen. Bleibt er wegen eines Löschfehlers oder
+unerwarteten Brokerendes zurück, kann ein lokaler Administrator ihn nach Freigabe manuell
+entfernen. Eine automatische Nachbereinigung gibt es nicht; der Wrapper enthält keine
+Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
+
+## Nützliche Befehle
+
+| Befehl | Zweck |
+|---|---|
+| `xucRun.exe /addcred [<Konto>]` | Anmeldedaten speichern |
+| `xucRun.exe /deletecred [<Konto>]` | gespeicherte Anmeldedaten auswählen und löschen |
+| `xucRun.exe /showcred` | Konten anzeigen, für die xucRun-Anmeldedaten gespeichert sind |
+| `xucRun.exe /showapprovals` | gespeicherte Freigaben anzeigen |
+| `xucRun.exe /resetapprovals[:<Konto>]` | Freigaben zurücksetzen |
+| `xucRun.exe /system [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell als `LocalSystem` starten |
+| `xucRun.exe /info` | Version, Copyright, Signierzertifikat, Brokerstatus und aktuelle Konfiguration anzeigen |
+| `xucRun.exe /admin-status` | Daten aller Windows-Benutzer erhöht anzeigen und verwalten |
+| `xucRun.exe /backup` | lokale Datensicherungen verwalten |
+| `xucRun.exe /audit` | Sicherheitsdiagnose ausführen |
+| `xucRun.exe /enable-broker` | einen deaktivierten Broker wieder aktivieren |
+| `xucRun.exe /clear-all` | gespeicherte Anmeldedaten, Freigaben, in geschützten xucRun-Dialogen angezeigte benutzerbezogene Merkmale und zugehörige Metadaten löschen |
+| `xucRun.exe /help` | vollständige Hilfe anzeigen |
+
+`/hidden` verbirgt das unmittelbar gestartete Zielprogramm. `/hidden-monitor` überwacht zusätzlich
+dessen Exitcode und zeigt bei einem Fehler einen Hinweis. Dialoge und Kindprozesse werden dadurch
+nicht verborgen oder überwacht.
+
+`xucRun.exe` verwendet Exitcode `0` für einen erfolgreichen Vorgang und Exitcode `1`, wenn der
+Vorgang fehlschlägt, abgelehnt oder abgebrochen wird. Der Exitcode eines gestarteten Zielprogramms
+wird nicht als Exitcode von `xucRun.exe` zurückgegeben.
+
+### Anwendung oder Ersatz-Shell als LocalSystem starten
+
+`xucRun.exe /system [<Anwendung> [Argumente...]]` startet die angegebene lokale Anwendung oder
+ohne angegebene Anwendung eine Ersatz-Shell unter dem Windows-Konto `LocalSystem` in der
+interaktiven Sitzung des Aufrufers. Dieser Modus steht nur Mitgliedern der lokalen
+Administratorengruppe zur Verfügung. Ein noch nicht erhöht gestarteter Administrator erhält eine
+Windows-UAC-Abfrage; ein bereits erhöhter Administrator führt den Start ohne weitere UAC-Abfrage
+aus. Standardbenutzer werden vor einer Erhöhungsanforderung abgewiesen.
+
+Ohne Anwendung ersetzt `xucRun.exe /system` eine aufrufende TCC-, Eingabeaufforderungs-, Windows-
+PowerShell- oder PowerShell-Core-Shell durch dieselbe Shell unter `LocalSystem`. Das aktuelle
+Arbeitsverzeichnis bleibt erhalten, die neue Shell wird in den Vordergrund gebracht und die
+bisherige Shell erst nach erfolgreichem Start des Ersatzes geschlossen.
+
+Das erhöhte Administratorkonto darf vom in der interaktiven Sitzung angemeldeten Konto abweichen.
+Dadurch kann `/system` aus einer erhöhten Ersatz-Shell in der Sitzung eines anderen Benutzers
+aufgerufen werden.
+
+`/system` verwendet keine gespeicherten Anmeldedaten oder Freigaben. Jeder Start muss separat im
+signierten xucRun-Freigabehelper bestätigt werden, der die geschützten Bestätigungsdialoge
+anzeigt. Der Dialog erscheint auf dem geschützten privaten xucRun-Desktop und zeigt die genaue
+Programmdatei, alle Argumente und das Arbeitsverzeichnis. Die Bestätigung gilt nur für diesen
+einen Aufruf und kann nicht gespeichert werden. xucRun prüft die Programmdatei unmittelbar vor
+dem Start erneut.
+
+Der private Desktop schützt die Bestätigung vor normalen Anwendungen auf dem normalen Desktop. Er
+kann jedoch nicht vor Schadsoftware schützen, die bereits mit erhöhten Administratorrechten in
+derselben Anmeldesitzung ausgeführt wird. Verwenden Sie `/system` deshalb nur aus einer
+vertrauenswürdigen erhöhten Administratorsitzung.
+
+```cmd
+xucRun.exe /system "%SystemRoot%\regedit.exe" /m
+```
+
+Als `LocalSystem` ausgeführte Anwendungen besitzen weitreichende Kontrolle über den Rechner.
+Insbesondere bezeichnet `HKEY_CURRENT_USER` das Profil von `LocalSystem` und nicht das Profil des
+angemeldeten Benutzers. Verwenden Sie diesen Modus nur bewusst für Wartung und Diagnose.
+
+## Anmeldedaten und Freigaben verwalten
+
+`/showcred` zeigt die Zielkonten, für die xucRun-Anmeldedaten gespeichert sind. `/showapprovals`
+zeigt die aktiven Freigaben. Eine allgemeine Freigabe besitzt den weitesten Umfang, eine
+zielprogrammspezifische Freigabe ist auf ein Programm begrenzt und eine an einen genauen Aufruf
+gebundene Freigabe bindet zusätzlich die Aufrufdetails. Freigabeumfang, Ziel und Aufrufbindung
+stehen dabei in getrennten Spalten. Die gespeicherten Kennwörter werden nicht angezeigt oder an
+den normalen xucRun-Client `xucRun.exe` übertragen. Die genaue Wirkung dieser Umfänge beschreibt
+der Abschnitt [Freigaben](#freigaben).
+
+In der Freigabenansicht öffnet ein Doppelklick auf eine Zeile oder **Details anzeigen...** in deren
+Kontextmenü alle anwendbaren, nicht leeren Felder in einer schreibgeschützten, markierbaren Ansicht
+zum Kopieren. Die Details enthalten den vollständigen SHA-256-Hash des Zielprogramms, sofern
+vorhanden. Bei einer Freigabe für ein bestimmtes Zielkonto zeigen sie außerdem dessen SID, damit
+sich das Konto eindeutig identifizieren lässt. Eine Freigabe für alle Zielkonten besitzt keine
+einzelne Zielkonto-SID; deshalb wird dieses Feld dort nicht angezeigt.
+
+In der Anmeldedatenansicht stellt **Details anzeigen...** dieselben kopierbaren Informationen zum
+Zielkonto einschließlich seiner SID bereit. Ein Doppelklick auf ein Zielkonto mit Freigaben öffnet
+die für dieses Konto geltenden Freigaben. Das Kontextmenü bietet dieselbe Aktion; für Zeilen ohne
+Freigaben ist sie deaktiviert.
+
+Löschaktionen bleiben ausschließlich auf den sichtbaren Schaltflächen unterhalb der Tabellen. In
+beiden Ansichten kann die ausgewählte Zeile gelöscht werden. Die Anmeldedatenansicht kann außerdem
+alle angezeigten Anmeldedaten löschen; deren kontogebundene Freigaben werden dabei mit entfernt,
+während profilweite Freigaben für alle Zielkonten des aktuellen Windows-Benutzers gespeichert
+bleiben. Die Freigabenansicht kann alle angezeigten Freigaben löschen. Jeder Löschvorgang verlangt
+eine eigene Bestätigung; ohne markierte Zeile bleibt die Einzelaktion deaktiviert.
+
+| Gespeicherte Anmeldedaten | Aktive Freigaben |
+|:---:|:---:|
+| ![Gespeicherte Anmeldedaten](docs/de/images/credentials.png) | ![Aktive Programmfreigaben](docs/de/images/approvals.png) |
+
+Ohne Kontonamen zeigt `/deletecred` eine Auswahl und verlangt vor der Löschung eine Bestätigung.
+Beim Löschen eines Kontos entfernt xucRun auch dessen kontogebundene Freigaben. Profilweite
+Freigaben für alle Konten bleiben bestehen.
+
+Mit `/resetapprovals` können einzelne oder mehrere Freigaben ausgewählt und entfernt werden.
+`/clear-all` ist der administrative Bereinigungsbefehl für aktive, vom Broker verwaltete Daten. Der
+Befehl muss erhöht gestartet werden und löscht nach ausdrücklicher Bestätigung alle
+xucRun-Anmeldedaten, Freigaben, in geschützten xucRun-Dialogen angezeigten benutzerbezogenen
+Merkmale und zugehörigen Metadaten aller Windows-Benutzer dieses Rechners. Lokale Sicherungen
+bleiben erhalten und können separat mit `/backup-delete-all` gelöscht werden.
+
+| Gespeicherte Anmeldedaten löschen | Freigaben zurücksetzen |
+|:---:|:---:|
+| ![Bestätigung vor dem Löschen gespeicherter Anmeldedaten](docs/de/images/delete-credential.png) | ![Bestätigung vor dem Zurücksetzen von Freigaben](docs/de/images/reset-approvals.png) |
+
+Für eine rechnerweite Übersicht zeigt `/admin-status` die gespeicherten xucRun-Daten aller
+Windows-Benutzer und stellt die verfügbaren administrativen Bereinigungsaktionen bereit. Ein
+Doppelklick auf eine Zeile oder **Details anzeigen...** in deren Kontextmenü öffnet die anwendbaren,
+nicht leeren Anmeldedaten- oder Freigabefelder zum Markieren und Kopieren. Bei Anmeldedaten und
+Freigaben für ein bestimmtes Zielkonto zeigen die Details außerdem die Zielkonto-SID, damit sich
+das Konto eindeutig identifizieren lässt. Freigabedetails enthalten zusätzlich den vollständigen
+Zielhash, sofern vorhanden.
+
+![Administrativer Status aller Benutzer](docs/de/images/administrative-status.png)
+
 ## Motivation und Zweck
 
-xucRun deckt mehrere Anwendungsfälle ab, in denen ein Programm mit erhöhten Rechten oder unter
-einem anderen Benutzerkonto – wahlweise mit oder ohne Rechteerhöhung – ausgeführt werden soll.
+Die vorangegangenen Abschnitte zeigen, wie xucRun einzelne Programme, Befehle und Skripte unter
+einem ausgewählten Konto und, soweit anwendbar, mit erhöhten Rechten ausführt. Die Motivation für
+diesen Ablauf ist die bewusste tägliche Arbeit mit einem Standardkonto, verbunden mit einem
+praktikablen Zugriff auf gelegentliche administrative Aufgaben.
 
-Das Programm richtet sich an erfahrene Windows-Anwender, die ihren eigenen Rechner gelegentlich
-aus einem Standardbenutzerkonto heraus administrieren möchten, interaktiv oder mithilfe eigener
-Skripte, ohne dafür eine separate Anmeldung mit einem Administratorkonto oder bei jedem Vorgang
-erneut ein Kennwort zu benötigen. Die erforderliche Berechtigung für administrative Aufgaben
-soll sich aus einem Standardbenutzerkonto heraus möglichst mit einem einzigen Mausklick erteilen
-lassen.
+xucRun richtet sich an erfahrene Windows-Anwender, die ihren eigenen Rechner interaktiv oder
+mithilfe eigener Skripte administrieren. Erreicht eine Anwendung oder ein Dateimanager eine
+Berechtigungsgrenze, soll der Anwender die konkrete Aufgabe fortsetzen können, ohne sich dafür in
+einer separaten Administratorsitzung anzumelden und ohne bei jedem passenden Vorgang Kontoname und
+Kennwort erneut einzugeben. Nach der einmaligen Einrichtung soll dafür normalerweise eine einzige
+Bestätigung per Mausklick genügen.
 
-Ein typischer Anwendungsfall entsteht, wenn der Anwender bewusst mit einem Standardbenutzerkonto
-angemeldet bleibt, mit einem Programm oder über einen Dateimanager bestimmte Aktionen ausführen
-möchte und dabei an Berechtigungsgrenzen stößt, sodass er die betreffende Aktion nur unter einem
-anderen Benutzerkonto, beispielsweise einem Administratorkonto, fortsetzen kann. xucRun bindet
-dafür die nativen Windows-Mechanismen in denselben Arbeitsablauf ein.
+Vor dem ersten Aufruf müssen nicht alle Voraussetzungen vollständig eingerichtet sein. Der
+Anwender kann den gewünschten Programmstart unmittelbar anfordern; xucRun fragt eine noch fehlende
+Kontoauswahl, Anmeldedaten oder Freigabe im laufenden Aufruf ab. Passende Anmeldedaten und
+Freigaben können anschließend bei späteren Aufrufen wiederverwendet werden.
 
-Der Anwender muss die Voraussetzungen dafür nicht vor dem ersten Aufruf vollständig einrichten. Er
-kann den gewünschten Programmaufruf unmittelbar mit xucRun starten. Fehlen für diesen Aufruf noch
-ein geeignetes Konto, gespeicherte Anmeldedaten oder eine Freigabe, führt xucRun interaktiv durch
-die jeweils notwendigen Schritte und fragt die benötigten Angaben und Entscheidungen im laufenden
-Arbeitsablauf ab. Bereits vorhandene Anmeldedaten und Freigaben werden bei späteren Aufrufen
-wiederverwendet, soweit sie zum jeweiligen Aufruf passen, sodass anschließend in der Regel nur noch
-eine einzige Bestätigung per Mausklick erforderlich ist.
-
-Die grundlegenden Aktionen, Programme unter einem anderen Benutzerkonto zu starten und
-administrative Rechte anzufordern, lassen sich auch mit Windows-eigenen Mitteln ausführen. xucRun
-verbindet diese Möglichkeiten in einem Ablauf und ergänzt sie um kontrollierte Freigaben für
-gespeicherte Anmeldedaten. Das Speichern und Wiederverwenden der Anmeldedaten ist mit zusätzlichen
-Sicherheitsrisiken verbunden. Wer diese Risiken nicht eingehen möchte, sollte besser
-Windows-eigene Möglichkeiten wie z. B. den schnellen Benutzerwechsel nutzen.
+Windows stellt die zugrunde liegenden Möglichkeiten zum Starten von Programmen unter einem anderen
+Konto und zum Anfordern administrativer Rechte bereits bereit. Der Zweck von xucRun besteht darin,
+sie in einem Ablauf zu verbinden und um kontrollierte Freigaben für gespeicherte Anmeldedaten zu
+ergänzen. Dieser Komfort bringt zusätzliche Risiken mit sich. Wer Anmeldedaten nicht speichern und
+wiederverwenden möchte, sollte stattdessen Windows-eigene Alternativen wie den schnellen
+Benutzerwechsel nutzen.
 
 ## Vergleich mit Windows-Funktionen und anderen Lösungen
+
+Die folgenden Möglichkeiten überschneiden sich mit einzelnen Teilen des zuvor beschriebenen
+Ablaufs, verwenden aber unterschiedliche Konto-, Sitzungs-, Anmeldedaten- und Freigabemodelle.
+
+### Schneller Benutzerwechsel
 
 Beim schnellen Benutzerwechsel bleibt die bisherige Windows-Sitzung mit ihren geöffneten Programmen
 erhalten, während sich der Anwender unter einem anderen Benutzerkonto in einer separaten Sitzung
@@ -60,12 +604,17 @@ Arbeitsumgebung des anderen Benutzers benötigt wird.
 
 Gegenüber dem schnellen Benutzerwechsel bleibt der Anwender mit xucRun in seiner aktuellen Sitzung
 und startet nur das benötigte Programm unter dem gewählten anderen Benutzerkonto, mit oder ohne
-erhöhte Rechte. Die Windows-Benutzerkontensteuerung (User Account Control, UAC) ist die
-Windows-Sicherheitsfunktion, über die ein Benutzer den Start mit Administratorrechten ausdrücklich
-bestätigt. Abhängig vom konkreten Startpfad und der Windows-Konfiguration kann ein Kontowechsel mit
-xucRun eine UAC-Bestätigung erfordern. Bei einem Start ohne Erhöhung kann UAC über den
-xucRun-Helfer die Anwesenheit des Benutzers bestätigen; bei einer Erhöhung kann UAC stattdessen
-den Start des Zielprogramms bestätigen und ihm die angeforderten Administratorrechte erteilen.
+erhöhte Rechte. Wer dafür keine Anmeldedaten speichern möchte, kann stattdessen den schnellen
+Benutzerwechsel verwenden.
+
+### Windows-UAC und Windows Sudo
+
+Die Windows-Benutzerkontensteuerung (User Account Control, UAC) ist die Windows-Sicherheitsfunktion,
+über die ein Benutzer den Start mit Administratorrechten ausdrücklich bestätigt. Abhängig vom
+konkreten Startpfad und der Windows-Konfiguration kann ein Kontowechsel mit xucRun eine
+UAC-Bestätigung erfordern. Bei einem Start ohne Erhöhung kann UAC über den xucRun-Helfer die
+Anwesenheit des Benutzers bestätigen; bei einer Erhöhung kann UAC stattdessen den Start des
+Zielprogramms bestätigen und ihm die angeforderten Administratorrechte erteilen.
 
 [Windows Sudo](https://learn.microsoft.com/windows/advanced-settings/sudo/) startet aus einer
 nicht erhöhten Konsole einen einzelnen Prozess über Windows-UAC mit Administratorrechten. Die
@@ -83,6 +632,8 @@ den Anwendungsfall, Programme aus einem Standardkonto unter einem anderen lokale
 gespeicherten Anmeldedaten und einmaligen oder zeitlich begrenzbaren Freigaben zu starten. Wenn
 Windows für den Zielprogrammstart eine UAC-Bestätigung verlangt, bleibt diese interaktiv.
 
+### `runas.exe /savecred`
+
 Eine weitere Windows-eigene Möglichkeit, die mehr Ähnlichkeit mit xucRun hat, ist
 [`runas.exe`](https://learn.microsoft.com/windows-server/administration/windows-commands/runas).
 Damit lassen sich einzelne Programme gezielt unter einem anderen Benutzerkonto starten. Mit dem
@@ -93,8 +644,9 @@ erneut abzufragen. Bei der Verwendung von `runas.exe` bestehen jedoch einige Ein
 
 - Das Zielkonto muss bei jedem Aufruf mit `/user:<Konto>` angegeben werden. Sein Name steht damit
   je nach Verwendung in Skripten, Verknüpfungen oder auf der Kommandozeile.
-- `runas.exe` fordert keine Erhöhung über UAC an. Ohne eine solche Erhöhung wird ein
-  Administratorkonto bei aktiviertem UAC normalerweise nur mit eingeschränkten Rechten gestartet.
+- `runas.exe` fordert keine Erhöhung über UAC an. Abhängig von der Windows-UAC-Konfiguration kann
+  ein Administratorkonto nur mit eingeschränkten Rechten starten, solange die Erhöhung nicht
+  gesondert angefordert wird.
 - Nach `/savecred` kann das Konto, dessen Anmeldedaten gespeichert wurden, ohne erneute Bestätigung
   für weitere Programmstarts verwendet werden. Dabei gibt es keine obligatorische Freigabe und
   keine Bindung an bestimmte Programme, Dateihashes, Argumente oder Arbeitsverzeichnisse.
@@ -116,16 +668,9 @@ Sind passende Anmeldedaten gespeichert, muss der Aufruf weder Zielkonto noch Ken
 Programmpfade, Argumente, Arbeitsverzeichnisse, Batchdateien und typische Shell-Sonderzeichen
 werden kontrolliert über die notwendigen Prozessgrenzen hinweg behandelt.
 
-Zur Veranschaulichung dient der Start des Gerätemanagers aus einem Standardbenutzerkonto als reales
-Beispiel. Mit genau einem Administratorkonto, für das xucRun-Anmeldedaten gespeichert sind, genügt
-über xucRun dieser Aufruf:
-
-```cmd
-xucRun.exe "%windir%\System32\mmc.exe" "%windir%\System32\devmgmt.msc"
-```
-
-Mit `runas.exe /savecred` und einem separaten Elevationswerkzeug könnte das schematische
-Gegenstück beispielsweise so aussehen, wenn dieses Werkzeug die Syntax
+Für den unter [Anwendungsbeispiele](#anwendungsbeispiele) gezeigten Gerätemanager-Aufruf könnte das
+schematische Gegenstück mit `runas.exe /savecred` und einem separaten Elevationswerkzeug
+beispielsweise so aussehen, wenn dieses Werkzeug die Syntax
 `elevate.exe <Programm> [Argumente ...]` unterstützt:
 
 ```cmd
@@ -163,6 +708,8 @@ eines der gebundenen Programme, passt dessen SHA-256-Hash nicht mehr zur Freigab
 Übernahme der Freigabe auf die geänderte Programmversion verlangt xucRun eine ausdrückliche
 Entscheidung.
 
+### Lösungen anderer Anbieter und Wahl des Ansatzes
+
 Neben den Windows-eigenen Möglichkeiten gibt es Lösungen anderer Anbieter für Benutzerwechsel,
 Rechteerhöhungen und die Verwaltung administrativer Zugriffe. Sie setzen je nach Anwendungsfall
 andere Schwerpunkte und können zum Beispiel für zentrale Administration, verwaltete
@@ -173,8 +720,9 @@ unterschiedlicher Einsatz- und Sicherheitsmodelle nur eingeschränkt vergleichba
 
 Die passende Lösung richtet sich nach den jeweiligen Anforderungen.
 
-Wer bereit ist, bei jedem entsprechenden Programmstart die Anmeldedaten des anderen
-Benutzerkontos erneut einzugeben, kann dafür die Windows-eigenen Mechanismen verwenden.
+Wer aus einem Standardbenutzerkonto heraus Programme unter einem anderen Benutzerkonto starten
+möchte und bereit ist, dessen Anmeldedaten bei jedem Start erneut einzugeben, kann dafür die
+Windows-eigenen Mechanismen verwenden.
 
 Wer dagegen wiederholte Kennworteingaben vermeiden und genauer als mit `runas /savecred`
 kontrollieren möchte, welche Programme gespeicherte Anmeldedaten und administrative Rechte
@@ -253,6 +801,139 @@ bei Übereinstimmung bestätigen. Das Merkmal weist auf den xucRun-Helperdialog 
 weder die Ungefährlichkeit noch den Ursprung einer Operation. Es bietet keinen vollständigen
 Schutz auf einem kompromittierten System und hilft nur, wenn der Benutzer es tatsächlich
 vergleicht.
+
+## Freigaben
+
+**Mit jeder Freigabe legt der Anwender das Verhältnis zwischen Bedienkomfort und enger Begrenzung
+selbst fest:** Je länger und weiter eine Freigabe gilt, desto mehr passende spätere Aufrufe kommen
+ohne erneute xucRun-Freigabeentscheidung aus. Eine kürzere oder genauer an Programm, Aufruf und
+Zielkonto gebundene Freigabe verlangt häufiger eine neue Entscheidung, begrenzt dafür aber ihre
+Wiederverwendung.
+
+Der differenzierte Freigabedialog ermöglicht es, Freigabedauer, Programm- und Aufrufbindung sowie
+die einbezogenen Zielkonten an den konkreten Anwendungsfall und das gewünschte Schutzniveau
+anzupassen. Sein fester Kopfbereich oberhalb der scrollbaren Aufrufdetails kennzeichnet den
+angezeigten xucRun-Clientpfad als erfolgreich vom Broker geprüft und zeigt aufrufendes Konto,
+Zielkonto und geschützte Herkunft des Freigabeassistenten vor dem erläuternden UAC-Hinweis. Der
+Scrollbereich zeigt ausführliche Authenticode-Informationen für das Zielprogramm. Bei einer
+vertrauenswürdigen Zielsignatur umfassen sie Signierer, vollständigen
+SHA-256-Zertifikatfingerabdruck, Aussteller, Zertifikatsgültigkeit, Signaturart sowie einen
+vorhandenen Signaturzeitstempel und dessen Aussteller. Schlägt die Vertrauensprüfung fehl,
+unterscheidet der Dialog eine fehlende Signaturzuordnung von häufigen Signatur-,
+Zertifikatsketten-, Gültigkeits-, Widerrufs- und Richtlinienfehlern. Eine fehlende Zuordnung
+bedeutet, dass keine auswertbare eingebettete Signatur und keine zum aktuellen Dateiinhalt passende
+Windows-Katalogsignatur gefunden wurde. Eine Katalogsignatur ordnet die Datei über ihren Hash zu;
+jede Byteänderung hebt diese Zuordnung auf, obwohl der Katalog und sein Zertifikat auf dem System
+weiterhin existieren und der geänderten Datei nicht mehr zugerechnet werden dürfen. Der Dialog
+zeigt außerdem Signierer- und Zertifikatsdetails an, die Windows für eine nicht vertrauenswürdige
+Signatur noch bereitstellt. xucRun erkennt dabei sowohl direkt eingebettete
+Authenticode-Signaturen als auch Windows-Katalogsignaturen. Ein unsigniertes oder nicht
+vertrauenswürdiges Ziel bleibt freigebbar, weil die Signaturinformation die genaue Pfad- und
+SHA-256-Identität ergänzt, aber nicht ersetzt. Als Freigabedauer stehen zur Verfügung:
+
+- nur dieser eine Start,
+- 10 Minuten,
+- ein Tag,
+- bis zur Abmeldung,
+- dauerhaft.
+
+Unterscheidet sich der aktuelle Start von bereits für dasselbe Zielprogramm gespeicherten
+Freigaben, fassen die scrollbaren Details bis zu vier der relevantesten Freigaben zusammen und
+nennen die abweichenden Bindungen, etwa Programmdatei, Zielkonto, Erhöhungsmodus, Argumente,
+Arbeitsverzeichnis, Sichtbarkeit oder direktes Skript. Der Bereich „Wirkung der Auswahl“ erklärt,
+ob die neue Auswahl eine separate Freigabe ergänzt, bestehende Freigaben erweitert, eine ansonsten
+identische Freigabe mit anderem Erhöhungsmodus ersetzt oder weiterhin von einer weiterreichenden
+Freigabe überlagert wird. Bestehende engere oder weiterreichende Freigaben werden nicht automatisch
+gelöscht; `/showapprovals` bleibt die vollständige Verwaltungsansicht. Argumente werden nicht im
+Klartext rekonstruiert oder angezeigt.
+
+Das Verhältnis einer wiederverwendbaren Freigabe zu einer weiterhin erforderlichen
+Windows-UAC-Bestätigung beschreibt der Abschnitt
+[Freigaben und UAC in xucRun](#freigaben-und-uac-in-xucrun).
+
+Bei „Nur dieses eine Mal“ gelten Freigabeumfang und Zielkontenauswahl nicht, weil die Freigabe
+ausschließlich für den aktuell angezeigten Start gilt. Die betreffenden Auswahlfelder sind deshalb
+deaktiviert. Eine wiederverwendbare Freigabe kann an ein bestimmtes Programm oder an alle Programme
+sowie an ein bestimmtes Zielkonto oder an alle gespeicherten Konten des aktuellen Windows-Benutzers
+gebunden werden. Programmspezifische Freigaben berücksichtigen den SHA-256-Hash der Startdatei.
+Ändert sich die Datei, muss die Übernahme der Freigabe auf die neue Version ausdrücklich bestätigt
+werden. Dies gilt auch für Freigaben **„Genau dieser Aufruf“**; ihre Bindungen an Argumente,
+Arbeitsverzeichnis, Sichtbarkeit und direkt erkannte Skripte bleiben bei der bestätigten Übernahme
+des Programmhashs unverändert.
+
+![Freigabe nach Änderung eines Programmhashs](docs/de/images/program-hash-change-approval.png)
+
+Mit **„Genau dieser Aufruf“** kann eine wiederverwendbare Freigabe zusätzlich an die exakten
+Argumente, das Arbeitsverzeichnis und daran gebunden werden, ob das Programm sichtbar oder
+verborgen gestartet wird. Schon eine Änderung dieser Werte erfordert dann eine neue Freigabe. Die
+Argumente werden dabei nicht im Klartext gespeichert, sondern nur durch ihren SHA-256-Hash
+gebunden.
+
+![xucRun-Freigabedialog auf separatem Desktop](docs/de/images/approval-dialog.png)
+
+Eine Freigabe begrenzt nicht die Fähigkeiten des gestarteten Programms. Allgemeine oder dauerhafte
+Freigaben für universelle Interpreter wie `cmd.exe`, PowerShell oder `wscript.exe` sind deshalb
+besonders weitreichend.
+
+Bei `cmd.exe`, `powershell.exe`, `pwsh.exe`, TCC und Windows Script Host weist der Freigabedialog
+deshalb auf die weiterreichenden Fähigkeiten des Interpreters hin. Eine normale
+Programmfreigabe bindet die angezeigten Argumente nicht. Deshalb ist bei diesen Shells und
+Interpretern für eine wiederverwendbare Freigabe „Genau dieser Aufruf“ vorausgewählt.
+
+Wird eine wiederverwendbare Freigabe für einen dieser Interpreter dennoch auf „Nur für dieses
+Zielprogramm“ oder „Für alle Programme“ geändert, verlangt xucRun auf dem geschützten Desktop eine
+zweite ausdrückliche Bestätigung. Sie erklärt, dass Argumente, Skriptpfade und Skriptinhalte nicht
+Teil der gespeicherten Freigabe sind und später andere Befehle oder neue beziehungsweise veränderte
+Skripte ohne erneuten xucRun-Freigabedialog gestartet werden können. „Zurück zur Auswahl“ ist die
+Vorgabe. Eine bewusst gespeicherte weitreichende Freigabe behält diese Wirkung, wenn sie auf einen
+späteren Aufruf passt.
+
+![Bestätigung vor dem Speichern einer weitreichenden Interpreterfreigabe](docs/de/images/broad-interpreter-approval-confirmation.png)
+
+Erkennt xucRun dabei ein direkt angegebenes PowerShell-, Batch-, TCC- oder
+Windows-Script-Host-Skript, bindet es dessen vollständig aufgelösten Pfad und SHA-256-Hash
+zusätzlich, sofern das aufrufende Konto keinen für den Austausch relevanten Ordner verändern kann.
+Die Skriptdatei selbst darf beschreibbar sein: Ändert sich ihr Inhalt später, passt ihr Hash nicht
+mehr und xucRun verlangt eine neue Freigabe. Unmittelbar vor jedem Start prüft der Broker finalen
+Pfad und Hash erneut und hält die geprüfte Datei bis zum Programmstart gegen Änderung und
+Austausch gesperrt. Eine aktive Skriptbindung ist daran erkennbar, dass oben im Freigabedialog
+das direkte Skript mit Pfad und SHA-256-Hash angezeigt wird. Der Dialog zeigt außerdem dieselben
+Authenticode- und Zertifikatsdetails für das direkte Skript. Diese Information setzt keine
+Skriptsignatur voraus und ersetzt nicht die Pfad- und Hashbindung. Für PowerShell ist eine
+wiederverwendbare Freigabe „Genau dieser Aufruf“ nur mit einer solchen sicher gebundenen direkten
+Skriptdatei verfügbar. Insbesondere `-Command`, interaktive Aufrufe und andere nicht als direkte
+`-File`-Ausführung erkannte Formen können nur einmalig oder bewusst mit einem weiterreichenden
+Freigabeumfang bestätigt werden.
+
+Wird bei anderen Interpretern kein direktes Skript mit Pfad und SHA-256-Hash angezeigt, bindet
+„Genau dieser Aufruf“ zwar Programmdatei, Argumente, Arbeitsverzeichnis und dieselbe Einstellung
+für einen sichtbaren oder verborgenen Start, aber kein weiteres Programm und keinen Skriptinhalt.
+Programme, Skripte und andere Dateien, die im Befehl genannt oder von ihm
+direkt oder indirekt aufgerufen werden, können ersetzt oder inhaltlich verändert werden, ohne
+dass die Freigabe dadurch ungültig wird. Das gilt beispielsweise für freien CMD-Befehlstext mit
+`SET` und `CALL` sowie für Programme, die ein gebundenes Zielprogramm oder Skript anschließend
+startet.
+
+Kann dagegen ein austauschrelevanter Ordner verändert oder Pfad beziehungsweise Inhalt nicht
+sicher geprüft werden, ist eine wiederverwendbare Freigabe für „Genau dieser Aufruf“ nicht
+verfügbar. Der Dialog erklärt den Grund und behält die einmalige Freigabe als Vorgabe bei. Der
+Anwender kann stattdessen bewusst eine wiederverwendbare Freigabe für den Interpreter oder für
+alle Programme wählen. Eine solche weitreichende Freigabe bindet Argumente, Skriptpfad und
+Skriptinhalt nicht und erfordert deshalb die oben beschriebene gesonderte ausdrückliche
+Bestätigung. Vor jedem einzelnen Start prüft und sperrt der Broker ein erkanntes direktes Skript
+dennoch erneut; diese Startprüfung bindet spätere Aufrufe nicht an den früheren Skriptinhalt. Bei
+PowerShell kann eine administrativ erzwungene Richtlinie `AllSigned` Skriptdateien zusätzlich
+absichern, schützt jedoch nicht vor direkten oder interaktiven Befehlen.
+
+Aufrufende Skripte, Verknüpfungen und Konfigurationsdateien, aus denen der xucRun-Aufruf erst
+erzeugt wird, werden weiterhin nicht allgemein gehasht. Die Freigabe bindet den daraus
+entstehenden xucRun-Aufruf, nicht die Skript-, Verknüpfungs- oder Konfigurationsdatei, aus der er
+stammt. Nachgelagerte Programme und dynamisch nachgeladene Skripte, Module,
+Konfigurationsdateien, Plugins und Programmeingaben gehören ebenfalls nicht automatisch zur
+Bindung. Solche Programme und Dateien sowie die für ihren Austausch relevanten Verzeichnisse
+müssen deshalb weiterhin entsprechend geschützt sein. Eine vorhandene xucRun-Freigabe ist kein
+Ersatz für diesen Schutz. Die übrigen Brokerprüfungen, insbesondere zu Konto, angeforderten
+Rechten, Sichtbarkeit, Zielpfad und Zielprogrammhash, bleiben wirksam.
 
 ## Umfang von xucRun
 
@@ -531,619 +1212,6 @@ Protokollordner öffnen. Das Protokoll enthält keine gespeicherten Kennwörter.
 Beide Installationswege und die Hinweise zur lokalen Testsignierung stehen ausführlich in der
 [Installationsanleitung](docs/de/INSTALLATION.md).
 
-Die folgenden Beispiele verwenden den Kurznamen `xucRun.exe`. Das funktioniert, wenn
-`%ProgramFiles%\xucRun` während der Installation in den globalen Maschinen-PATH aufgenommen
-wurde. Im grafischen Installer kann diese Option ausgewählt werden; bei der manuellen
-Installation wird dafür `-AddToSystemPath` angegeben. Ohne PATH-Eintrag muss xucRun mit
-vollständigem Pfad aufgerufen werden, beispielsweise
-`"%ProgramFiles%\xucRun\xucRun.exe"`.
-
-## Schnellstart
-
-Nach der Installation können xucRun-Anmeldedaten für ein Zielkonto ausdrücklich gespeichert
-werden:
-
-```powershell
-xucRun.exe /addcred Administrator
-```
-
-Wird der Kontoname weggelassen, öffnet xucRun zuerst ein Dialogfenster zur Auswahl eines
-aktivierten lokalen Kontos. Anschließend erscheint unabhängig davon, ob das Konto angegeben oder
-ausgewählt wurde, ein Dialogfenster zur Kennworteingabe auf dem separaten Windows-Desktop. Für ein
-Domänenkonto wird `DOMAIN\Benutzername` angegeben.
-
-| Anmeldedateneingabe auf separatem Desktop | Bestätigung gespeicherter Anmeldedaten |
-|:---:|:---:|
-| ![Anmeldedateneingabe auf separatem Desktop](docs/de/images/credential-entry.png) | ![Bestätigung gespeicherter Anmeldedaten](docs/de/images/credential-stored.png) |
-
-Programme werden mit ihrem normalen Programmpfad und den anschließenden Argumenten aufgerufen:
-
-```powershell
-xucRun.exe notepad.exe
-xucRun.exe regedit.exe
-xucRun.exe powershell.exe -NoExit
-xucRun.exe cmd.exe /c "net stop MyService"
-```
-
-Fehlen ein geeignetes Konto, gespeicherte Anmeldedaten oder eine passende Freigabe, führt xucRun
-im laufenden Aufruf durch die erforderlichen Schritte.
-
-## Anwendungsbeispiele
-
-Gerätemanager aus einem Standardbenutzerkonto öffnen:
-
-```cmd
-xucRun.exe "%windir%\System32\mmc.exe" "%windir%\System32\devmgmt.msc"
-```
-
-Eine administrative PowerShell mit einem Skript starten:
-
-```powershell
-xucRun.exe powershell.exe -File "C:\Scripts\AdminScript.ps1"
-```
-
-Einen Windows-Dienst über `cmd.exe` stoppen:
-
-```cmd
-xucRun.exe cmd.exe /c "net stop MyService"
-```
-
-Eine Datei mit einem Programm unter dem gewählten Zielkonto bearbeiten:
-
-```powershell
-xucRun.exe notepad.exe "C:\Windows\System32\drivers\etc\hosts"
-```
-
-Die aktuelle PowerShell durch eine PowerShell im automatisch gewählten Benutzer- und
-Berechtigungskontext ersetzen:
-
-```powershell
-PS D:\Beispiel\Projekt> xucRun.exe
-```
-
-Bei diesem parameterlosen Aufruf erkennt xucRun die direkte Eltern-Shell, schließt die bisherige
-Konsole nach erfolgreichem Start und öffnet dieselbe Shell im ursprünglichen Arbeitsverzeichnis
-neu. Läuft die bisherige PowerShell unter einem Standardkonto und ist genau ein
-Administratorkonto mit xucRun-Anmeldedaten gespeichert, wählt xucRun dieses Konto automatisch,
-fordert die Windows-UAC-Bestätigung an und startet die neue PowerShell erhöht unter diesem Konto
-wieder in `D:\Beispiel\Projekt`. Das ist der typische Hauptanwendungsfall der Shell-Ersetzung.
-
-Sind für mehrere Administratorkonten xucRun-Anmeldedaten gespeichert, erscheint stattdessen die
-Kontoauswahl. Ist das
-aktuelle Konto selbst ein Administrator, verwendet xucRun dieses Konto und nutzt bereits erteilte
-erhöhte Rechte direkt oder fordert andernfalls UAC an. Nur wenn für ein
-Standardkonto keine xucRun-Anmeldedaten eines Administratorkontos gespeichert sind,
-berücksichtigt xucRun Standardkonten, für die xucRun-Anmeldedaten gespeichert sind, und startet
-die Ersatz-Shell ohne Erhöhung. Das Arbeitsverzeichnis bleibt in allen Fällen erhalten.
-
-Die oben gezeigten Aufrufe mit einem Zielprogramm können auch in Skripten und
-Desktop-Verknüpfungen verwendet werden. Kann xucRun das Zielkonto eindeutig automatisch bestimmen,
-muss im Aufruf kein Kontoname stehen.
-
-Für die Trennung zwischen Standardbenutzer und privilegiertem Zielkonto gilt der Grundsatz:
-**Der Standardbenutzer darf die privilegierte Aktion anfordern, aber nicht unbemerkt deren
-administrativ freigegebenen Inhalt verändern.**
-
-Das ist kein xucRun-spezifisches Problem, sondern gilt allgemein, wenn ein weniger privilegiertes
-Konto Dateien verändern kann, die das Verhalten eines höher privilegierten Prozesses bestimmen.
-
-Skripte, Verknüpfungen, geplante Aufgaben und Konfigurationsdateien, die einen xucRun-Aufruf
-enthalten oder dessen Ziel, Argumente oder Arbeitsverzeichnis bestimmen, müssen deshalb selbst
-vertrauenswürdig und vor unbefugten Änderungen geschützt sein. xucRun kann ihre Integrität nicht
-allgemein prüfen. Konten, die solche Dateien verändern können, müssen bereits als berechtigt
-gelten, den betreffenden privilegierten Aufruf zu kontrollieren. Das gilt auch für übergeordnete
-Verzeichnisse, über die diese Dateien gelöscht, ersetzt, umbenannt oder umgeleitet werden könnten.
-Solche Dateien dürfen nicht in gemeinsam oder unzureichend geschützten beschreibbaren
-Verzeichnissen liegen.
-
-Die parameterlose Shell-Ersetzung ist dagegen für den interaktiven Aufruf aus einer unterstützten
-Shell bestimmt. In einem Skript sollte sie nur verwendet werden, wenn das Schließen der bisherigen
-Konsole und der interaktive Start einer Ersatz-Shell ausdrücklich beabsichtigt sind. Für eine
-normale Desktop-Verknüpfung ist der parameterlose Aufruf nicht geeignet.
-
-Unterstützte Eltern-Shells sind `cmd.exe`, `powershell.exe`, `pwsh.exe` und `tcc.exe`.
-
-### Batchdatei bei Bedarf erhöht neu starten
-
-Eine Batchdatei kann am Anfang prüfen, ob sie bereits mit erhöhten Rechten läuft. Andernfalls
-startet sie sich über xucRun erneut und beendet den ursprünglichen, nicht erhöhten Durchlauf. Mit
-`/user-elevated` verwendet das aktuelle Konto weiter, wenn es bereits ein Administratorkonto ist,
-und fordert nur bei Bedarf die UAC-Erhöhung an. Andernfalls wählt xucRun ein Administratorkonto
-aus:
-
-```cmd
-@echo off
-NET SESSION >nul 2>&1
-IF ERRORLEVEL 1 (
-  "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%~dpnx0" %*
-  GOTO :eof
-)
-
-REM Ab hier folgen die Befehle, die erhöhte Rechte benötigen.
-```
-
-`%~dpnx0` liefert den vollständig qualifizierten Pfad der laufenden Batchdatei; `%*` reicht alle
-ursprünglichen Argumente weiter. `GOTO :eof` verhindert, dass der nicht erhöhte Durchlauf nach dem
-erneuten Start fortgesetzt wird. Die Prüfung mit `NET SESSION` setzt voraus, dass der Windows-Dienst
-**Server** verfügbar ist.
-
-### Desktop-Verknüpfung für einen erhöhten Explorer
-
-Eine Desktop-Verknüpfung kann ein Explorer-Fenster für ein festgelegtes Verzeichnis direkt unter
-einem bestimmten Administratorkonto, für das xucRun-Anmeldedaten gespeichert sind, und mit
-erhöhten Rechten öffnen. Im Feld **Ziel** der Verknüpfung steht beispielsweise:
-
-```text
-"%ProgramFiles%\xucRun\xucRun.exe" /user-elevated:Administrator "%WINDIR%\explorer.exe" "/root,"D:\Beispiel\Zielordner""
-```
-
-`/user-elevated:Administrator` sollte verwendet werden, wenn die Verknüpfung immer ein bestimmtes
-Administratorkonto wählen, für das xucRun-Anmeldedaten gespeichert sind, und den Explorer
-ausdrücklich mit erhöhten Rechten starten soll. Soll xucRun das passende Konto automatisch
-bestimmen, wird der Schalter weggelassen. Soll der Explorer zwar unter einem bestimmten anderen
-Konto, aber ohne durch xucRun erzwungene Erhöhung starten, wird stattdessen `/user:<Konto>`
-verwendet.
-
-`Administrator` ist durch das gewünschte Administratorkonto, für das xucRun-Anmeldedaten
-gespeichert sind, und der Beispielpfad durch das zu öffnende Verzeichnis zu ersetzen. `/root`
-setzt dieses Verzeichnis als Wurzel des neuen Explorer-Fensters. Die verschachtelten
-Anführungszeichen müssen unverändert erhalten bleiben. Die gespeicherten Anmeldedaten ersetzen
-nicht die interaktive Windows-UAC-Bestätigung.
-
-### Integration in das Explorer-Kontextmenü
-
-Die optionale Datei [ExplorerKontextMenue.reg](ExplorerKontextMenue.reg) enthält ein vollständiges
-Beispiel, das xucRun-Befehle für unterstützte Dateien, Ordner, Ordnerhintergründe und Laufwerke
-ergänzt. Die Befehlseinträge für ausführbare Dateien und Ordnerhintergründe folgen beispielsweise
-diesen Mustern:
-
-```reg
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\xucRun\command]
-@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"%1\""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\xucRunAdmin\command]
-@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"C:\\Windows\\explorer.exe\" \"/root,\"%V\"\""
-```
-
-Die Datei ist ein Beispiel und kein Bestandteil des Installers. Sie entfernt zuerst die neun von
-ihr verwalteten Einträge und erstellt sie anschließend unter `HKEY_LOCAL_MACHINE` neu, sodass sie
-für alle Benutzer gelten. Der Import erfordert Administratorrechte, setzt eine xucRun-Installation
-unter `C:\Program Files\xucRun` voraus und erzwingt für jeden enthaltenen xucRun-Befehl mit
-`/user-elevated` ausdrücklich ein erhöhtes Administratorkonto.
-
-Diese Einträge verwenden die klassische Win32-Registrierung für Explorer-Kontextmenüs unter
-`Software\Classes\...\shell`. Im standardmäßigen kompakten Kontextmenü von Windows 11 stehen sie
-normalerweise erst unter **Weitere Optionen anzeigen**. Wird stattdessen das klassische
-Kontextmenü verwendet, erscheinen sie unmittelbar.
-
-### Integration in Total Commander
-
-Die folgenden Beispiele zeigen Ausschnitte der Total-Commander-Konfigurationsdatei `usercmd.ini`.
-Sie wurden mit Total Commander 11.58 (64 Bit) getestet. Sie können auch mit anderen Versionen
-funktionieren; deren Kompatibilität wurde jedoch nicht geprüft. Allgemeine Informationen zu Total
-Commander bietet die
-[offizielle Total-Commander-Webseite](https://www.ghisler.com/deutsch.htm).
-
-xucRun kann eine neue erhöhte Total-Commander-Instanz nach seiner automatischen Kontostrategie
-starten. Mitglieder der Administratorengruppe behalten ihr Konto und werden bei Bedarf über UAC
-erhöht. Bei einem Standardbenutzer verwendet xucRun ein gespeichertes Administratorkonto. Der
-Aufruf übernimmt den linken Pfad, den rechten Pfad und das aktive Dateipanel:
-
-```ini
-[em_TCStart_Elevated]
-button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
-cmd=%comspec% /v:on /c
-param=SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" "%|COMMANDER_PATH|\TOTALCMD64.EXE" /L="!L!" /R="!R!" /P=!Active!
-menu=Start TC über xucRun mit erhöhten Rechten; Administratormitglieder behalten ihr Konto, Standardbenutzer wechseln zum Administrator
-iconic=1
-
-[em_TCReStart_Elevated]
-button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
-cmd=cm_Exit,em_TCStart_Elevated
-param=
-menu=Neustart TC mit erhöhten Rechten
-iconic=1
-```
-
-Der zweite Befehl schließt die aktuelle Total-Commander-Instanz und ruft anschließend den ersten
-Befehl auf. Für den Kontowechsel eines Standardbenutzers muss mindestens ein Administratorkonto in
-xucRun gespeichert sein. Sind mehrere passende Administratorkonten gespeichert, erscheint die
-Kontoauswahl. Eine erforderliche Windows-UAC-Abfrage muss bestätigt werden.
-
-Der folgende Befehl startet eine neue Total-Commander-Instanz als `LocalSystem`. Dabei bleiben der
-linke Pfad, der rechte Pfad und das aktive Dateipanel erhalten:
-
-```ini
-[em_TCStart_System]
-button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
-cmd="%ProgramFiles%\xucRun\xucRun.exe"
-param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /system "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
-menu=Total Commander über xucRun als LocalSystem starten
-iconic=1
-```
-
-Dieser Befehl muss xucRun zweimal aufrufen, weil `/system` nur aus einem erhöhten
-Administratorkontext verfügbar ist. Der äußere Aufruf startet nach der zuvor beschriebenen
-automatischen Kontostrategie eine erhöhte zwischengeschaltete Eingabeaufforderung und verbirgt sie
-durch `/hidden-monitor`. Der innere xucRun-Aufruf läuft dadurch mit erhöhten Administratorrechten
-und startet Total Commander als `LocalSystem`. Jeder SYSTEM-Start muss separat auf dem geschützten
-privaten xucRun-Desktop bestätigt werden.
-
-Die zwischengeschaltete `cmd.exe /v:on /c` speichert die von Total Commander gelieferten Pfade
-zuerst in Umgebungsvariablen und übergibt sie danach per verzögerter Variablenerweiterung an den
-inneren xucRun-Aufruf. Dadurch werden auch Pfade mit Leer- und Sonderzeichen zuverlässig
-verarbeitet. Der Vergleich der Pfade bestimmt zusätzlich, ob das linke oder rechte Panel aktiv
-ist.
-
-Total Commander besitzt anschließend uneingeschränkte `LocalSystem`-Rechte. Verwenden Sie diesen
-Befehl nur bewusst für Wartung und Diagnose.
-
-xucRun kann Total Commander außerdem unter einem ausdrücklich ausgewählten anderen Windows-Konto
-starten, ohne dass dieses bereits interaktiv angemeldet ist. So lassen sich Dateioperationen aus
-einer normalen Benutzersitzung heraus in einem anderen Kontokontext ausführen. Für erhöhte
-administrative Dateioperationen muss das Zielkonto über Administratorrechte verfügen und die
-Windows-UAC-Abfrage bestätigt werden.
-
-Für dieses Beispiel ist `<Konto>` durch den eingerichteten Kontonamen zu ersetzen; die
-Total-Commander-Variablen und das Quoting müssen unverändert übernommen werden:
-
-```ini
-[em_TCStart_Konto]
-button=%COMMANDER_EXE%
-cmd="%ProgramFiles%\xucRun\xucRun.exe"
-param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /user:<Konto> "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
-menu=Total Commander als <Konto> starten
-iconic=1
-```
-
-Der Befehl verwendet xucRun erneut zweimal, damit ein Administratorkonto als zentraler
-Bevollmächtigter für die Anmeldedaten weiterer Zielkonten dienen kann. Bei diesem Beispiel ist die
-Kaskade im Unterschied zum zuvor beschriebenen LocalSystem-Beispiel für die eigentliche
-Startfunktion nicht erforderlich; sie ist hier eine bewusste Designentscheidung für die
-Speicherung der Anmeldedaten. Der äußere Aufruf verwendet dieselbe zuvor beschriebene verborgene,
-erhöhte Administrator-Zwischenstufe. Der darin ausgeführte innere xucRun-Aufruf läuft deshalb mit
-der SID des Administrators und kann dessen für `<Konto>` gespeicherte Anmeldedaten verwenden.
-Dadurch müssen die Anmeldedaten der weiteren Zielkonten nicht für jeden Standardbenutzer erneut
-gespeichert werden; jeder Standardbenutzer benötigt nur die für ihn gespeicherten Anmeldedaten des
-zentralen Administratorkontos. Ein einzelner xucRun-Aufruf des Standardbenutzers könnte dagegen
-nur dessen eigene, an seine SID gebundenen Anmeldedaten verwenden. Der innere Aufruf verarbeitet
-`/user:<Konto>` und startet die sichtbare Total-Commander-Instanz unter dem Zielkonto. Die
-Erhöhung der äußeren Zwischenstufe wird nicht auf das Zielkonto übertragen; dessen Rechte bleiben
-unverändert.
-
-Der Befehl kann beispielsweise in ein benutzerdefiniertes Menü aufgenommen werden:
-
-```text
-POPUP "Benutzer"
-  MENUITEM "Total Commander für <Konto> starten", em_TCStart_Konto
-END_POPUP
-```
-
-Auf dieselbe Weise können weitere Konten ergänzt werden. Dazu können für jedes weitere Konto ein
-eigener Befehl in `usercmd.ini` sowie ein darauf verweisender `MENUITEM` angelegt werden.
-
-## Kontowahl und Rechte
-
-Ohne Benutzerschalter verwendet xucRun einen passenden aktuellen Benutzerkontext oder ein
-Administratorkonto, für das xucRun-Anmeldedaten gespeichert sind. Gibt es genau ein passendes
-Konto mit xucRun-Anmeldedaten, wird es automatisch gewählt; bei mehreren erscheint eine Auswahl.
-
-| Konto mit gespeicherten Anmeldedaten wählen | Lokalen Zielbenutzer wählen |
-|:---:|:---:|
-| ![Kontowahl für gespeicherte Anmeldedaten](docs/de/images/target-account-selection.png) | ![Auswahl eines lokalen Zielbenutzers](docs/de/images/target-user-selection.png) |
-
-| Aufruf | Verhalten |
-|---|---|
-| `xucRun.exe <Programm> [Argumente ...]` | Konto automatisch bestimmen; bei Bedarf erhöhte Rechte anfordern |
-| `xucRun.exe /user <Programm> [Argumente ...]` | Konto wählen, für das xucRun-Anmeldedaten gespeichert sind, ohne zusätzliche Erhöhung durch xucRun |
-| `xucRun.exe /user:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, ohne zusätzliche Erhöhung durch xucRun |
-| `xucRun.exe /user:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden, ohne zusätzliche Erhöhung durch xucRun |
-| `xucRun.exe /user-elevated <Programm> [Argumente ...]` | aktuelles Administratorkonto verwenden und bei Bedarf über UAC erhöhen; andernfalls Administratorkonto mit gespeicherten xucRun-Anmeldedaten wählen |
-| `xucRun.exe /user-elevated:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Administratorkonto wählen und erhöht starten |
-| `xucRun.exe /user-elevated:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden und erhöht starten |
-
-Die `:*`-Formen zeigen die lokale Zielkontoauswahl immer an, auch wenn nur ein geeignetes Konto
-oder nur ein passender Anmeldedatensatz vorhanden ist. Der Dialog kennzeichnet das aktuelle Konto
-und Konten mit gespeicherten xucRun-Anmeldedaten. Beim aktuellen Konto wird dessen vorhandener
-Token verwendet. Fehlen für ein anderes ausgewähltes Konto xucRun-Anmeldedaten, folgt die
-geschützte Kennworteingabe; nach erfolgreicher Speicherung wird der ursprüngliche Startauftrag
-fortgesetzt.
-
-Ist das aktuelle Konto kein Administratorkonto und sind beim ersten Aufruf mit `/user-elevated`
-noch keine Anmeldedaten für ein geeignetes Administratorkonto gespeichert, bietet xucRun
-automatisch die Auswahl eines Administratorkontos und die geschützte Kennworteingabe an. Nach
-erfolgreicher Speicherung wird der ursprüngliche Startauftrag fortgesetzt. `/addcred` kann
-weiterhin verwendet werden, um Anmeldedaten unabhängig von einem Startauftrag vorab zu speichern.
-
-Gespeicherte Anmeldedaten umgehen Windows-UAC nicht. Ist eine Erhöhung erforderlich, bleibt die
-UAC-Bestätigung interaktiv. Bei einer neuen Freigabe für einen erhöhten Start können zunächst der
-Freigabedialog auf dem separaten Desktop und anschließend der UAC-Dialog für das Zielprogramm
-erscheinen. Für kontenübergreifende erhöhte Starts muss für das ausgewählte Administratorkonto der
-Windows-Administratorbestätigungsmodus aktiviert sein. Stellt Windows stattdessen bereits einen
-vollständig erhöhten Token bereit, blockiert xucRun den Start, weil keine UAC-Bestätigung möglich
-wäre. Das kann insbesondere das integrierte Konto `Administrator` betreffen.
-
-## Freigaben
-
-**Mit jeder Freigabe legt der Anwender das Verhältnis zwischen Bedienkomfort und enger Begrenzung
-selbst fest:** Je länger und weiter eine Freigabe gilt, desto mehr passende spätere Aufrufe kommen
-ohne erneute xucRun-Freigabeentscheidung aus. Eine kürzere oder genauer an Programm, Aufruf und
-Zielkonto gebundene Freigabe verlangt häufiger eine neue Entscheidung, begrenzt dafür aber ihre
-Wiederverwendung.
-
-Der differenzierte Freigabedialog ermöglicht es, Freigabedauer, Programm- und Aufrufbindung sowie
-die einbezogenen Zielkonten an den konkreten Anwendungsfall und das gewünschte Schutzniveau
-anzupassen. Sein fester Kopfbereich oberhalb der scrollbaren Aufrufdetails kennzeichnet den
-angezeigten xucRun-Clientpfad als erfolgreich vom Broker geprüft und zeigt aufrufendes Konto,
-Zielkonto und geschützte Herkunft des Freigabeassistenten vor dem erläuternden UAC-Hinweis. Der
-Scrollbereich zeigt ausführliche Authenticode-Informationen für das Zielprogramm. Bei einer
-vertrauenswürdigen Zielsignatur umfassen sie Signierer, vollständigen
-SHA-256-Zertifikatfingerabdruck, Aussteller, Zertifikatsgültigkeit, Signaturart sowie einen
-vorhandenen Signaturzeitstempel und dessen Aussteller. Schlägt die Vertrauensprüfung fehl,
-unterscheidet der Dialog eine fehlende Signaturzuordnung von häufigen Signatur-,
-Zertifikatsketten-, Gültigkeits-, Widerrufs- und Richtlinienfehlern. Eine fehlende Zuordnung
-bedeutet, dass keine auswertbare eingebettete Signatur und keine zum aktuellen Dateiinhalt passende
-Windows-Katalogsignatur gefunden wurde. Eine Katalogsignatur ordnet die Datei über ihren Hash zu;
-jede Byteänderung hebt diese Zuordnung auf, obwohl der Katalog und sein Zertifikat auf dem System
-weiterhin existieren und der geänderten Datei nicht mehr zugerechnet werden dürfen. Der Dialog
-zeigt außerdem Signierer- und Zertifikatsdetails an, die Windows für eine nicht vertrauenswürdige
-Signatur noch bereitstellt. xucRun erkennt dabei sowohl direkt eingebettete
-Authenticode-Signaturen als auch Windows-Katalogsignaturen. Ein unsigniertes oder nicht
-vertrauenswürdiges Ziel bleibt freigebbar, weil die Signaturinformation die genaue Pfad- und
-SHA-256-Identität ergänzt, aber nicht ersetzt. Als Freigabedauer stehen zur Verfügung:
-
-- nur dieser eine Start,
-- 10 Minuten,
-- ein Tag,
-- bis zur Abmeldung,
-- dauerhaft.
-
-Unterscheidet sich der aktuelle Start von bereits für dasselbe Zielprogramm gespeicherten
-Freigaben, fassen die scrollbaren Details bis zu vier der relevantesten Freigaben zusammen und
-nennen die abweichenden Bindungen, etwa Programmdatei, Zielkonto, Erhöhungsmodus, Argumente,
-Arbeitsverzeichnis, Sichtbarkeit oder direktes Skript. Der Bereich „Wirkung der Auswahl“ erklärt,
-ob die neue Auswahl eine separate Freigabe ergänzt, bestehende Freigaben erweitert, eine ansonsten
-identische Freigabe mit anderem Erhöhungsmodus ersetzt oder weiterhin von einer weiterreichenden
-Freigabe überlagert wird. Bestehende engere oder weiterreichende Freigaben werden nicht automatisch
-gelöscht; `/showapprovals` bleibt die vollständige Verwaltungsansicht. Argumente werden nicht im
-Klartext rekonstruiert oder angezeigt.
-
-Das Verhältnis einer wiederverwendbaren Freigabe zu einer weiterhin erforderlichen
-Windows-UAC-Bestätigung beschreibt der Abschnitt
-[Freigaben und UAC in xucRun](#freigaben-und-uac-in-xucrun).
-
-Bei „Nur dieses eine Mal“ gelten Freigabeumfang und Zielkontenauswahl nicht, weil die Freigabe
-ausschließlich für den aktuell angezeigten Start gilt. Die betreffenden Auswahlfelder sind deshalb
-deaktiviert. Eine wiederverwendbare Freigabe kann an ein bestimmtes Programm oder an alle Programme
-sowie an ein bestimmtes Zielkonto oder an alle gespeicherten Konten des aktuellen Windows-Benutzers
-gebunden werden. Programmspezifische Freigaben berücksichtigen den SHA-256-Hash der Startdatei.
-Ändert sich die Datei, muss die Übernahme der Freigabe auf die neue Version ausdrücklich bestätigt
-werden. Dies gilt auch für Freigaben **„Genau dieser Aufruf“**; ihre Bindungen an Argumente,
-Arbeitsverzeichnis, Sichtbarkeit und direkt erkannte Skripte bleiben bei der bestätigten Übernahme
-des Programmhashs unverändert.
-
-![Freigabe nach Änderung eines Programmhashs](docs/de/images/program-hash-change-approval.png)
-
-Mit **„Genau dieser Aufruf“** kann eine wiederverwendbare Freigabe zusätzlich an die exakten
-Argumente, das Arbeitsverzeichnis und daran gebunden werden, ob das Programm sichtbar oder
-verborgen gestartet wird. Schon eine Änderung dieser Werte erfordert dann eine neue Freigabe. Die
-Argumente werden dabei nicht im Klartext gespeichert, sondern nur durch ihren SHA-256-Hash
-gebunden.
-
-![xucRun-Freigabedialog auf separatem Desktop](docs/de/images/approval-dialog.png)
-
-Eine Freigabe begrenzt nicht die Fähigkeiten des gestarteten Programms. Allgemeine oder dauerhafte
-Freigaben für universelle Interpreter wie `cmd.exe`, PowerShell oder `wscript.exe` sind deshalb
-besonders weitreichend.
-
-Bei `cmd.exe`, `powershell.exe`, `pwsh.exe`, TCC und Windows Script Host weist der Freigabedialog
-deshalb auf die weiterreichenden Fähigkeiten des Interpreters hin. Eine normale
-Programmfreigabe bindet die angezeigten Argumente nicht. Deshalb ist bei diesen Shells und
-Interpretern für eine wiederverwendbare Freigabe „Genau dieser Aufruf“ vorausgewählt.
-
-Wird eine wiederverwendbare Freigabe für einen dieser Interpreter dennoch auf „Nur für dieses
-Zielprogramm“ oder „Für alle Programme“ geändert, verlangt xucRun auf dem geschützten Desktop eine
-zweite ausdrückliche Bestätigung. Sie erklärt, dass Argumente, Skriptpfade und Skriptinhalte nicht
-Teil der gespeicherten Freigabe sind und später andere Befehle oder neue beziehungsweise veränderte
-Skripte ohne erneuten xucRun-Freigabedialog gestartet werden können. „Zurück zur Auswahl“ ist die
-Vorgabe. Eine bewusst gespeicherte weitreichende Freigabe behält diese Wirkung, wenn sie auf einen
-späteren Aufruf passt.
-
-![Bestätigung vor dem Speichern einer weitreichenden Interpreterfreigabe](docs/de/images/broad-interpreter-approval-confirmation.png)
-
-Erkennt xucRun dabei ein direkt angegebenes PowerShell-, Batch-, TCC- oder
-Windows-Script-Host-Skript, bindet es dessen vollständig aufgelösten Pfad und SHA-256-Hash
-zusätzlich, sofern das aufrufende Konto keinen für den Austausch relevanten Ordner verändern kann.
-Die Skriptdatei selbst darf beschreibbar sein: Ändert sich ihr Inhalt später, passt ihr Hash nicht
-mehr und xucRun verlangt eine neue Freigabe. Unmittelbar vor jedem Start prüft der Broker finalen
-Pfad und Hash erneut und hält die geprüfte Datei bis zum Programmstart gegen Änderung und
-Austausch gesperrt. Eine aktive Skriptbindung ist daran erkennbar, dass oben im Freigabedialog
-das direkte Skript mit Pfad und SHA-256-Hash angezeigt wird. Der Dialog zeigt außerdem dieselben
-Authenticode- und Zertifikatsdetails für das direkte Skript. Diese Information setzt keine
-Skriptsignatur voraus und ersetzt nicht die Pfad- und Hashbindung. Für PowerShell ist eine
-wiederverwendbare Freigabe „Genau dieser Aufruf“ nur mit einer solchen sicher gebundenen direkten
-Skriptdatei verfügbar. Insbesondere `-Command`, interaktive Aufrufe und andere nicht als direkte
-`-File`-Ausführung erkannte Formen können nur einmalig oder bewusst mit einem weiterreichenden
-Freigabeumfang bestätigt werden.
-
-Wird bei anderen Interpretern kein direktes Skript mit Pfad und SHA-256-Hash angezeigt, bindet
-„Genau dieser Aufruf“ zwar Programmdatei, Argumente, Arbeitsverzeichnis und dieselbe Einstellung
-für einen sichtbaren oder verborgenen Start, aber kein weiteres Programm und keinen Skriptinhalt.
-Programme, Skripte und andere Dateien, die im Befehl genannt oder von ihm
-direkt oder indirekt aufgerufen werden, können ersetzt oder inhaltlich verändert werden, ohne
-dass die Freigabe dadurch ungültig wird. Das gilt beispielsweise für freien CMD-Befehlstext mit
-`SET` und `CALL` sowie für Programme, die ein gebundenes Zielprogramm oder Skript anschließend
-startet.
-
-Kann dagegen ein austauschrelevanter Ordner verändert oder Pfad beziehungsweise Inhalt nicht
-sicher geprüft werden, ist eine wiederverwendbare Freigabe für „Genau dieser Aufruf“ nicht
-verfügbar. Der Dialog erklärt den Grund und behält die einmalige Freigabe als Vorgabe bei. Der
-Anwender kann stattdessen bewusst eine wiederverwendbare Freigabe für den Interpreter oder für
-alle Programme wählen. Eine solche weitreichende Freigabe bindet Argumente, Skriptpfad und
-Skriptinhalt nicht und erfordert deshalb die oben beschriebene gesonderte ausdrückliche
-Bestätigung. Vor jedem einzelnen Start prüft und sperrt der Broker ein erkanntes direktes Skript
-dennoch erneut; diese Startprüfung bindet spätere Aufrufe nicht an den früheren Skriptinhalt. Bei
-PowerShell kann eine administrativ erzwungene Richtlinie `AllSigned` Skriptdateien zusätzlich
-absichern, schützt jedoch nicht vor direkten oder interaktiven Befehlen.
-
-Aufrufende Skripte, Verknüpfungen und Konfigurationsdateien, aus denen der xucRun-Aufruf erst
-erzeugt wird, werden weiterhin nicht allgemein gehasht. Die Freigabe bindet den daraus
-entstehenden xucRun-Aufruf, nicht die Skript-, Verknüpfungs- oder Konfigurationsdatei, aus der er
-stammt. Nachgelagerte Programme und dynamisch nachgeladene Skripte, Module,
-Konfigurationsdateien, Plugins und Programmeingaben gehören ebenfalls nicht automatisch zur
-Bindung. Solche Programme und Dateien sowie die für ihren Austausch relevanten Verzeichnisse
-müssen deshalb weiterhin entsprechend geschützt sein. Eine vorhandene xucRun-Freigabe ist kein
-Ersatz für diesen Schutz. Die übrigen Brokerprüfungen, insbesondere zu Konto, angeforderten
-Rechten, Sichtbarkeit, Zielpfad und Zielprogrammhash, bleiben wirksam.
-
-## Programme, Argumente und Sonderzeichen
-
-Der erste Nicht-xucRun-Schalter ist das Zielprogramm. Alle folgenden Argumente gehören
-ausschließlich diesem Programm:
-
-```powershell
-xucRun.exe cmd.exe /c dir
-xucRun.exe /user:Administrator app.exe /config:value
-```
-
-`/c` und `/config:value` werden hier nicht von xucRun ausgewertet. Shell-interne Befehle müssen
-über die jeweilige Shell gestartet werden, beispielsweise `cmd.exe /c dir` oder
-`powershell.exe -Command Get-Process`.
-
-Programmpfade und einzelne Argumente mit Leerzeichen werden wie üblich in Anführungszeichen
-gesetzt. xucRun unterstützt auch Batchdateien und überträgt typische Shell-Sonderzeichen über die
-zusätzlichen Prozessgrenzen. Welche Zeichen von `cmd.exe`, PowerShell oder einer anderen
-aufrufenden Shell schon vor dem Start von xucRun ausgewertet werden, richtet sich weiterhin nach
-dieser Shell.
-
-Bei einem brokervermittelten Start einer `.bat`- oder `.cmd`-Datei, deren Dateiname eines der
-CMD-Metazeichen `& | ( ) ! % ^` enthält, erzeugt der Broker einen temporären Wrapper mit dem Namen
-`xucRun_wrapper_<128-Bit-Zufall>.bat`. Er legt ihn bevorzugt auf einem geeigneten Volume namens
-`RamDisk` ab, andernfalls im `%TEMP%`-Verzeichnis des Zielkontos. Der Broker schützt den Wrapper bis
-zum Ende des gestarteten Prozesses und versucht ihn anschließend oder bei einem fehlgeschlagenen
-Start während der Fehlerbereinigung zu löschen. Bleibt er wegen eines Löschfehlers oder
-unerwarteten Brokerendes zurück, kann ein lokaler Administrator ihn nach Freigabe manuell
-entfernen. Eine automatische Nachbereinigung gibt es nicht; der Wrapper enthält keine
-Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
-
-## Nützliche Befehle
-
-| Befehl | Zweck |
-|---|---|
-| `xucRun.exe /addcred [<Konto>]` | Anmeldedaten speichern |
-| `xucRun.exe /deletecred [<Konto>]` | gespeicherte Anmeldedaten auswählen und löschen |
-| `xucRun.exe /showcred` | Konten anzeigen, für die xucRun-Anmeldedaten gespeichert sind |
-| `xucRun.exe /showapprovals` | gespeicherte Freigaben anzeigen |
-| `xucRun.exe /resetapprovals[:<Konto>]` | Freigaben zurücksetzen |
-| `xucRun.exe /system [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell als `LocalSystem` starten |
-| `xucRun.exe /info` | Version, Copyright, Signierzertifikat, Brokerstatus und aktuelle Konfiguration anzeigen |
-| `xucRun.exe /admin-status` | Daten aller Windows-Benutzer erhöht anzeigen und verwalten |
-| `xucRun.exe /backup` | lokale Datensicherungen verwalten |
-| `xucRun.exe /audit` | Sicherheitsdiagnose ausführen |
-| `xucRun.exe /enable-broker` | einen deaktivierten Broker wieder aktivieren |
-| `xucRun.exe /clear-all` | gespeicherte Anmeldedaten, Freigaben, Sicherheitsmerkmale und zugehörige Metadaten löschen |
-| `xucRun.exe /help` | vollständige Hilfe anzeigen |
-
-`/hidden` verbirgt das unmittelbar gestartete Zielprogramm. `/hidden-monitor` überwacht zusätzlich
-dessen Exitcode und zeigt bei einem Fehler einen Hinweis. Dialoge und Kindprozesse werden dadurch
-nicht verborgen oder überwacht.
-
-`xucRun.exe` verwendet Exitcode `0` für einen erfolgreichen Vorgang und Exitcode `1`, wenn der
-Vorgang fehlschlägt, abgelehnt oder abgebrochen wird. Der Exitcode eines gestarteten Zielprogramms
-wird nicht als Exitcode von `xucRun.exe` zurückgegeben.
-
-### Anwendung oder Ersatz-Shell als LocalSystem starten
-
-`xucRun.exe /system [<Anwendung> [Argumente...]]` startet die angegebene lokale Anwendung oder
-ohne angegebene Anwendung eine Ersatz-Shell unter dem Windows-Konto `LocalSystem` in der
-interaktiven Sitzung des Aufrufers. Dieser Modus steht nur Mitgliedern der lokalen
-Administratorengruppe zur Verfügung. Ein noch nicht erhöht gestarteter Administrator erhält eine
-Windows-UAC-Abfrage; ein bereits erhöhter Administrator führt den Start ohne weitere UAC-Abfrage
-aus. Standardbenutzer werden vor einer Erhöhungsanforderung abgewiesen.
-
-Ohne Anwendung ersetzt `xucRun.exe /system` eine aufrufende TCC-, Eingabeaufforderungs-, Windows-
-PowerShell- oder PowerShell-Core-Shell durch dieselbe Shell unter `LocalSystem`. Das aktuelle
-Arbeitsverzeichnis bleibt erhalten, die neue Shell wird in den Vordergrund gebracht und die
-bisherige Shell erst nach erfolgreichem Start des Ersatzes geschlossen.
-
-Das erhöhte Administratorkonto darf vom in der interaktiven Sitzung angemeldeten Konto abweichen.
-Dadurch kann `/system` aus einer erhöhten Ersatz-Shell in der Sitzung eines anderen Benutzers
-aufgerufen werden.
-
-`/system` verwendet keine gespeicherten Anmeldedaten oder Freigaben. Jeder Start muss separat im
-signierten xucRun-Freigabehelper bestätigt werden. Der Dialog erscheint auf dem geschützten
-privaten xucRun-Desktop und zeigt die genaue Programmdatei, alle Argumente und das
-Arbeitsverzeichnis. Die Bestätigung gilt nur für diesen einen Aufruf und kann nicht gespeichert
-werden. xucRun prüft die Programmdatei unmittelbar vor dem Start erneut.
-
-Der private Desktop schützt die Bestätigung vor normalen Anwendungen auf dem normalen Desktop. Er
-kann jedoch nicht vor Schadsoftware schützen, die bereits mit erhöhten Administratorrechten in
-derselben Anmeldesitzung ausgeführt wird. Verwenden Sie `/system` deshalb nur aus einer
-vertrauenswürdigen erhöhten Administratorsitzung.
-
-```cmd
-xucRun.exe /system "%SystemRoot%\regedit.exe" /m
-```
-
-Als `LocalSystem` ausgeführte Anwendungen besitzen weitreichende Kontrolle über den Rechner.
-Insbesondere bezeichnet `HKEY_CURRENT_USER` das Profil von `LocalSystem` und nicht das Profil des
-angemeldeten Benutzers. Verwenden Sie diesen Modus nur bewusst für Wartung und Diagnose.
-
-## Anmeldedaten und Freigaben verwalten
-
-`/showcred` zeigt die Zielkonten, für die xucRun-Anmeldedaten gespeichert sind. `/showapprovals`
-zeigt die aktiven allgemeinen, zielprogrammspezifischen und an einen genauen Aufruf gebundenen
-Freigaben; Freigabeumfang, Ziel und Aufrufbindung stehen dabei in getrennten Spalten. Die
-gespeicherten Kennwörter werden nicht angezeigt oder an den Client übertragen.
-
-In der Freigabenansicht öffnet ein Doppelklick auf eine Zeile oder **Details anzeigen...** in deren
-Kontextmenü alle anwendbaren, nicht leeren Felder in einer schreibgeschützten, markierbaren Ansicht
-zum Kopieren. Die Details enthalten den vollständigen Zielhash, sofern vorhanden. Bei einer
-Freigabe für ein bestimmtes Zielkonto zeigen sie außerdem dessen SID, damit sich das Konto
-eindeutig identifizieren lässt. Eine Freigabe für alle Zielkonten besitzt keine einzelne
-Zielkonto-SID; deshalb wird dieses Feld dort nicht angezeigt.
-
-In der Anmeldedatenansicht stellt **Details anzeigen...** dieselben kopierbaren Informationen zum
-Zielkonto einschließlich seiner SID bereit. Ein Doppelklick auf ein Zielkonto mit Freigaben öffnet
-die für dieses Konto geltenden Freigaben. Das Kontextmenü bietet dieselbe Aktion; für Zeilen ohne
-Freigaben ist sie deaktiviert.
-
-Löschaktionen bleiben ausschließlich auf den sichtbaren Schaltflächen unterhalb der Tabellen. In
-beiden Ansichten kann die ausgewählte Zeile gelöscht werden. Die Anmeldedatenansicht kann außerdem
-alle angezeigten Anmeldedaten löschen; deren kontogebundene Freigaben werden dabei mit entfernt,
-profilweite Freigaben bleiben gespeichert. Die Freigabenansicht kann alle angezeigten Freigaben
-löschen. Jeder Löschvorgang verlangt eine eigene Bestätigung; ohne markierte Zeile bleibt die
-Einzelaktion deaktiviert.
-
-| Gespeicherte Anmeldedaten | Aktive Freigaben |
-|:---:|:---:|
-| ![Gespeicherte Anmeldedaten](docs/de/images/credentials.png) | ![Aktive Programmfreigaben](docs/de/images/approvals.png) |
-
-Ohne Kontonamen zeigt `/deletecred` eine Auswahl und verlangt vor der Löschung eine Bestätigung.
-Beim Löschen eines Kontos entfernt xucRun auch dessen kontogebundene Freigaben. Profilweite
-Freigaben für alle Konten bleiben bestehen.
-
-Mit `/resetapprovals` können einzelne oder mehrere Freigaben ausgewählt und entfernt werden.
-`/clear-all` ist der administrative Bereinigungsbefehl für aktive, vom Broker verwaltete Daten. Der
-Befehl muss erhöht gestartet werden und löscht nach ausdrücklicher Bestätigung alle
-xucRun-Anmeldedaten, Freigaben, Sicherheitsmerkmale und zugehörigen Metadaten aller
-Windows-Benutzer dieses Rechners. Lokale Sicherungen bleiben erhalten und können separat mit
-`/backup-delete-all` gelöscht werden.
-
-| Gespeicherte Anmeldedaten löschen | Freigaben zurücksetzen |
-|:---:|:---:|
-| ![Bestätigung vor dem Löschen gespeicherter Anmeldedaten](docs/de/images/delete-credential.png) | ![Bestätigung vor dem Zurücksetzen von Freigaben](docs/de/images/reset-approvals.png) |
-
-Für eine rechnerweite Übersicht zeigt `/admin-status` die gespeicherten xucRun-Daten aller
-Windows-Benutzer und stellt die verfügbaren administrativen Bereinigungsaktionen bereit. Ein
-Doppelklick auf eine Zeile oder **Details anzeigen...** in deren Kontextmenü öffnet die anwendbaren,
-nicht leeren Anmeldedaten- oder Freigabefelder zum Markieren und Kopieren. Bei Anmeldedaten und
-Freigaben für ein bestimmtes Zielkonto zeigen die Details außerdem die Zielkonto-SID, damit sich
-das Konto eindeutig identifizieren lässt. Freigabedetails enthalten zusätzlich den vollständigen
-Zielhash, sofern vorhanden.
-
-![Administrativer Status aller Benutzer](docs/de/images/administrative-status.png)
-
 ## Datensicherungen
 
 `xucRun.exe /backup` öffnet die interaktive Verwaltung lokaler Datensicherungen. Zusätzlich stehen
@@ -1169,20 +1237,18 @@ Die Deinstallation entfernt auch die lokal gespeicherten xucRun-Datensicherungen
 
 ## Fehlerdiagnose
 
-`xucRun.exe /info` zeigt die auch von xucRun Tray verwendeten gemeinsamen
-Client-Laufzeitinformationen: Version, Copyright, Pfad, Architektur, wirksame Sprache und geladene
-Sprach-DLL, Signierzertifikat, aktuelles Konto einschließlich SID und Rechteerhöhung,
-Konfigurationsdatei und Client-Protokollierung. Core-spezifische Abschnitte ergänzen Brokerstatus,
-Der gemeinsame Konfigurationsabschnitt nennt außerdem das installierte Wartungsskript.
-Core-spezifische Abschnitte ergänzen Brokerstatus, Broker-Informationsereignisse und Anzahlen
-gespeicherter Daten. `xucRun.exe /audit` prüft
-sicherheitsrelevante Eigenschaften der laufenden
-Installation und nennt bei gültiger Clientsignatur ebenfalls das geprüfte Zertifikat. Ist xucRun
-Tray separat installiert, prüft die Diagnose zusätzlich dessen
-installierte Dateien und Signaturen, Deinstallationsregistrierung und benutzerbezogene
-Autostartaufgaben. Wurde der Brokerdienst deaktiviert, kann er mit
-`xucRun.exe /enable-broker` wieder aktiviert werden. `xucRun.exe /help` zeigt die vollständige
-lokale Befehlsübersicht.
+`xucRun.exe /info` zeigt die auch vom separat installierten optionalen xucRun-Tray-Add-on
+verwendeten gemeinsamen Client-Laufzeitinformationen: Version, Copyright, Pfad, Architektur,
+wirksame Sprache und geladene Sprach-DLL, Signierzertifikat, aktuelles Konto einschließlich SID
+und Rechteerhöhung, Konfigurationsdatei und Client-Protokollierung. Der gemeinsame
+Konfigurationsabschnitt nennt außerdem das installierte Wartungsskript. Core-spezifische
+Abschnitte ergänzen Brokerstatus, Broker-Informationsereignisse und Anzahlen gespeicherter Daten.
+`xucRun.exe /audit` prüft sicherheitsrelevante Eigenschaften der laufenden Installation und nennt
+bei gültiger Clientsignatur ebenfalls das geprüfte Zertifikat. Ist xucRun Tray separat
+installiert, prüft die Diagnose zusätzlich dessen installierte Dateien und Signaturen,
+Deinstallationsregistrierung und benutzerbezogene Autostartaufgaben. Wurde der Brokerdienst
+deaktiviert, kann er mit `xucRun.exe /enable-broker` wieder aktiviert werden.
+`xucRun.exe /help` zeigt die vollständige lokale Befehlsübersicht.
 
 Die Diagnose prüft ausdrücklich den Dateiobjektschutz, das Authenticode-Vertrauen und den
 erwarteten Signierer des installierten Wartungsskripts `Install-xucRun.ps1` sowie bei installiertem
@@ -1277,7 +1343,14 @@ erscheint. Es ist ein eigenständiges Projekt, zeigt Informationen aus xucRun an
 Zugriff auf dessen vorhandene Verwaltungsfunktionen bereit. Über sein Menü lässt sich die
 computerweite xucRun-Sprache auf Automatisch, Deutsch oder Englisch setzen. Laufende
 Tray-Instanzen werden nach der Änderung neu gestartet; für andere xucRun-Prozesse gilt sie beim
-nächsten Start. Das Tray-Add-on ersetzt xucRun nicht.
+nächsten Start.
+
+Das Tray ist insbesondere bei der Inbetriebnahme, bei der Kontrolle des Betriebszustands und bei
+späteren Änderungen an Anmeldedaten, Freigaben, Sprache, Protokollierung oder Brokerzustand
+hilfreich. xucRun und sein Brokerdienst bleiben ohne ein installiertes oder laufendes Tray
+vollständig nutzbar; das Tray kann daher dauerhaft oder nur bei Bedarf verwendet werden.
+Einzelheiten zum manuellen Start und zum Start bei der Windows-Anmeldung enthält die Dokumentation
+des Tray-Projekts.
 
 ## Persönliche Notiz zur Entstehung von xucRun
 
@@ -1331,6 +1404,7 @@ unterstützend ein. Die jeweiligen Entwicklungsstände nutzte ich bei meinen all
 am Rechner selbst und entwickelte xucRun auf Grundlage dieser Erfahrungen weiter. Erst nachdem
 xucRun auf diese Weise einen aus meiner Sicht angemessenen Reifegrad erreicht hatte, stellte ich
 die erste öffentliche Version bereit.
+
 Die fachlichen Entscheidungen und die Verantwortung für das Ergebnis liegen weiterhin bei mir.
 
 Die ausführliche Darstellung der Sicherheitsaspekte kann auf den ersten Blick ungewöhnlich

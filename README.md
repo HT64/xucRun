@@ -17,37 +17,556 @@ Approach: Combines conceptual guidance, security boundaries, examples, and links
 > current state may contain defects, differ from that behavior, and change. The source can be built
 > and installed with a local test certificate.
 
+## Overview
+
+xucRun runs a [program, command, or script](#programs-arguments-and-special-characters) under the
+user account selected for that purpose while the user remains in the current Windows session. The
+[target account](#account-selection-and-privileges) can be a standard account or belong to the
+local Administrators group; in the latter case, the launch can optionally use elevated privileges
+(administrator rights). Its central use case is an experienced Windows user who normally works
+from a standard account and wants to perform a specific administrative action without switching
+to a separate administrator session or entering the account name and password again for every
+matching invocation.
+
+### Why work from a standard account?
+
+For everyday work, a user can remain signed in with either an account that belongs to the local
+Administrators group or a standard account. A member of the Administrators group is authorized to
+run programs with administrator rights. How programs receive those rights depends on the Windows
+User Account Control (UAC) configuration: they may already have them or request elevation through
+UAC. Any program can make such a request.
+
+A standard account has no administrator rights of its own. System-wide changes to programs,
+services, or protected configuration therefore require a separate account that belongs to the
+local Administrators group. This limits what accidental actions and processes running in the
+user's normal context can change without a separate, deliberate authorization step.
+
+### How xucRun supports this workflow
+
+xucRun preserves this separation. It does not temporarily turn the standard user into an
+administrator or add administrative privileges to that account. The user remains signed in to
+the existing Windows session; only the requested execution takes place under the selected other
+user account, which may belong to the local Administrators group, with that account's identity
+and privileges.
+
+xucRun combines Windows account switching and UAC with credentials managed by xucRun for target
+accounts. These credentials remain protected and are used only when a matching
+[xucRun approval](#approvals) allows the requested execution. It takes place only under the target
+account selected for that invocation; the account's identity and privileges are not transferred
+to the signed-in standard account or to another user account. An approval bound to a specific
+target account can be used only for starts under that account.
+
+After the initial setup, specifying the program, command, or script and its arguments is
+sufficient for a typical launch. With this configured use, neither the account name nor the
+password needs to be stored in the xucRun invocation, whether it is launched from a console, a
+context menu, a desktop shortcut, or a script. xucRun selects a suitable account, obtains any
+missing choice or approval interactively, and reuses matching decisions. Required
+[Windows UAC confirmation](#approvals-and-uac-in-xucrun) remains interactive.
+
+## Quick start
+
+The examples use the short name `xucRun.exe`. This works when `%ProgramFiles%\xucRun` was added to
+the machine-wide PATH, the Windows search path used to find programs by their short name, during
+installation. Select this option in the graphical installer or use `-AddToSystemPath` during
+manual installation. Without the PATH entry, use the full path
+`"%ProgramFiles%\xucRun\xucRun.exe"`. The available installation methods are described under
+[Installation overview](#installation-overview).
+
+After installation, credentials managed by xucRun can be stored explicitly for a target account,
+meaning the account under which programs will be started. For example:
+
+```powershell
+xucRun.exe /addcred Administrator
+```
+
+If the account name is omitted, xucRun first opens a dialog for selecting an enabled local
+account. A password-entry dialog then appears on a separate Windows desktop used by xucRun for
+protected input, regardless of whether the account was specified or selected. Specify
+`DOMAIN\UserName` for a domain account.
+
+| 1. Select a local target account | 2. Enter credentials on the separate desktop | 3. Confirm successful storage |
+|:---:|:---:|:---:|
+| ![Local target-user selection](docs/en/images/target-user-selection.png) | ![Credential entry on separate desktop](docs/en/images/credential-entry.png) | ![Stored credential confirmation](docs/en/images/credential-stored.png) |
+
+The screenshots show administrator accounts as examples. Enabled local standard accounts can also
+be selected.
+
+Run programs by specifying their normal path followed by their arguments:
+
+```powershell
+xucRun.exe notepad.exe
+xucRun.exe regedit.exe
+xucRun.exe powershell.exe -NoExit
+xucRun.exe cmd.exe /c "net stop MyService"
+```
+
+If a suitable account, stored credentials, or an applicable approval is missing, xucRun guides
+the user through the required steps during the current invocation.
+
+## Usage examples
+
+Open Device Manager from a standard user account:
+
+```cmd
+xucRun.exe "%windir%\System32\mmc.exe" "%windir%\System32\devmgmt.msc"
+```
+
+Start an administrative PowerShell script:
+
+```powershell
+xucRun.exe powershell.exe -File "C:\Scripts\AdminScript.ps1"
+```
+
+Stop a Windows service through `cmd.exe`:
+
+```cmd
+xucRun.exe cmd.exe /c "net stop MyService"
+```
+
+Edit a file with a program running under the selected target account:
+
+```powershell
+xucRun.exe notepad.exe "C:\Windows\System32\drivers\etc\hosts"
+```
+
+Replace the current PowerShell with a PowerShell running in the automatically selected user and
+privilege context:
+
+```powershell
+PS D:\Example\Project> xucRun.exe
+```
+
+For this invocation without parameters, xucRun detects the direct parent shell, closes the
+existing console after a successful start, and reopens the same shell in the original working
+directory. If the existing PowerShell runs under a standard account and credentials for exactly
+one administrator account are stored in xucRun, xucRun selects that account automatically,
+requests Windows UAC confirmation, and starts the new PowerShell elevated under that account back
+in `D:\Example\Project`. This is the typical primary use case for shell replacement.
+
+If xucRun credentials are stored for several administrator accounts, an account selection dialog
+appears instead. If the current account is itself an administrator, xucRun uses that account and
+either uses its existing elevated privileges directly or requests UAC. Only when no
+administrator-account credentials are stored by xucRun for a standard account does xucRun
+consider standard accounts for which xucRun credentials are stored and start the replacement
+shell without elevation. The working directory is preserved in every case.
+
+The invocations shown above that specify a target program can also be used in scripts and desktop
+shortcuts. If xucRun can determine the target account unambiguously and automatically, the
+invocation does not need to name an account.
+
+The separation between the standard user and the privileged target account follows this
+principle: **A standard user may request the privileged action, but must not be able to change its
+administratively approved content without that change being detected.**
+
+This issue is not specific to xucRun. It applies generally whenever a less privileged account can
+modify files that determine the behavior of a more privileged process.
+
+Scripts, shortcuts, scheduled tasks, and configuration files that contain an xucRun invocation or
+determine its target, arguments, or working directory must therefore themselves be trusted and
+protected against unauthorized modification. xucRun cannot generally verify their integrity.
+Accounts that can modify such files must already be trusted to control the corresponding
+privileged invocation. This also applies to parent directories through which these files could be
+deleted, replaced, renamed, or redirected. Such files must not be stored in shared or
+insufficiently protected writable directories.
+
+Shell replacement without parameters, in contrast, is intended for interactive invocation from a
+supported shell. It should be used in a script only when closing the existing console and
+interactively starting a replacement shell is explicitly intended. An invocation without
+parameters is not suitable for a normal desktop shortcut.
+
+Supported parent shells are `cmd.exe`, `powershell.exe`, `pwsh.exe`, and `tcc.exe`.
+
+### Relaunch a batch file with elevated privileges when needed
+
+A batch file can check at startup whether it is already running with elevated privileges.
+Otherwise, it relaunches itself through xucRun and ends the original non-elevated run. With
+`/user-elevated`, xucRun reuses the current account when it is already an administrator and
+requests UAC elevation only if necessary. Otherwise, xucRun selects an administrator account:
+
+```cmd
+@echo off
+NET SESSION >nul 2>&1
+IF ERRORLEVEL 1 (
+  "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%~dpnx0" %*
+  GOTO :eof
+)
+
+REM Commands requiring elevated privileges follow here.
+```
+
+`%~dpnx0` returns the fully qualified path of the running batch file; `%*` forwards all original
+arguments. `GOTO :eof` prevents the non-elevated run from continuing after the relaunch. The
+`NET SESSION` check requires the Windows **Server** service to be available.
+
+### Desktop shortcut for an elevated Explorer
+
+A desktop shortcut can open an Explorer window for a fixed directory directly under a specific
+administrator account for which xucRun credentials are stored and with elevated privileges. For
+example, enter the following in the shortcut's **Target** field:
+
+```text
+"%ProgramFiles%\xucRun\xucRun.exe" /user-elevated:Administrator "%WINDIR%\explorer.exe" "/root,"D:\Example\TargetFolder""
+```
+
+Use `/user-elevated:Administrator` when the shortcut must always select one particular
+administrator account for which xucRun credentials are stored and explicitly start Explorer with
+elevated privileges. Omit the switch when xucRun should determine the suitable account
+automatically. If Explorer should run under a specific different account without elevation being
+enforced by xucRun, use `/user:<Account>` instead.
+
+Replace `Administrator` with the required administrator account for which xucRun credentials are
+stored and the example path with the directory to open. `/root` makes this directory the root of
+the new Explorer window. The nested quotation marks must remain unchanged. Stored credentials do
+not replace the interactive Windows UAC confirmation.
+
+### Explorer context-menu integration
+
+The optional [ExplorerKontextMenue.reg](ExplorerKontextMenue.reg) file contains a complete example
+that adds xucRun commands for supported files, folders, folder backgrounds, and drives. For
+example, its command entries for executable files and folder backgrounds follow these patterns:
+
+```reg
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\xucRun\command]
+@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"%1\""
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\xucRunAdmin\command]
+@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"C:\\Windows\\explorer.exe\" \"/root,\"%V\"\""
+```
+
+The file is an example rather than part of the installer. It first removes the nine entries it
+manages and then recreates them under `HKEY_LOCAL_MACHINE`, so they apply to all users. Importing
+it requires administrator rights, assumes that xucRun is installed under
+`C:\Program Files\xucRun`, and makes every included xucRun command explicitly require an elevated
+administrator account through `/user-elevated`.
+
+These entries use the classic Win32 Explorer context-menu registration under
+`Software\Classes\...\shell`. In the standard compact context menu on Windows 11, they normally
+appear under **Show more options**. When the classic context menu is used instead, they appear
+directly.
+
+### Total Commander integration
+
+The following examples show excerpts from Total Commander's `usercmd.ini` configuration file.
+They were tested with Total Commander 11.58 (64-bit). They may also work with other versions, but
+their compatibility has not been verified. For general information about Total Commander, visit
+the [official Total Commander website](https://www.ghisler.com/).
+
+xucRun can start a new elevated Total Commander instance according to its automatic account
+strategy. Members of the Administrators group retain their account and are elevated through UAC
+when necessary. For a standard user, xucRun uses a stored administrator account. The invocation
+preserves the left path, right path, and active file panel:
+
+```ini
+[em_TCStart_Elevated]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd=%comspec% /v:on /c
+param=SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" "%|COMMANDER_PATH|\TOTALCMD64.EXE" /L="!L!" /R="!R!" /P=!Active!
+menu=Start TC elevated through xucRun; administrator members retain their account, standard users switch to an administrator
+iconic=1
+
+[em_TCReStart_Elevated]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd=cm_Exit,em_TCStart_Elevated
+param=
+menu=Restart TC with elevated privileges
+iconic=1
+```
+
+The second command closes the current Total Commander instance and then invokes the first command.
+For a standard-user account switch, at least one administrator account must be stored in xucRun.
+If several matching administrator accounts are stored, the account selection dialog is shown. Any
+required Windows UAC prompt must be confirmed.
+
+The following command starts a new Total Commander instance as `LocalSystem`, Windows' built-in
+service account with extensive control over the computer. It preserves the left path, right path,
+and active file panel:
+
+```ini
+[em_TCStart_System]
+button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
+cmd="%ProgramFiles%\xucRun\xucRun.exe"
+param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /system "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
+menu=Start Total Commander as LocalSystem through xucRun
+iconic=1
+```
+
+This command must invoke xucRun twice because `/system` is available only from an elevated
+administrator context. The outer invocation uses the automatic account strategy described above
+to start an elevated intermediate Command Prompt and hides it through `/hidden-monitor`. The inner
+xucRun invocation therefore runs with elevated administrator rights and starts Total Commander as
+`LocalSystem`. Every SYSTEM launch must be confirmed separately on xucRun's protected private
+desktop.
+
+The intermediate `cmd.exe /v:on /c` first stores the paths supplied by Total Commander in
+environment variables and then passes them to the inner xucRun invocation through delayed
+variable expansion. This handles paths containing spaces and special characters reliably.
+Comparing the paths additionally determines whether the left or right panel is active.
+
+Total Commander then has unrestricted `LocalSystem` access. Use this command only for deliberate
+maintenance and diagnostic work.
+
+xucRun can also start Total Commander under an explicitly selected different Windows account
+without that account already being signed in interactively. This allows file operations to be
+performed in another account context from a standard user session. For elevated administrative
+file operations, the target account must have administrator privileges and the Windows UAC prompt
+must be confirmed.
+
+For this example, replace `<Account>` with the configured account name and keep the Total
+Commander variables and quoting unchanged:
+
+```ini
+[em_TCStart_Account]
+button=%COMMANDER_EXE%
+cmd="%ProgramFiles%\xucRun\xucRun.exe"
+param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /user:<Account> "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
+menu=Launch Total Commander as <Account>
+iconic=1
+```
+
+The command again invokes xucRun twice so that an administrator account can act as the central
+authorized principal for the credentials of additional target accounts. In this example, unlike
+in the LocalSystem example above, the cascade is not required for the launch itself; here it is a
+deliberate design decision about how the credentials are stored. The outer invocation uses the
+same hidden, elevated administrator stage described above. The inner xucRun invocation therefore runs with the administrator's security identifier (SID),
+which uniquely identifies that Windows account, and can use the credentials that administrator
+stored for `<Account>`. This avoids storing the credentials of every additional target account
+separately for every standard user; each standard user needs only the credentials stored for the
+central administrator account. A single xucRun invocation by the standard user could instead use
+only that user's own SID-bound credentials. The inner invocation processes `/user:<Account>` and
+starts the visible Total Commander instance under the target account. Elevation of the outer
+intermediate stage is not transferred to the target account; its privileges remain unchanged.
+
+For example, the command can be added to a custom menu:
+
+```text
+POPUP "User"
+  MENUITEM "Start Total Commander for <Account>", em_TCStart_Account
+END_POPUP
+```
+
+Additional accounts can be added in the same way. For each additional account, you can create a
+separate command in `usercmd.ini` and a corresponding `MENUITEM`.
+
+## Account selection and privileges
+
+Without a user switch, xucRun uses a suitable current user context or an administrator account
+for which xucRun credentials are stored. If exactly one account with matching xucRun
+credentials is available, it is selected automatically; if several match, a selection dialog is
+shown.
+
+| Select an account with stored credentials | Select a local target user |
+|:---:|:---:|
+| ![Account selection for stored credentials](docs/en/images/target-account-selection.png) | ![Local target user selection](docs/en/images/target-user-selection.png) |
+
+| Invocation | Behavior |
+|---|---|
+| `xucRun.exe <Program> [Arguments ...]` | determine the account automatically and request elevation when required |
+| `xucRun.exe /user <Program> [Arguments ...]` | select an account for which xucRun credentials are stored, without additional elevation by xucRun |
+| `xucRun.exe /user:* <Program> [Arguments ...]` | always select an enabled local account, without additional elevation by xucRun |
+| `xucRun.exe /user:<Account> <Program> [Arguments ...]` | use a specific account without additional elevation by xucRun |
+| `xucRun.exe /user-elevated <Program> [Arguments ...]` | use the current administrator account with UAC elevation if necessary; otherwise select an administrator account with stored xucRun credentials |
+| `xucRun.exe /user-elevated:* <Program> [Arguments ...]` | always select an enabled local administrator account and start elevated |
+| `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated |
+
+The `:*` forms always show the local target-account selection, even when only one suitable
+account or stored credential is available. The current account and accounts with stored xucRun
+credentials are identified in the dialog. Selecting the current account uses its existing Windows
+access token, which represents its current identity and privileges. Selecting another account
+without stored xucRun credentials starts protected password entry and continues the original
+launch after the credentials have been stored successfully.
+
+If the current account is not an administrator and no credentials for a suitable administrator
+account are stored on the first invocation with `/user-elevated`, xucRun automatically offers
+administrator-account selection and protected password entry. After the credentials are stored
+successfully, the original launch request continues. `/addcred` remains available for storing
+credentials before a separate launch request.
+
+Stored credentials do not bypass Windows UAC. When elevation is required, UAC confirmation
+remains interactive. For a new approval involving an elevated start, the approval dialog on the
+separate desktop may appear first, followed by the UAC dialog for the target program.
+For elevated cross-account launches, Windows Admin Approval Mode must be enabled for the selected
+administrator account. This Windows mode provides the filtered and elevated access tokens needed
+for an explicit UAC confirmation. If Windows instead already provides a fully elevated token,
+xucRun blocks the launch because UAC confirmation would not be possible. This can particularly
+affect the built-in `Administrator` account.
+
+## Programs, arguments, and special characters
+
+The first argument that is not an xucRun switch is the target program. All following arguments
+belong exclusively to that program:
+
+```powershell
+xucRun.exe cmd.exe /c dir
+xucRun.exe /user:Administrator app.exe /config:value
+```
+
+Here, `/c` and `/config:value` are not interpreted by xucRun. Shell-internal commands must be run
+through their shell, for example `cmd.exe /c dir` or
+`powershell.exe -Command Get-Process`.
+
+Enclose program paths and individual arguments containing spaces in quotation marks as usual.
+xucRun also supports batch files and carries common shell special characters across the additional
+process boundaries. Characters that `cmd.exe`, PowerShell, or another calling shell evaluates
+before xucRun starts remain subject to that shell's rules.
+
+For a launch handled by the xucRun broker service—the privileged component that verifies and
+performs permitted program starts—of a `.bat` or `.cmd` file whose file name contains one of the
+CMD metacharacters `& | ( ) ! % ^`, the broker creates a temporary wrapper named
+`xucRun_wrapper_<128-bit-random-value>.bat`. It stores the wrapper preferably on a suitable volume
+named `RamDisk`, or otherwise in the target account's `%TEMP%` directory. The broker protects the
+wrapper until the launched process exits and then attempts to delete it, or does so during error
+cleanup if the launch fails. If a deletion error or unexpected broker termination leaves it
+behind, a local administrator can remove it after it has been released. There is no later
+automatic cleanup; the wrapper contains no credentials, stored arguments, or reusable
+authorization.
+
+## Useful commands
+
+| Command | Purpose |
+|---|---|
+| `xucRun.exe /addcred [<Account>]` | store credentials |
+| `xucRun.exe /deletecred [<Account>]` | select and delete stored credentials |
+| `xucRun.exe /showcred` | show accounts for which xucRun credentials are stored |
+| `xucRun.exe /showapprovals` | show stored approvals |
+| `xucRun.exe /resetapprovals[:<Account>]` | reset approvals |
+| `xucRun.exe /system [<Application> [Arguments...]]` | start a local application or replacement shell as `LocalSystem` |
+| `xucRun.exe /info` | show version, copyright, signing certificate, broker status, and current configuration |
+| `xucRun.exe /admin-status` | show and manage data for all Windows users with elevation |
+| `xucRun.exe /backup` | manage local backups |
+| `xucRun.exe /audit` | run security diagnostics |
+| `xucRun.exe /enable-broker` | re-enable a disabled broker |
+| `xucRun.exe /clear-all` | delete stored credentials, approvals, per-user identifiers shown in protected xucRun dialogs, and associated metadata |
+| `xucRun.exe /help` | show complete help |
+
+`/hidden` hides the directly started target program. `/hidden-monitor` also monitors its exit code
+and displays a notice when it fails. Dialogs and child processes are not hidden or monitored by
+these options.
+
+`xucRun.exe` uses exit code `0` for a successful operation and exit code `1` when the operation
+fails, is rejected, or is cancelled. The exit code of a launched target program is not returned as
+the exit code of `xucRun.exe`.
+
+### Starting an application or replacement shell as LocalSystem
+
+`xucRun.exe /system [<Application> [Arguments...]]` starts the specified local application, or a
+replacement shell when no application is specified, as the Windows `LocalSystem` account in the
+caller's interactive session. This mode is available only to members of the local Administrators
+group. An administrator who is not already elevated receives one Windows UAC consent prompt; an
+already elevated administrator performs the launch without another UAC prompt. Standard users are
+rejected before an elevation request.
+
+Without an application, `xucRun.exe /system` replaces an invoking TCC, Command Prompt, Windows
+PowerShell, or PowerShell Core shell with the same shell running as `LocalSystem`. It preserves
+the current working directory, brings the new shell to the foreground, and closes the previous
+shell only after the replacement started successfully.
+
+The elevated administrator account may differ from the account signed in to the interactive
+session. This allows `/system` to be invoked from an elevated replacement shell in another user's
+session.
+
+`/system` does not use stored credentials or approvals. Every launch must be confirmed separately
+in the signed xucRun Approval Helper, the component that presents protected confirmation dialogs.
+The dialog appears on xucRun's protected private desktop and shows the exact executable, all
+arguments, and the working directory. The confirmation applies only to that invocation and cannot
+be stored. xucRun revalidates the executable immediately before starting it.
+
+The private desktop protects the confirmation from ordinary applications on the normal desktop.
+It cannot protect against malicious software that is already running with elevated administrator
+rights in the same logon session. Use `/system` only from a trusted elevated administrator
+session.
+
+```cmd
+xucRun.exe /system "%SystemRoot%\regedit.exe" /m
+```
+
+Applications running as `LocalSystem` have extensive control over the computer. In particular,
+`HKEY_CURRENT_USER` refers to the `LocalSystem` profile rather than the signed-in user's profile.
+Use this mode only for deliberate maintenance and diagnostic work.
+
+## Managing credentials and approvals
+
+`/showcred` lists target accounts for which xucRun credentials are stored. `/showapprovals` lists
+active approvals. A general approval has the broadest scope, a target-program approval is limited
+to one program, and an exact-invocation approval additionally binds the invocation details. The
+view uses separate columns for scope, target, and invocation binding. Stored passwords are neither
+displayed nor returned to the normal xucRun client, `xucRun.exe`. The precise effects of these
+scopes are described under [Approvals](#approvals).
+
+In the approval view, double-clicking a row or choosing **Show details...** from its context menu
+opens all applicable nonempty fields in a read-only, selectable view for copying. The details
+include the target program's complete SHA-256 hash when present. For approvals tied to a specific
+target account, they also show its SID so that the account can be identified unambiguously. An
+approval for all target accounts has no single target account SID, so that field is omitted.
+
+In the credential view, **Show details...** provides the same copyable target account information,
+including its SID. Double-clicking a target account with approvals opens the approvals that apply
+to that account. The context menu provides the same action; it is unavailable for rows without
+approvals.
+
+Delete actions remain exclusively on the visible buttons below the tables. A selected row can be
+deleted from either view. The credential view can also delete all displayed credentials; their
+account-bound approvals are removed with them, while profile-wide approvals that apply to every
+target account of the current Windows user remain stored. The approval view can delete all
+displayed approvals. Each deletion requires a separate confirmation, and the selected-row action
+remains disabled until a row is selected.
+
+| Stored credentials | Active approvals |
+|:---:|:---:|
+| ![Stored credentials](docs/en/images/credentials.png) | ![Active program approvals](docs/en/images/approvals.png) |
+
+Without an account name, `/deletecred` presents a selection and asks for confirmation before
+deletion. Deleting an account also removes approvals bound to that account. Profile-wide approvals
+for all accounts remain in place.
+
+Use `/resetapprovals` to select and remove individual or multiple approvals. `/clear-all` is the
+administrative cleanup command for active broker-managed data. It must be run elevated and, after
+explicit confirmation, deletes all xucRun credentials, approvals, per-user identifiers shown in
+protected xucRun dialogs, and associated metadata for every Windows user on the computer. Local
+backups are retained and can be removed separately with `/backup-delete-all`.
+
+| Delete stored credentials | Reset approvals |
+|:---:|:---:|
+| ![Confirmation before deleting stored credentials](docs/en/images/delete-credential.png) | ![Confirmation before resetting approvals](docs/en/images/reset-approvals.png) |
+
+For a computer-wide overview, `/admin-status` displays the stored xucRun data of all Windows users
+and provides the available administrative cleanup actions. Double-clicking a row or choosing
+**Show details...** from its context menu opens the applicable nonempty credential or approval
+fields for selection and copying. Credential details and approvals tied to a specific target
+account show the target account SID so that the account can be identified unambiguously.
+Approval details also include the complete target hash when present.
+
+![Administrative status for all users](docs/en/images/administrative-status.png)
+
 ## Motivation and purpose
 
-xucRun covers several use cases in which a program needs to run with elevated privileges or under
-another user account, optionally with elevated privileges.
+The preceding sections show how xucRun runs individual programs, commands, and scripts under a
+selected account and, where applicable, with elevated privileges. The motivation behind this
+workflow is the deliberate use of a standard account for everyday work while retaining practical
+access to occasional administrative tasks.
 
-The program is intended for experienced Windows users who occasionally need to administer their
-own computer while remaining signed in with a standard user account, either interactively or
-through their own scripts, without signing in separately with an administrator account or entering
-a password again
-for every operation. The required permission for administrative tasks should be grantable from a
-standard user account with as little as a single mouse click.
+xucRun is intended for experienced Windows users who administer their own computer interactively
+or through their own scripts. When an application or file manager reaches a permission boundary,
+the user should be able to continue the specific task without signing in to a separate
+administrator session and without entering an account name and password again for every matching
+operation. After the one-time setup, a single confirmation click should normally be sufficient.
 
-A typical use case arises when a user deliberately remains signed in with a standard user account,
-tries to perform an action in an application or file manager, and reaches a permission boundary.
-The action can then continue only under another user account, such as an administrator account.
-xucRun integrates the native Windows mechanisms required for this into the same workflow.
+The first invocation should not require every prerequisite to have been configured in advance.
+The user can issue the intended program start directly; xucRun requests a missing account
+selection, credentials, or approval as part of that invocation. Matching credentials and
+approvals can then be reused for later invocations.
 
-The user does not need to configure every prerequisite before the first invocation. The requested
-program can be started with xucRun immediately. If a suitable account, stored credentials, or an
-approval is still missing, xucRun interactively guides the user through the necessary steps and
-requests the required information and decisions as part of the current workflow. Existing
-credentials and approvals are reused for later invocations when they match the request, so that
-only a single confirmation click is normally required afterward.
-
-The basic operations of starting programs under another user account and requesting administrative
-rights are also available through Windows itself. xucRun combines these capabilities in one
-workflow and adds controlled approvals for stored credentials. Storing and reusing credentials
-creates additional security risks. Users who do not want to accept these risks should use native
-Windows alternatives such as Fast User Switching instead.
+Windows already provides the underlying operations for starting programs under another account
+and requesting administrative rights. xucRun's purpose is to combine them in one workflow and add
+controlled approvals for stored credentials. This convenience introduces additional risks.
+Users who do not want to store and reuse credentials should use native alternatives such as Fast
+User Switching instead.
 
 ## Comparison with Windows features and other solutions
+
+The following options overlap with individual parts of the workflow described above, but use
+different account, session, credential, and approval models.
+
+### Fast User Switching
 
 Fast User Switching keeps the current Windows session and its open programs running while the user
 signs in to a separate session under another account or switches to that account's existing
@@ -55,7 +574,11 @@ session. The user can then return to the previous session. This approach is also
 complete interactive working environment of the other user is required.
 
 In contrast to Fast User Switching, xucRun keeps the user in the current session and starts only
-the required program under the selected other account, with or without elevated privileges.
+the required program under the selected other account, with or without elevated privileges. Users
+who prefer not to store credentials for this purpose can use Fast User Switching instead.
+
+### Windows UAC and Sudo for Windows
+
 Windows User Account Control (UAC) is the Windows security feature through which a user explicitly
 confirms a start with administrator privileges. Depending on the specific launch path and Windows
 configuration, an account switch with xucRun can require UAC confirmation. For a launch without
@@ -78,6 +601,8 @@ standard account under another local account by using stored credentials and app
 be single-use or time-limited. If Windows requires UAC confirmation for the target launch, that
 confirmation remains interactive.
 
+### `runas.exe /savecred`
+
 Another built-in Windows option with more similarity to xucRun is
 [`runas.exe`](https://learn.microsoft.com/windows-server/administration/windows-commands/runas).
 It can start individual programs under another account. With `/savecred`, the credentials used for
@@ -88,8 +613,9 @@ the password again. However, `runas.exe` has several limitations:
 
 - The target account must be specified with `/user:<Account>` on every invocation. Depending on
   usage, its name therefore appears in scripts, shortcuts, or the command line.
-- `runas.exe` does not request elevation through UAC. With UAC enabled, an administrator account
-  normally starts with restricted privileges unless elevation is requested separately.
+- `runas.exe` does not request elevation through UAC. Depending on the Windows UAC configuration,
+  an administrator account may start with restricted privileges unless elevation is requested
+  separately.
 - After `/savecred`, the account whose credentials were stored can be used for further program
   starts without another confirmation. There is no mandatory approval and no binding to
   particular programs, file hashes, arguments, or working directories.
@@ -109,15 +635,9 @@ invocation needs neither the target account nor its password. Program paths, arg
 directories, batch files, and common shell special characters are handled in a controlled manner
 across the required process boundaries.
 
-Starting Device Manager from a standard user account provides a practical example. With exactly
-one administrator account for which xucRun credentials are stored, this invocation is sufficient:
-
-```cmd
-xucRun.exe "%windir%\System32\mmc.exe" "%windir%\System32\devmgmt.msc"
-```
-
-With `runas.exe /savecred` and a separate elevation tool, a schematic equivalent could look as
-follows if that tool supports the syntax `elevate.exe <Program> [Arguments ...]`:
+For the Device Manager invocation shown under [Usage examples](#usage-examples), a schematic
+equivalent using `runas.exe /savecred` and a separate elevation tool could look as follows if that
+tool supports the syntax `elevate.exe <Program> [Arguments ...]`:
 
 ```cmd
 runas.exe /savecred /user:Administrator "elevate.exe %windir%\System32\mmc.exe %windir%\System32\devmgmt.msc"
@@ -152,6 +672,8 @@ and their file hashes, and it can be time-limited. If one of the bound programs 
 its SHA-256 hash no longer matches the approval. xucRun requires an explicit decision before
 transferring the approval to the changed program version.
 
+### Third-party solutions and choosing an approach
+
 In addition to native Windows options, third-party solutions are available for switching user
 accounts, elevating privileges, and managing administrative access. Depending on the use case,
 they focus on different priorities and may be better suited, for example, to centralized
@@ -162,8 +684,9 @@ limited comparison because the products use different operational and security m
 
 The appropriate solution depends on the specific requirements.
 
-Users who are willing to re-enter the credentials for the other user account each time they start
-a program under that account can use the native Windows mechanisms for this purpose.
+Users who want to start programs under another user account from a standard account and are
+willing to re-enter that account's credentials for every launch can use the native Windows
+mechanisms.
 
 For users who instead want to avoid entering passwords repeatedly while retaining more precise
 control than `runas /savecred` provides over which programs may use stored credentials and
@@ -213,6 +736,7 @@ For this purpose, xucRun neither temporarily makes the standard user an administ
 artificially extends that account's privileges. Instead, the elevated target process runs under
 the administrator account whose stored credentials xucRun has verified. This keeps the identities
 and privileges of both accounts clearly separated.
+
 After the one-time setup, an invocation without account name and password is sufficient:
 
 ```powershell
@@ -232,12 +756,135 @@ management, information, and error dialogs appear on the normal user desktop. Pa
 approval decisions, and risk confirmations appear on a separate Windows desktop; Windows UAC
 separately uses the configured UAC desktop.
 
-For the first such dialog, xucRun creates a random security identifier in the format `XXXX-XXXX`.
-Password, approval, and risk dialogs then display it unchanged. After verifying the installation,
-the user should remember or securely record it during the first deliberately initiated dialog and
-confirm later dialogs only when it matches. The identifier indicates an xucRun helper dialog but
-does not prove that an operation is safe or user-initiated. It does not provide complete
-protection on a compromised system and helps only when the user actually compares it.
+For the first such dialog, xucRun creates a random xucRun dialog security identifier in the format
+`XXXX-XXXX`. This is not a Windows account security identifier (SID). Password, approval, and risk
+dialogs then display it unchanged. After verifying the installation, the user should remember or
+securely record it during the first deliberately initiated dialog and confirm later dialogs only
+when it matches. The identifier indicates an xucRun helper dialog but does not prove that an
+operation is safe or user-initiated. It does not provide complete protection on a compromised
+system and helps only when the user actually compares it.
+
+## Approvals
+
+**With each approval, the user determines the balance between convenience and narrow scope:**
+The longer and broader an approval is, the more matching later invocations can proceed without
+another xucRun approval decision. A shorter approval or one bound more precisely to a program,
+invocation, and target account requires a new decision more often but limits how broadly it can
+be reused.
+
+The differentiated approval dialog allows the approval duration, program and invocation binding,
+and included target accounts to be adapted to the specific use case and desired level of
+protection. Its fixed header above the scrollable launch details identifies the xucRun client path
+as successfully verified by the broker and shows the calling account, target account, and
+protected approval-helper origin before the explanatory UAC note. The scrollable area shows
+detailed Authenticode information for the target program. For a trusted target signature, these
+details include the signer, full SHA-256 certificate fingerprint, issuer, certificate validity
+period, signature type, and any available timestamp and timestamp authority. If trust verification
+fails, the dialog distinguishes a missing signature association from common signature,
+certificate-chain, validity, revocation, and policy failures. A missing association means that no
+usable embedded signature and no Windows catalog signature matching the current file contents was
+found. A catalog signature associates the file through its hash; changing any byte breaks that
+association, even though the catalog and its certificate continue to exist on the system and must
+no longer be attributed to the changed file. The dialog also shows any signer and certificate
+details that Windows can still provide for an untrusted signature. xucRun recognizes both embedded
+Authenticode signatures and Windows catalog signatures. An unsigned or untrusted target remains
+approvable because the signature information supplements rather than replaces the exact path and
+SHA-256 identity. The available approval durations are:
+
+- this start only,
+- 10 minutes,
+- one day,
+- until sign-out,
+- permanently.
+
+If the current launch differs from approvals already stored for the same target program, the
+scrollable details summarize up to four of the most relevant approvals and name the differing
+bindings, such as the program file, target account, elevation mode, arguments, working directory,
+visibility, or direct script. The "Effect of this selection" area explains whether the new choice
+adds a separate approval, broadens existing approvals, replaces an otherwise identical approval
+with a different elevation mode, or remains overlaid by a broader approval. Existing narrower or
+broader approvals are not deleted automatically; `/showapprovals` remains the complete management
+view. Plain-text arguments are not reconstructed or displayed.
+
+See [Approvals and UAC in xucRun](#approvals-and-uac-in-xucrun) for the relationship between a
+reusable approval and Windows UAC confirmation that remains required for a specific launch.
+
+For "This start only," approval scope and target accounts do not apply because the approval applies only to
+the currently displayed launch. The corresponding controls are therefore disabled. A reusable
+approval can be bound to one program or all programs and to one target account or all stored
+accounts of the current Windows user. Program-specific approvals include the SHA-256 hash of the
+executable. If the file changes, transferring the approval to the new version requires explicit
+confirmation. This also applies to **"Exactly this invocation"** approvals; their argument,
+working-directory, visibility, and direct-script bindings remain unchanged when the confirmed
+program hash is transferred.
+
+![Approval after a program hash has changed](docs/en/images/program-hash-change-approval.png)
+
+With **"Exactly this invocation,"** a reusable approval can additionally be bound to the exact
+arguments, the working directory, and whether the program is started visibly or hidden. Any change
+to these values then requires a new approval. The arguments are not stored in clear text; only
+their SHA-256 hash is retained as the binding.
+
+![xucRun approval dialog on separate desktop](docs/en/images/approval-dialog.png)
+
+An approval does not restrict what the started program can do. General or permanent approvals for
+universal interpreters such as `cmd.exe`, PowerShell, or `wscript.exe` are therefore particularly
+powerful.
+
+For `cmd.exe`, `powershell.exe`, `pwsh.exe`, TCC, and Windows Script Host, the approval dialog
+therefore warns about the interpreter's broader capabilities. A normal program approval does not
+bind the displayed arguments. Therefore, "Exactly this invocation" is preselected for reusable
+approvals involving these shells and interpreters.
+
+If a reusable approval for one of these interpreters is nevertheless changed to "Only for this
+target program" or "For all programs," xucRun requires a second explicit confirmation on the
+protected desktop. It explains that arguments, script paths, and script contents are not part of
+the stored approval and that different commands or new or modified scripts can later start without
+another xucRun approval dialog. Returning to the selection is the default. An intentionally stored
+broad approval retains this broad effect when it matches a later invocation.
+
+![Confirmation before storing a broad interpreter approval](docs/en/images/broad-interpreter-approval-confirmation.png)
+
+If xucRun recognizes a directly specified PowerShell, batch, TCC, or Windows Script Host script, it
+additionally binds the script's fully resolved path and SHA-256 hash, provided that the calling
+account cannot modify a folder relevant to replacing the script. The script file itself may be
+writable: if its contents change later, its hash no longer matches and xucRun requires a new
+approval. Immediately before every launch, the broker rechecks the final path and hash and keeps
+the verified file locked against modification and replacement until the program starts. An active
+script binding is visible when the direct script's path and SHA-256 hash are shown at the top of
+the approval dialog. The dialog also shows the same Authenticode and certificate details for the
+direct script. This information does not require a script to be signed and does not replace the
+path and hash binding. For PowerShell, a reusable "Exactly this invocation" approval is available
+only with such a safely bound direct script. In particular, `-Command`, interactive invocations,
+and other forms not recognized as direct `-File` execution can be approved only once or
+deliberately with a broader approval scope.
+
+For other interpreters, if no direct script with its path and SHA-256 hash is shown,
+"Exactly this invocation" still binds the program file, arguments, working directory, and the
+setting for a visible or hidden launch, but no additional program or script contents. Programs,
+scripts, and other files named in the command or
+invoked by it directly or indirectly can be replaced or modified without invalidating the
+approval. Examples include free CMD command text using `SET` and `CALL` and programs subsequently
+started by a bound target program or script.
+
+If a folder relevant to replacement can be modified, or if the path or contents cannot be verified
+safely, a reusable approval for "Exactly this invocation" is not available. The dialog explains
+why and keeps the one-time approval as the default. The user can instead deliberately select a
+reusable approval for the interpreter or for all programs. Such a broad approval does not bind
+arguments, the script path, or script contents and therefore requires the separate explicit
+confirmation described above. Before each individual launch, the broker still rechecks and locks
+a recognized direct script; this launch-time check does not bind later invocations to the earlier
+script contents. For PowerShell, an administratively enforced `AllSigned` policy can additionally
+protect script files, but does not protect against direct or interactive commands.
+
+Calling scripts, shortcuts, and configuration files from which the xucRun invocation is first
+generated are still not generally hashed. The approval binds the resulting xucRun invocation, not
+the script, shortcut, or configuration file from which it originated. Dynamically loaded scripts,
+modules, configuration files, plugins, program inputs, and downstream programs are likewise not
+automatically included. Such programs and files, as well as directories through which they could
+be replaced, must therefore remain appropriately protected. An existing xucRun approval is not a
+substitute for this protection. The other broker checks, particularly those for the account,
+requested privileges, visibility, target path, and target-program hash, remain effective.
 
 ## xucRun scope
 
@@ -491,589 +1138,6 @@ the log folder. The log contains no stored passwords.
 Both installation methods and the local test-signing instructions are described in detail in the
 [installation guide](docs/en/INSTALLATION.md).
 
-The following examples use the short name `xucRun.exe`. This works when
-`%ProgramFiles%\xucRun` was added to the global machine PATH during installation. Select this
-option in the graphical installer or specify `-AddToSystemPath` during manual installation.
-Without the PATH entry, invoke xucRun by its full path, for example
-`"%ProgramFiles%\xucRun\xucRun.exe"`.
-
-## Quick start
-
-After installation, xucRun credentials for a target account can be stored explicitly:
-
-```powershell
-xucRun.exe /addcred Administrator
-```
-
-If the account name is omitted, xucRun first opens a dialog for selecting an enabled local
-account. A password-entry dialog on the separate Windows desktop then appears regardless of
-whether the account was specified or selected. Specify `DOMAIN\UserName` for a domain account.
-
-| Credential entry on separate desktop | Stored credential confirmation |
-|:---:|:---:|
-| ![Credential entry on separate desktop](docs/en/images/credential-entry.png) | ![Stored credential confirmation](docs/en/images/credential-stored.png) |
-
-Run programs by specifying their normal path followed by their arguments:
-
-```powershell
-xucRun.exe notepad.exe
-xucRun.exe regedit.exe
-xucRun.exe powershell.exe -NoExit
-xucRun.exe cmd.exe /c "net stop MyService"
-```
-
-If a suitable account, stored credentials, or an applicable approval is missing, xucRun guides
-the user through the required steps during the current invocation.
-
-## Usage examples
-
-Open Device Manager from a standard user account:
-
-```cmd
-xucRun.exe "%windir%\System32\mmc.exe" "%windir%\System32\devmgmt.msc"
-```
-
-Start an administrative PowerShell script:
-
-```powershell
-xucRun.exe powershell.exe -File "C:\Scripts\AdminScript.ps1"
-```
-
-Stop a Windows service through `cmd.exe`:
-
-```cmd
-xucRun.exe cmd.exe /c "net stop MyService"
-```
-
-Edit a file with a program running under the selected target account:
-
-```powershell
-xucRun.exe notepad.exe "C:\Windows\System32\drivers\etc\hosts"
-```
-
-Replace the current PowerShell with a PowerShell running in the automatically selected user and
-privilege context:
-
-```powershell
-PS D:\Example\Project> xucRun.exe
-```
-
-For this invocation without parameters, xucRun detects the direct parent shell, closes the
-existing console after a successful start, and reopens the same shell in the original working
-directory. If the existing PowerShell runs under a standard account and credentials for exactly
-one administrator account are stored in xucRun, xucRun selects that account automatically,
-requests Windows UAC confirmation, and starts the new PowerShell elevated under that account back
-in `D:\Example\Project`. This is the typical primary use case for shell replacement.
-
-If xucRun credentials are stored for several administrator accounts, an account selection dialog
-appears instead. If the current account is itself an administrator, xucRun uses that account and
-either uses its existing elevated privileges directly or requests UAC. Only when no
-administrator-account credentials are stored by xucRun for a standard account does xucRun
-consider standard accounts for which xucRun credentials are stored and start the replacement
-shell without elevation. The working directory is preserved in every case.
-
-The invocations shown above that specify a target program can also be used in scripts and desktop
-shortcuts. If xucRun can determine the target account unambiguously and automatically, the
-invocation does not need to name an account.
-
-The separation between the standard user and the privileged target account follows this
-principle: **A standard user may request the privileged action, but must not be able to change its
-administratively approved content without that change being detected.**
-
-This issue is not specific to xucRun. It applies generally whenever a less privileged account can
-modify files that determine the behavior of a more privileged process.
-
-Scripts, shortcuts, scheduled tasks, and configuration files that contain an xucRun invocation or
-determine its target, arguments, or working directory must therefore themselves be trusted and
-protected against unauthorized modification. xucRun cannot generally verify their integrity.
-Accounts that can modify such files must already be trusted to control the corresponding
-privileged invocation. This also applies to parent directories through which these files could be
-deleted, replaced, renamed, or redirected. Such files must not be stored in shared or
-insufficiently protected writable directories.
-
-Shell replacement without parameters, in contrast, is intended for interactive invocation from a
-supported shell. It should be used in a script only when closing the existing console and
-interactively starting a replacement shell is explicitly intended. An invocation without
-parameters is not suitable for a normal desktop shortcut.
-
-Supported parent shells are `cmd.exe`, `powershell.exe`, `pwsh.exe`, and `tcc.exe`.
-
-### Relaunch a batch file with elevated privileges when needed
-
-A batch file can check at startup whether it is already running with elevated privileges.
-Otherwise, it relaunches itself through xucRun and ends the original non-elevated run. With
-`/user-elevated`, xucRun reuses the current account when it is already an administrator and
-requests UAC elevation only if necessary. Otherwise, xucRun selects an administrator account:
-
-```cmd
-@echo off
-NET SESSION >nul 2>&1
-IF ERRORLEVEL 1 (
-  "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%~dpnx0" %*
-  GOTO :eof
-)
-
-REM Commands requiring elevated privileges follow here.
-```
-
-`%~dpnx0` returns the fully qualified path of the running batch file; `%*` forwards all original
-arguments. `GOTO :eof` prevents the non-elevated run from continuing after the relaunch. The
-`NET SESSION` check requires the Windows **Server** service to be available.
-
-### Desktop shortcut for an elevated Explorer
-
-A desktop shortcut can open an Explorer window for a fixed directory directly under a specific
-administrator account for which xucRun credentials are stored and with elevated privileges. For
-example, enter the following in the shortcut's **Target** field:
-
-```text
-"%ProgramFiles%\xucRun\xucRun.exe" /user-elevated:Administrator "%WINDIR%\explorer.exe" "/root,"D:\Example\TargetFolder""
-```
-
-Use `/user-elevated:Administrator` when the shortcut must always select one particular
-administrator account for which xucRun credentials are stored and explicitly start Explorer with
-elevated privileges. Omit the switch when xucRun should determine the suitable account
-automatically. If Explorer should run under a specific different account without elevation being
-enforced by xucRun, use `/user:<Account>` instead.
-
-Replace `Administrator` with the required administrator account for which xucRun credentials are
-stored and the example path with the directory to open. `/root` makes this directory the root of
-the new Explorer window. The nested quotation marks must remain unchanged. Stored credentials do
-not replace the interactive Windows UAC confirmation.
-
-### Explorer context-menu integration
-
-The optional [ExplorerKontextMenue.reg](ExplorerKontextMenue.reg) file contains a complete example
-that adds xucRun commands for supported files, folders, folder backgrounds, and drives. For
-example, its command entries for executable files and folder backgrounds follow these patterns:
-
-```reg
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\exefile\shell\xucRun\command]
-@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"%1\""
-
-[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\xucRunAdmin\command]
-@="\"C:\\Program Files\\xucRun\\xucRun.exe\" /user-elevated \"C:\\Windows\\explorer.exe\" \"/root,\"%V\"\""
-```
-
-The file is an example rather than part of the installer. It first removes the nine entries it
-manages and then recreates them under `HKEY_LOCAL_MACHINE`, so they apply to all users. Importing
-it requires administrator rights, assumes that xucRun is installed under
-`C:\Program Files\xucRun`, and makes every included xucRun command explicitly require an elevated
-administrator account through `/user-elevated`.
-
-These entries use the classic Win32 Explorer context-menu registration under
-`Software\Classes\...\shell`. In the standard compact context menu on Windows 11, they normally
-appear under **Show more options**. When the classic context menu is used instead, they appear
-directly.
-
-### Total Commander integration
-
-The following examples show excerpts from Total Commander's `usercmd.ini` configuration file.
-They were tested with Total Commander 11.58 (64-bit). They may also work with other versions, but
-their compatibility has not been verified. For general information about Total Commander, visit
-the [official Total Commander website](https://www.ghisler.com/).
-
-xucRun can start a new elevated Total Commander instance according to its automatic account
-strategy. Members of the Administrators group retain their account and are elevated through UAC
-when necessary. For a standard user, xucRun uses a stored administrator account. The invocation
-preserves the left path, right path, and active file panel:
-
-```ini
-[em_TCStart_Elevated]
-button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
-cmd=%comspec% /v:on /c
-param=SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" "%|COMMANDER_PATH|\TOTALCMD64.EXE" /L="!L!" /R="!R!" /P=!Active!
-menu=Start TC elevated through xucRun; administrator members retain their account, standard users switch to an administrator
-iconic=1
-
-[em_TCReStart_Elevated]
-button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
-cmd=cm_Exit,em_TCStart_Elevated
-param=
-menu=Restart TC with elevated privileges
-iconic=1
-```
-
-The second command closes the current Total Commander instance and then invokes the first command.
-For a standard-user account switch, at least one administrator account must be stored in xucRun.
-If several matching administrator accounts are stored, the account selection dialog is shown. Any
-required Windows UAC prompt must be confirmed.
-
-The following command starts a new Total Commander instance as `LocalSystem`. It preserves the
-left path, right path, and active file panel:
-
-```ini
-[em_TCStart_System]
-button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
-cmd="%ProgramFiles%\xucRun\xucRun.exe"
-param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /system "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
-menu=Start Total Commander as LocalSystem through xucRun
-iconic=1
-```
-
-This command must invoke xucRun twice because `/system` is available only from an elevated
-administrator context. The outer invocation uses the automatic account strategy described above
-to start an elevated intermediate Command Prompt and hides it through `/hidden-monitor`. The inner
-xucRun invocation therefore runs with elevated administrator rights and starts Total Commander as
-`LocalSystem`. Every SYSTEM launch must be confirmed separately on xucRun's protected private
-desktop.
-
-The intermediate `cmd.exe /v:on /c` first stores the paths supplied by Total Commander in
-environment variables and then passes them to the inner xucRun invocation through delayed
-variable expansion. This handles paths containing spaces and special characters reliably.
-Comparing the paths additionally determines whether the left or right panel is active.
-
-Total Commander then has unrestricted `LocalSystem` access. Use this command only for deliberate
-maintenance and diagnostic work.
-
-xucRun can also start Total Commander under an explicitly selected different Windows account
-without that account already being signed in interactively. This allows file operations to be
-performed in another account context from a standard user session. For elevated administrative
-file operations, the target account must have administrator privileges and the Windows UAC prompt
-must be confirmed.
-
-For this example, replace `<Account>` with the configured account name and keep the Total
-Commander variables and quoting unchanged:
-
-```ini
-[em_TCStart_Account]
-button=%COMMANDER_EXE%
-cmd="%ProgramFiles%\xucRun\xucRun.exe"
-param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /user:<Account> "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
-menu=Launch Total Commander as <Account>
-iconic=1
-```
-
-The command again invokes xucRun twice so that an administrator account can act as the central
-authorized principal for the credentials of additional target accounts. In this example, unlike
-in the LocalSystem example above, the cascade is not required for the launch itself; here it is a
-deliberate design decision about how the credentials are stored. The outer invocation uses the
-same hidden, elevated administrator stage described above. The inner xucRun invocation therefore
-runs with the administrator's SID and can use the credentials that administrator stored for
-`<Account>`. This avoids storing the credentials of every additional target account separately
-for every standard user; each standard user needs only the credentials stored for the central
-administrator account. A single xucRun invocation by the standard user could instead use only
-that user's own SID-bound credentials. The inner invocation processes `/user:<Account>` and
-starts the visible Total Commander instance under the target account. Elevation of the outer
-intermediate stage is not transferred to the target account; its privileges remain unchanged.
-
-For example, the command can be added to a custom menu:
-
-```text
-POPUP "User"
-  MENUITEM "Start Total Commander for <Account>", em_TCStart_Account
-END_POPUP
-```
-
-Additional accounts can be added in the same way. For each additional account, you can create a
-separate command in `usercmd.ini` and a corresponding `MENUITEM`.
-
-## Account selection and privileges
-
-Without a user switch, xucRun uses a suitable current user context or an administrator account
-for which xucRun credentials are stored. If exactly one account with matching xucRun
-credentials is available, it is selected automatically; if several match, a selection dialog is
-shown.
-
-| Select an account with stored credentials | Select a local target user |
-|:---:|:---:|
-| ![Account selection for stored credentials](docs/en/images/target-account-selection.png) | ![Local target user selection](docs/en/images/target-user-selection.png) |
-
-| Invocation | Behavior |
-|---|---|
-| `xucRun.exe <Program> [Arguments ...]` | determine the account automatically and request elevation when required |
-| `xucRun.exe /user <Program> [Arguments ...]` | select an account for which xucRun credentials are stored, without additional elevation by xucRun |
-| `xucRun.exe /user:* <Program> [Arguments ...]` | always select an enabled local account, without additional elevation by xucRun |
-| `xucRun.exe /user:<Account> <Program> [Arguments ...]` | use a specific account without additional elevation by xucRun |
-| `xucRun.exe /user-elevated <Program> [Arguments ...]` | use the current administrator account with UAC elevation if necessary; otherwise select an administrator account with stored xucRun credentials |
-| `xucRun.exe /user-elevated:* <Program> [Arguments ...]` | always select an enabled local administrator account and start elevated |
-| `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated |
-
-The `:*` forms always show the local target-account selection, even when only one suitable
-account or stored credential is available. The current account and accounts with stored xucRun
-credentials are identified in the dialog. Selecting the current account uses its existing token;
-selecting another account without stored xucRun credentials starts protected password entry and
-continues the original launch after the credentials have been stored successfully.
-
-If the current account is not an administrator and no credentials for a suitable administrator
-account are stored on the first invocation with `/user-elevated`, xucRun automatically offers
-administrator-account selection and protected password entry. After the credentials are stored
-successfully, the original launch request continues. `/addcred` remains available for storing
-credentials before a separate launch request.
-
-Stored credentials do not bypass Windows UAC. When elevation is required, UAC confirmation remains
-interactive. For a new approval involving an elevated start, the approval dialog on the separate
-desktop may appear first, followed by the UAC dialog for the target program.
-For elevated cross-account launches, Windows Admin Approval Mode must be enabled for the selected
-administrator account. If Windows instead already provides a fully elevated token, xucRun blocks
-the launch because UAC confirmation would not be possible. This can particularly affect the
-built-in `Administrator` account.
-
-## Approvals
-
-**With each approval, the user determines the balance between convenience and narrow scope:**
-The longer and broader an approval is, the more matching later invocations can proceed without
-another xucRun approval decision. A shorter approval or one bound more precisely to a program,
-invocation, and target account requires a new decision more often but limits how broadly it can
-be reused.
-
-The differentiated approval dialog allows the approval duration, program and invocation binding,
-and included target accounts to be adapted to the specific use case and desired level of
-protection. Its fixed header above the scrollable launch details identifies the xucRun client path
-as successfully verified by the broker and shows the calling account, target account, and
-protected approval-helper origin before the explanatory UAC note. The scrollable area shows
-detailed Authenticode information for the target program. For a trusted target signature, these
-details include the signer, full SHA-256 certificate fingerprint, issuer, certificate validity
-period, signature type, and any available timestamp and timestamp authority. If trust verification
-fails, the dialog distinguishes a missing signature association from common signature,
-certificate-chain, validity, revocation, and policy failures. A missing association means that no
-usable embedded signature and no Windows catalog signature matching the current file contents was
-found. A catalog signature associates the file through its hash; changing any byte breaks that
-association, even though the catalog and its certificate continue to exist on the system and must
-no longer be attributed to the changed file. The dialog also shows any signer and certificate
-details that Windows can still provide for an untrusted signature. xucRun recognizes both embedded
-Authenticode signatures and Windows catalog signatures. An unsigned or untrusted target remains
-approvable because the signature information supplements rather than replaces the exact path and
-SHA-256 identity. The available approval durations are:
-
-- this start only,
-- 10 minutes,
-- one day,
-- until sign-out,
-- permanently.
-
-If the current launch differs from approvals already stored for the same target program, the
-scrollable details summarize up to four of the most relevant approvals and name the differing
-bindings, such as the program file, target account, elevation mode, arguments, working directory,
-visibility, or direct script. The "Effect of this selection" area explains whether the new choice
-adds a separate approval, broadens existing approvals, replaces an otherwise identical approval
-with a different elevation mode, or remains overlaid by a broader approval. Existing narrower or
-broader approvals are not deleted automatically; `/showapprovals` remains the complete management
-view. Plain-text arguments are not reconstructed or displayed.
-
-See [Approvals and UAC in xucRun](#approvals-and-uac-in-xucrun) for the relationship between a
-reusable approval and Windows UAC confirmation that remains required for a specific launch.
-
-For "This start only," approval scope and target accounts do not apply because the approval applies only to
-the currently displayed launch. The corresponding controls are therefore disabled. A reusable
-approval can be bound to one program or all programs and to one target account or all stored
-accounts of the current Windows user. Program-specific approvals include the SHA-256 hash of the
-executable. If the file changes, transferring the approval to the new version requires explicit
-confirmation. This also applies to **"Exactly this invocation"** approvals; their argument,
-working-directory, visibility, and direct-script bindings remain unchanged when the confirmed
-program hash is transferred.
-
-![Approval after a program hash has changed](docs/en/images/program-hash-change-approval.png)
-
-With **"Exactly this invocation,"** a reusable approval can additionally be bound to the exact
-arguments, the working directory, and whether the program is started visibly or hidden. Any change
-to these values then requires a new approval. The arguments are not stored in clear text; only
-their SHA-256 hash is retained as the binding.
-
-![xucRun approval dialog on separate desktop](docs/en/images/approval-dialog.png)
-
-An approval does not restrict what the started program can do. General or permanent approvals for
-universal interpreters such as `cmd.exe`, PowerShell, or `wscript.exe` are therefore particularly
-powerful.
-
-For `cmd.exe`, `powershell.exe`, `pwsh.exe`, TCC, and Windows Script Host, the approval dialog
-therefore warns about the interpreter's broader capabilities. A normal program approval does not
-bind the displayed arguments. Therefore, "Exactly this invocation" is preselected for reusable
-approvals involving these shells and interpreters.
-
-If a reusable approval for one of these interpreters is nevertheless changed to "Only for this
-target program" or "For all programs," xucRun requires a second explicit confirmation on the
-protected desktop. It explains that arguments, script paths, and script contents are not part of
-the stored approval and that different commands or new or modified scripts can later start without
-another xucRun approval dialog. Returning to the selection is the default. An intentionally stored
-broad approval retains this broad effect when it matches a later invocation.
-
-![Confirmation before storing a broad interpreter approval](docs/en/images/broad-interpreter-approval-confirmation.png)
-
-If xucRun recognizes a directly specified PowerShell, batch, TCC, or Windows Script Host script, it
-additionally binds the script's fully resolved path and SHA-256 hash, provided that the calling
-account cannot modify a folder relevant to replacing the script. The script file itself may be
-writable: if its contents change later, its hash no longer matches and xucRun requires a new
-approval. Immediately before every launch, the broker rechecks the final path and hash and keeps
-the verified file locked against modification and replacement until the program starts. An active
-script binding is visible when the direct script's path and SHA-256 hash are shown at the top of
-the approval dialog. The dialog also shows the same Authenticode and certificate details for the
-direct script. This information does not require a script to be signed and does not replace the
-path and hash binding. For PowerShell, a reusable "Exactly this invocation" approval is available
-only with such a safely bound direct script. In particular, `-Command`, interactive invocations,
-and other forms not recognized as direct `-File` execution can be approved only once or
-deliberately with a broader approval scope.
-
-For other interpreters, if no direct script with its path and SHA-256 hash is shown,
-"Exactly this invocation" still binds the program file, arguments, working directory, and the
-setting for a visible or hidden launch, but no additional program or script contents. Programs,
-scripts, and other files named in the command or
-invoked by it directly or indirectly can be replaced or modified without invalidating the
-approval. Examples include free CMD command text using `SET` and `CALL` and programs subsequently
-started by a bound target program or script.
-
-If a folder relevant to replacement can be modified, or if the path or contents cannot be verified
-safely, a reusable approval for "Exactly this invocation" is not available. The dialog explains
-why and keeps the one-time approval as the default. The user can instead deliberately select a
-reusable approval for the interpreter or for all programs. Such a broad approval does not bind
-arguments, the script path, or script contents and therefore requires the separate explicit
-confirmation described above. Before each individual launch, the broker still rechecks and locks
-a recognized direct script; this launch-time check does not bind later invocations to the earlier
-script contents. For PowerShell, an administratively enforced `AllSigned` policy can additionally
-protect script files, but does not protect against direct or interactive commands.
-
-Calling scripts, shortcuts, and configuration files from which the xucRun invocation is first
-generated are still not generally hashed. The approval binds the resulting xucRun invocation, not
-the script, shortcut, or configuration file from which it originated. Dynamically loaded scripts,
-modules, configuration files, plugins, program inputs, and downstream programs are likewise not
-automatically included. Such programs and files, as well as directories through which they could
-be replaced, must therefore remain appropriately protected. An existing xucRun approval is not a
-substitute for this protection. The other broker checks, particularly those for the account,
-requested privileges, visibility, target path, and target-program hash, remain effective.
-
-## Programs, arguments, and special characters
-
-The first argument that is not an xucRun switch is the target program. All following arguments
-belong exclusively to that program:
-
-```powershell
-xucRun.exe cmd.exe /c dir
-xucRun.exe /user:Administrator app.exe /config:value
-```
-
-Here, `/c` and `/config:value` are not interpreted by xucRun. Shell-internal commands must be run
-through their shell, for example `cmd.exe /c dir` or
-`powershell.exe -Command Get-Process`.
-
-Enclose program paths and individual arguments containing spaces in quotation marks as usual.
-xucRun also supports batch files and carries common shell special characters across the additional
-process boundaries. Characters that `cmd.exe`, PowerShell, or another calling shell evaluates
-before xucRun starts remain subject to that shell's rules.
-
-For a broker-mediated launch of a `.bat` or `.cmd` file whose file name contains one of the CMD
-metacharacters `& | ( ) ! % ^`, the broker creates a temporary wrapper named
-`xucRun_wrapper_<128-bit-random-value>.bat`. It stores the wrapper preferably on a suitable volume
-named `RamDisk`, or otherwise in the target account's `%TEMP%` directory. The broker protects the
-wrapper until the launched process exits and then attempts to delete it, or does so during error
-cleanup if the launch fails. If a deletion error or unexpected broker termination leaves it
-behind, a local administrator can remove it after it has been released. There is no later
-automatic cleanup; the wrapper contains no credentials, stored arguments, or reusable
-authorization.
-
-## Useful commands
-
-| Command | Purpose |
-|---|---|
-| `xucRun.exe /addcred [<Account>]` | store credentials |
-| `xucRun.exe /deletecred [<Account>]` | select and delete stored credentials |
-| `xucRun.exe /showcred` | show accounts for which xucRun credentials are stored |
-| `xucRun.exe /showapprovals` | show stored approvals |
-| `xucRun.exe /resetapprovals[:<Account>]` | reset approvals |
-| `xucRun.exe /system [<Application> [Arguments...]]` | start a local application or replacement shell as `LocalSystem` |
-| `xucRun.exe /info` | show version, copyright, signing certificate, broker status, and current configuration |
-| `xucRun.exe /admin-status` | show and manage data for all Windows users with elevation |
-| `xucRun.exe /backup` | manage local backups |
-| `xucRun.exe /audit` | run security diagnostics |
-| `xucRun.exe /enable-broker` | re-enable a disabled broker |
-| `xucRun.exe /clear-all` | delete stored credentials, approvals, security identifiers, and associated metadata |
-| `xucRun.exe /help` | show complete help |
-
-`/hidden` hides the directly started target program. `/hidden-monitor` also monitors its exit code
-and displays a notice when it fails. Dialogs and child processes are not hidden or monitored by
-these options.
-
-`xucRun.exe` uses exit code `0` for a successful operation and exit code `1` when the operation
-fails, is rejected, or is cancelled. The exit code of a launched target program is not returned as
-the exit code of `xucRun.exe`.
-
-### Starting an application or replacement shell as LocalSystem
-
-`xucRun.exe /system [<Application> [Arguments...]]` starts the specified local application, or a
-replacement shell when no application is specified, as the Windows `LocalSystem` account in the
-caller's interactive session. This mode is available only to members of the local Administrators
-group. An administrator who is not already elevated receives one Windows UAC consent prompt; an
-already elevated administrator performs the launch without another UAC prompt. Standard users are
-rejected before an elevation request.
-
-Without an application, `xucRun.exe /system` replaces an invoking TCC, Command Prompt, Windows
-PowerShell, or PowerShell Core shell with the same shell running as `LocalSystem`. It preserves
-the current working directory, brings the new shell to the foreground, and closes the previous
-shell only after the replacement started successfully.
-
-The elevated administrator account may differ from the account signed in to the interactive
-session. This allows `/system` to be invoked from an elevated replacement shell in another user's
-session.
-
-`/system` does not use stored credentials or approvals. Every launch must be confirmed separately
-in the signed xucRun approval helper. The dialog appears on xucRun's protected private desktop and
-shows the exact executable, all arguments, and the working directory. The confirmation applies
-only to that invocation and cannot be stored. xucRun revalidates the executable immediately
-before starting it.
-
-The private desktop protects the confirmation from ordinary applications on the normal desktop.
-It cannot protect against malicious software that is already running with elevated administrator
-rights in the same logon session. Use `/system` only from a trusted elevated administrator
-session.
-
-```cmd
-xucRun.exe /system "%SystemRoot%\regedit.exe" /m
-```
-
-Applications running as `LocalSystem` have extensive control over the computer. In particular,
-`HKEY_CURRENT_USER` refers to the `LocalSystem` profile rather than the signed-in user's profile.
-Use this mode only for deliberate maintenance and diagnostic work.
-
-## Managing credentials and approvals
-
-`/showcred` lists target accounts for which xucRun credentials are stored. `/showapprovals` lists
-active general, target-program, and exact-invocation approvals, with separate columns for scope,
-target, and invocation binding. Stored passwords are neither displayed nor returned
-to the client.
-
-In the approval view, double-clicking a row or choosing **Show details...** from its context menu
-opens all applicable nonempty fields in a read-only, selectable view for copying. The details
-include the complete target hash when present. For approvals tied to a specific target account,
-they also show its SID so that the account can be identified unambiguously. An approval for all
-target accounts has no single target account SID, so that field is omitted.
-
-In the credential view, **Show details...** provides the same copyable target account information,
-including its SID. Double-clicking a target account with approvals opens the approvals that apply
-to that account. The context menu provides the same action; it is unavailable for rows without
-approvals.
-
-Delete actions remain exclusively on the visible buttons below the tables. A selected row can be
-deleted from either view. The credential view can also delete all displayed credentials; their
-account-bound approvals are removed with them, while profile-wide approvals remain stored. The
-approval view can delete all displayed approvals. Each deletion requires a separate confirmation,
-and the selected-row action remains disabled until a row is selected.
-
-| Stored credentials | Active approvals |
-|:---:|:---:|
-| ![Stored credentials](docs/en/images/credentials.png) | ![Active program approvals](docs/en/images/approvals.png) |
-
-Without an account name, `/deletecred` presents a selection and asks for confirmation before
-deletion. Deleting an account also removes approvals bound to that account. Profile-wide approvals
-for all accounts remain in place.
-
-Use `/resetapprovals` to select and remove individual or multiple approvals. `/clear-all` is the
-administrative cleanup command for active broker-managed data. It must be run elevated and, after
-explicit confirmation, deletes all xucRun credentials, approvals, security identifiers, and
-associated metadata for every Windows user on the computer. Local backups are retained and can be
-removed separately with `/backup-delete-all`.
-
-| Delete stored credentials | Reset approvals |
-|:---:|:---:|
-| ![Confirmation before deleting stored credentials](docs/en/images/delete-credential.png) | ![Confirmation before resetting approvals](docs/en/images/reset-approvals.png) |
-
-For a computer-wide overview, `/admin-status` displays the stored xucRun data of all Windows users
-and provides the available administrative cleanup actions. Double-clicking a row or choosing
-**Show details...** from its context menu opens the applicable nonempty credential or approval
-fields for selection and copying. Credential details and approvals tied to a specific target
-account show the target account SID so that the account can be identified unambiguously.
-Approval details also include the complete target hash when present.
-
-![Administrative status for all users](docs/en/images/administrative-status.png)
-
 ## Backups
 
 `xucRun.exe /backup` opens the interactive local backup manager. The following commands are also
@@ -1089,7 +1153,8 @@ xucRun.exe /backup-restore:<Backup-ID>
 xucRun.exe /backup-delete-all
 ```
 
-A backup contains stored credentials, approvals, security identifiers, and associated metadata.
+A backup contains stored credentials, approvals, xucRun dialog security identifiers, and
+associated metadata.
 Backups are stored separately from the active credentials and approvals under
 `%ProgramData%\xucRun\BrokerBackups`. xucRun uses Windows APIs for storage and binds the backups to
 the computer. xucRun restores them only on the same computer; they are not a portable password
@@ -1099,18 +1164,18 @@ Uninstalling xucRun also removes locally stored xucRun backups.
 
 ## Troubleshooting
 
-`xucRun.exe /info` shows the shared client runtime information also used by xucRun Tray: version,
-copyright, path, architecture, effective language and loaded language DLL, signing certificate,
-current account including SID and elevation, configuration file, and client logging. Core-specific
-The common configuration section also identifies the installed maintenance script. Core-specific
-sections add broker status, broker information events, and stored-data counts.
-`xucRun.exe /audit` checks security-relevant properties of the running installation
-and also identifies the verified certificate when the client signature is valid. If xucRun Tray
-is installed separately, the diagnostics also check its installed
-files and signatures, uninstall registration, and per-user autostart tasks. If the broker service
-was disabled,
-`xucRun.exe /enable-broker` enables it again. `xucRun.exe /help` displays the complete local
-command overview.
+`xucRun.exe /info` shows the shared client runtime information also used by the separately
+installed optional xucRun Tray add-on: version, copyright, path, architecture, effective language
+and loaded language DLL, signing certificate, current account including SID and elevation,
+configuration file, and client logging. The common configuration section also identifies the
+installed maintenance script. Core-specific sections add broker status, broker information
+events, and stored-data counts.
+`xucRun.exe /audit` checks security-relevant properties of the running installation and also
+identifies the verified certificate when the client signature is valid. If xucRun Tray is
+installed separately, the diagnostics also check its installed files and signatures, uninstall
+registration, and per-user autostart tasks. If the broker service was disabled,
+`xucRun.exe /enable-broker` enables it again. `xucRun.exe /help` displays the complete local command
+overview.
 
 The diagnostics explicitly verify the file protection, Authenticode trust, and expected signer
 of the installed `Install-xucRun.ps1` maintenance script and, when Tray is installed,
@@ -1197,7 +1262,13 @@ interface whose icon appears in the notification area of the Windows taskbar nex
 is a separate project that displays information from xucRun and provides access to existing xucRun
 management functions. Its menu can set the machine-wide xucRun language to Automatic, German, or
 English. Running Tray instances restart after the change, and the setting applies to newly started
-xucRun processes. The Tray add-on does not replace xucRun.
+xucRun processes.
+
+The Tray is particularly helpful during initial setup, when checking the operating state, and when
+later changing credentials, approvals, language, logging, or broker state. xucRun and its broker
+service remain fully usable without the Tray being installed or running, so the Tray can be used
+continuously or only when needed. Details about manual startup and startup at Windows logon are
+documented in the Tray project.
 
 ## A personal note on the origins of xucRun
 
