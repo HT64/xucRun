@@ -52,6 +52,14 @@ bestehenden Windows-Sitzung angemeldet; nur die angeforderte Ausführung erfolgt
 ausgewählten anderen Benutzerkonto, das auch Mitglied der lokalen Administratorengruppe sein kann,
 mit dessen Identität und Berechtigungen.
 
+Dieser Unterschied betrifft nicht nur lokale Administratorrechte. Wird das aktuelle Konto über UAC
+erhöht, bleibt dessen Identität unverändert. Der erhöhte Prozess verwendet deshalb weiterhin die
+Berechtigungen, die diesem Konto oder seinen Gruppen zugewiesen sind, beispielsweise auf
+Netzwerkfreigaben anderer Rechner. Mit xucRun kann ein Prozess dagegen beispielsweise erhöht unter
+dem getrennten Konto `Administrator` ausgeführt werden, statt erhöht unter dem eigenen Konto als
+Mitglied der lokalen Administratorengruppe. Beim Zugriff auf andere Ressourcen verwendet der
+Prozess dann die Identität und Berechtigungen des Zielkontos, soweit dieses dort berechtigt ist.
+
 xucRun verbindet Windows-Kontowechsel und UAC mit von xucRun verwalteten Anmeldedaten für
 Zielkonten. Diese Anmeldedaten bleiben geschützt und werden nur verwendet, wenn eine passende
 [xucRun-Freigabe](#freigaben) die angeforderte Ausführung erlaubt. Sie erfolgt ausschließlich

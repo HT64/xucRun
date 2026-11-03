@@ -49,6 +49,14 @@ the existing Windows session; only the requested execution takes place under the
 user account, which may belong to the local Administrators group, with that account's identity
 and privileges.
 
+This distinction concerns more than local administrator rights. When the current account is
+elevated through UAC, its identity remains unchanged. The elevated process therefore continues to
+use permissions assigned to that account or its groups, for example on network shares hosted by
+other computers. xucRun can instead run a process elevated under a separate account such as
+`Administrator`, rather than elevated under the user's own account as a member of the local
+Administrators group. When accessing other resources, the process then uses the target account's
+identity and permissions, to the extent that account is authorized there.
+
 xucRun combines Windows account switching and UAC with credentials managed by xucRun for target
 accounts. These credentials remain protected and are used only when a matching
 [xucRun approval](#approvals) allows the requested execution. It takes place only under the target
