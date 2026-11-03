@@ -31,49 +31,51 @@ Aufruf Kontoname und Kennwort erneut einzugeben.
 
 ### Warum mit einem Standardkonto arbeiten?
 
-Für die tägliche Arbeit kann ein Anwender dauerhaft mit einem Konto, das Mitglied der lokalen
-Administratorengruppe ist, oder mit einem Standardkonto angemeldet bleiben. Ein Mitglied der
-Administratorengruppe ist berechtigt, Programme mit Administratorrechten auszuführen. Wie
-Programme diese Rechte erhalten, hängt von der Konfiguration der Windows-Benutzerkontensteuerung
-(User Account Control, UAC) ab: Sie besitzen die Rechte bereits oder fordern über UAC eine
-Erhöhung an. Eine solche Erhöhung kann grundsätzlich jedes Programm anfordern.
+Unabhängig von xucRun kann ein Anwender für die tägliche Arbeit dauerhaft mit einem Konto, das
+Mitglied der lokalen Administratorengruppe ist, oder mit einem Standardkonto angemeldet bleiben.
+Ein Mitglied der Administratorengruppe ist berechtigt, Programme mit Administratorrechten
+auszuführen. Je nach Konfiguration der Windows-Benutzerkontensteuerung (User Account Control, UAC)
+stehen diese Rechte einem gestarteten Prozess bereits zur Verfügung oder werden über UAC
+angefordert. Eine solche Anforderung kann grundsätzlich jedes Programm stellen.
 
-Ein Standardkonto besitzt selbst keine Administratorrechte. Systemweite Änderungen an Programmen,
-Diensten oder geschützten Konfigurationen erfordern deshalb ein getrenntes Konto, das Mitglied der
-lokalen Administratorengruppe ist. Dadurch wird begrenzt, was versehentliche Aktionen und Prozesse
-im normalen Benutzerkontext ohne einen getrennten, bewusst bestätigten Autorisierungsschritt
-ändern können.
+Ein Standardkonto besitzt selbst keine Administratorrechte und kann sie über UAC nicht für seine
+eigene Identität erhalten. Systemweite Änderungen an Programmen, Diensten oder geschützten
+Konfigurationen erfordern deshalb ein getrenntes Konto, das Mitglied der lokalen
+Administratorengruppe ist; der erhöhte Prozess läuft unter dessen Identität. Dadurch wird
+begrenzt, was versehentliche Aktionen und Prozesse im normalen Benutzerkontext ohne einen
+getrennten, bewusst bestätigten Autorisierungsschritt ändern können.
 
 ### Wie xucRun diesen Arbeitsablauf unterstützt
 
-xucRun erhält diese Trennung aufrecht. Es macht den Standardbenutzer weder vorübergehend zum
-Administrator noch erweitert es die Rechte dieses Kontos. Der Anwender bleibt in seiner
-bestehenden Windows-Sitzung angemeldet; nur die angeforderte Ausführung erfolgt unter dem
-ausgewählten anderen Benutzerkonto, das auch Mitglied der lokalen Administratorengruppe sein kann,
-mit dessen Identität und Berechtigungen.
+xucRun erhält diese Trennung aufrecht und behandelt Kontowahl und Erhöhung als getrennte
+Entscheidungen. Es macht den Standardbenutzer nicht vorübergehend zum Administrator und erweitert
+dessen Rechte nicht.
 
-Dieser Unterschied betrifft nicht nur lokale Administratorrechte. Wird das aktuelle Konto über UAC
-erhöht, bleibt dessen Identität unverändert. Der erhöhte Prozess verwendet deshalb weiterhin die
-Berechtigungen, die diesem Konto oder seinen Gruppen zugewiesen sind, beispielsweise auf
-Netzwerkfreigaben anderer Rechner. Mit xucRun kann ein Prozess dagegen beispielsweise erhöht unter
-dem getrennten Konto `Administrator` ausgeführt werden, statt erhöht unter dem eigenen Konto als
-Mitglied der lokalen Administratorengruppe. Beim Zugriff auf andere Ressourcen verwendet der
-Prozess dann die Identität und Berechtigungen des Zielkontos, soweit dieses dort berechtigt ist.
+Erhöht xucRun einen Prozess über UAC unter dem aktuellen Konto eines angemeldeten Mitglieds der
+lokalen Administratorengruppe, wechselt Windows die Benutzeridentität nicht. Der erhöhte Prozess
+verwendet deshalb weiterhin die Berechtigungen und das Benutzerprofil dieses Kontos.
+
+Startet xucRun den Prozess dagegen unter einem anderen Zielkonto, verwendet er dessen Identität
+und Berechtigungen, etwa beim Zugriff auf Netzwerkfreigaben, sowie dessen geladenes
+Benutzerprofil. Dazu gehören beispielsweise benutzerbezogene Profildaten, in Anwendungen
+gespeicherte Anmeldungen für E-Mail-Konten und Registry-Einstellungen. `HKEY_CURRENT_USER` verweist
+dementsprechend auf den Registry-Hive des Zielkontos und nicht auf den des an Windows angemeldeten
+Benutzers.
 
 xucRun verbindet Windows-Kontowechsel und UAC mit von xucRun verwalteten Anmeldedaten für
 Zielkonten. Diese Anmeldedaten bleiben geschützt und werden nur verwendet, wenn eine passende
-[xucRun-Freigabe](#freigaben) die angeforderte Ausführung erlaubt. Sie erfolgt ausschließlich
-unter dem für diesen Aufruf ausgewählten Zielkonto; dessen Identität und Berechtigungen werden
-weder auf das angemeldete Standardkonto noch auf ein anderes Benutzerkonto übertragen. Eine an
-ein bestimmtes Zielkonto gebundene Freigabe kann nur für Starts unter diesem Konto verwendet
-werden.
+[xucRun-Freigabe](#freigaben) die angeforderte Ausführung erlaubt. Der freigegebene Start erfolgt
+ausschließlich unter dem für diesen Aufruf ausgewählten Zielkonto; dessen Identität und
+Berechtigungen werden weder auf das angemeldete Standardkonto noch auf ein anderes Benutzerkonto
+übertragen. Eine an ein bestimmtes Zielkonto gebundene Freigabe kann nur für Starts unter diesem
+Konto verwendet werden.
 
 Nach der einmaligen Einrichtung genügt für einen typischen Start die Angabe des Programms, Befehls
 oder Skripts und der zugehörigen Argumente. Bei dieser eingerichteten Nutzung müssen weder
 Kontoname noch Kennwort im eigentlichen xucRun-Aufruf hinterlegt werden – unabhängig davon, ob der
 Start aus einer Konsole, über ein Kontextmenü, über eine Desktopverknüpfung oder aus einem Skript
-erfolgt. xucRun wählt ein geeignetes Konto, fragt fehlende Auswahl- oder Freigabeentscheidungen
-interaktiv ab und verwendet passende Entscheidungen erneut. Eine notwendige
+erfolgt. Bereits getroffene passende Auswahl- und Freigabeentscheidungen verwendet xucRun erneut;
+fehlende Entscheidungen fragt es interaktiv ab. Eine notwendige
 [Windows-UAC-Bestätigung](#freigaben-und-uac-in-xucrun) bleibt interaktiv.
 
 ## Schnellstart
@@ -1363,7 +1365,7 @@ des Tray-Projekts.
 ## Persönliche Notiz zur Entstehung von xucRun
 
 Der Ausgangspunkt für xucRun war ein über Jahre wiederkehrender Bedarf auf mehreren Rechnern im
-privaten Umfeld, von denen einige auch andere Familienmitglieder nutzten. Für die meisten
+privaten Umfeld, von denen einige auch von anderen Personen genutzt wurden. Für die meisten
 Tätigkeiten am Windows-Rechner nutze ich Standardbenutzerkonten, denen ich bewusst keine
 Mitgliedschaft in der Administratorengruppe einräume. Einzelne Programme möchte ich bei Bedarf
 dennoch mit erhöhten Rechten starten können, ohne dafür jedes Mal in eine separate

@@ -30,45 +30,46 @@ matching invocation.
 
 ### Why work from a standard account?
 
-For everyday work, a user can remain signed in with either an account that belongs to the local
-Administrators group or a standard account. A member of the Administrators group is authorized to
-run programs with administrator rights. How programs receive those rights depends on the Windows
-User Account Control (UAC) configuration: they may already have them or request elevation through
-UAC. Any program can make such a request.
+Independently of xucRun, a user can remain signed in for everyday work with either an account that
+belongs to the local Administrators group or a standard account. A member of the Administrators
+group is authorized to run programs with administrator rights. Depending on the Windows User
+Account Control (UAC) configuration, a launched process either already has those rights or
+requests them through UAC. Any program can make such a request.
 
-A standard account has no administrator rights of its own. System-wide changes to programs,
-services, or protected configuration therefore require a separate account that belongs to the
-local Administrators group. This limits what accidental actions and processes running in the
-user's normal context can change without a separate, deliberate authorization step.
+A standard account has no administrator rights of its own and cannot obtain them through UAC for
+its own identity. System-wide changes to programs, services, or protected configuration therefore
+require a separate account that belongs to the local Administrators group; the elevated process
+runs under that account's identity. This limits what accidental actions and processes running in
+the user's normal context can change without a separate, deliberate authorization step.
 
 ### How xucRun supports this workflow
 
-xucRun preserves this separation. It does not temporarily turn the standard user into an
-administrator or add administrative privileges to that account. The user remains signed in to
-the existing Windows session; only the requested execution takes place under the selected other
-user account, which may belong to the local Administrators group, with that account's identity
-and privileges.
+xucRun preserves this separation and treats account selection and elevation as separate decisions.
+It does not temporarily turn the standard user into an administrator or add administrative
+privileges to that account.
 
-This distinction concerns more than local administrator rights. When the current account is
-elevated through UAC, its identity remains unchanged. The elevated process therefore continues to
-use permissions assigned to that account or its groups, for example on network shares hosted by
-other computers. xucRun can instead run a process elevated under a separate account such as
-`Administrator`, rather than elevated under the user's own account as a member of the local
-Administrators group. When accessing other resources, the process then uses the target account's
-identity and permissions, to the extent that account is authorized there.
+If xucRun elevates a process through UAC under the current account of a signed-in member of the
+local Administrators group, Windows does not change the user identity. The elevated process
+therefore continues to use that account's permissions and user profile.
+
+If xucRun instead starts the process under another target account, it uses that account's identity
+and permissions, for example when accessing network shares, as well as its loaded user profile.
+Examples include per-user profile data, email-account sign-ins stored in applications, and
+registry settings. Accordingly, `HKEY_CURRENT_USER` refers to the target account's registry hive,
+not to the signed-in user's hive.
 
 xucRun combines Windows account switching and UAC with credentials managed by xucRun for target
 accounts. These credentials remain protected and are used only when a matching
-[xucRun approval](#approvals) allows the requested execution. It takes place only under the target
-account selected for that invocation; the account's identity and privileges are not transferred
-to the signed-in standard account or to another user account. An approval bound to a specific
-target account can be used only for starts under that account.
+[xucRun approval](#approvals) allows the requested execution. The approved launch takes place only
+under the target account selected for that invocation; the account's identity and privileges are
+not transferred to the signed-in standard account or to another user account. An approval bound
+to a specific target account can be used only for starts under that account.
 
 After the initial setup, specifying the program, command, or script and its arguments is
 sufficient for a typical launch. With this configured use, neither the account name nor the
 password needs to be stored in the xucRun invocation, whether it is launched from a console, a
-context menu, a desktop shortcut, or a script. xucRun selects a suitable account, obtains any
-missing choice or approval interactively, and reuses matching decisions. Required
+context menu, a desktop shortcut, or a script. xucRun reuses matching selection and approval
+decisions already made and obtains missing decisions interactively. Required
 [Windows UAC confirmation](#approvals-and-uac-in-xucrun) remains interactive.
 
 ## Quick start
@@ -1281,7 +1282,7 @@ documented in the Tray project.
 ## A personal note on the origins of xucRun
 
 The starting point for xucRun was a recurring need over many years across several computers in a
-private setting, some of which were also used by other members of my family. For most tasks on
+private setting, some of which were also used by other people. For most tasks on
 Windows computers, I use standard user accounts that I deliberately keep out of the Administrators
 group. Even so, I want to be able to start individual programs with elevated privileges when
 needed, without having to switch to a separate administrator session or enter a username and
