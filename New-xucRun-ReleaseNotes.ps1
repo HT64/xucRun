@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 Creates bilingual release notes for one xucRun version.
 
