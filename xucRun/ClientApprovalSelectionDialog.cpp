@@ -29,7 +29,7 @@ namespace
 			auto* context = reinterpret_cast<DialogContext*>(lParam);
 			SetWindowLongPtrW(dialog, DWLP_USER, reinterpret_cast<LONG_PTR>(context));
 			xucrun::ui::ApplyApplicationIcon(dialog);
-			SetWindowTextW(dialog, xucrun::ui::GetWindowTitle(
+			SetWindowTextW(dialog, xucrun::ui::GetComputerContextWindowTitle(
 				xucrun::localization::GetText(
 					xucrun::localization::TextId::ResetTitle)).c_str());
 			SetWindowPos(dialog, HWND_TOPMOST, 0, 0, 0, 0,
@@ -145,7 +145,7 @@ namespace xucrun::approval_selection_dialog
 		dialogTemplate->cy = 230;
 		WORD* data = reinterpret_cast<WORD*>(buffer + sizeof(DialogTemplateHeader));
 		*data++ = 0; *data++ = 0;
-		const std::wstring title = ui::GetWindowTitle(
+		const std::wstring title = ui::GetComputerContextWindowTitle(
 			localization::GetText(localization::TextId::ResetTitle));
 		wcscpy_s(reinterpret_cast<wchar_t*>(data), 100, title.c_str());
 		data += title.size() + 1;

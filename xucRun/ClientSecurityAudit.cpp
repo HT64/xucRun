@@ -18,6 +18,7 @@
 #include "ClientTextDialog.h"
 #include "ClientUiCommon.h"
 #include "ClientWindowsError.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 
 namespace
@@ -377,7 +378,10 @@ namespace xucrun::security_audit
 			selfSignatureInfo = localization::Format(
 				localization::TextId::AuditSelfSignatureValid,
 				{ selfPath,
-					selfSignerInfoAvailable ? selfSignerInfo.subject : unavailable,
+					selfSignerInfoAvailable
+						? documentation_names::DisplayCertificateSubject(
+							selfSignerInfo.subject)
+						: unavailable,
 					selfSignerInfoAvailable
 						? selfSignerInfo.sha256Fingerprint : unavailable,
 					selfSignerInfoAvailable ? selfSignerInfo.validFrom : unavailable,
@@ -422,7 +426,8 @@ namespace xucrun::security_audit
 				localization::TextId::AuditFailedBody,
 				{ blockingReason, selfSignatureInfo, imageList, auditInfo });
 			text_dialog::Show(
-				ui::GetWindowTitle(localization::GetText(localization::TextId::AuditTitle)),
+				ui::GetComputerContextWindowTitle(
+					localization::GetText(localization::TextId::AuditTitle)),
 				localization::GetText(localization::TextId::AuditFailedHeading), result,
 				ui::GetDialogOwnerWindow());
 			return 1;
@@ -440,7 +445,8 @@ namespace xucrun::security_audit
 				localization::TextId::AuditWarningBody,
 				{ moduleWarnings, selfSignatureInfo, imageList, auditInfo });
 			text_dialog::Show(
-				ui::GetWindowTitle(localization::GetText(localization::TextId::AuditTitle)),
+				ui::GetComputerContextWindowTitle(
+					localization::GetText(localization::TextId::AuditTitle)),
 				localization::GetText(localization::TextId::AuditWarningHeading), result,
 				ui::GetDialogOwnerWindow());
 		}
@@ -450,7 +456,8 @@ namespace xucrun::security_audit
 				localization::TextId::AuditSuccessBody,
 				{ selfSignatureInfo, imageList, auditInfo });
 			text_dialog::Show(
-				ui::GetWindowTitle(localization::GetText(localization::TextId::AuditTitle)),
+				ui::GetComputerContextWindowTitle(
+					localization::GetText(localization::TextId::AuditTitle)),
 				localization::GetText(localization::TextId::AuditSuccessHeading), result,
 				ui::GetDialogOwnerWindow());
 		}

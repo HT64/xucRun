@@ -8,6 +8,33 @@ aufgeführt.
 
 ## [Unveröffentlicht]
 
+## [0.9.1.2] - 2026-11-04
+
+### Hinzugefügt
+
+- Kontoanzeigen in der Anmeldedaten-, Freigaben- und administrativen Statusverwaltung sowie in der
+  lokalen Kontoauswahl kennzeichnen jetzt die Mitgliedschaft in der lokalen Administratorengruppe
+  mit `[A]`, Standardkonten mit `[S]` und eine nicht ermittelbare Mitgliedschaft mit `[?]`. Die
+  betroffenen Dialoge erläutern diese Kennzeichnungen.
+- Die lokale Kontoauswahl warnt jetzt, wenn Windows-UAC deaktiviert ist oder der
+  Administratorbestätigungsmodus für das integrierte Konto `Administrator` nicht verfügbar ist
+  und dadurch eine kontenübergreifende Erhöhung verhindert würde.
+
+### Geändert
+
+- Die Erfassung von Anmeldedaten zum Öffnen des geschützten Freigabedialogs verwendet jetzt eine
+  rollenspezifische Formulierung und unterscheidet dieses Hilfskonto vom Zielkonto. Der Dialog
+  erklärt, dass die Anmeldedaten in xucRun gespeichert und beim aktuellen Start zum Öffnen des
+  geschützten Freigabedialogs verwendet werden.
+- Die Titel der Informations-, Sicherheitsdiagnose-, administrativen Status-, lokalen
+  Kontoauswahl- und Freigabedialoge enthalten jetzt den Computernamen. Lokale Konten werden ohne
+  redundanten lokalen Rechnerpräfix angezeigt.
+- Hinweise in der Anmeldedatenverwaltung passen ihre Höhe jetzt an den lokalisierten Text und die
+  aktuelle Fensterbreite an.
+- Die Dokumentation wurde neu gegliedert und erweitert, um Kontowahl, Rechteerhöhung, bewusst
+  eingeschränkte Zielkonten, Profil- und Ressourcenverhalten, Freigaben, Windows-UAC, Windows Sudo
+  und `runas.exe` genauer zu erklären.
+
 ## [0.9.1.1] - 2026-11-01
 
 ### Hinzugefügt
@@ -105,7 +132,8 @@ aufgeführt.
   Der grafische Installer prüft diese Voraussetzung und bietet bei Bedarf den offiziellen
   Microsoft-Download an.
 
-[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.1...HEAD
+[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.2...HEAD
+[0.9.1.2]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.2
 [0.9.1.1]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.1
 [0.9.1.0]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.0
 [0.9.0.3]: https://github.com/HT64/xucRun/releases/tag/v0.9.0.3

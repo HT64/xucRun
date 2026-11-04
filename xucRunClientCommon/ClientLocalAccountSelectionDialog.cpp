@@ -3,6 +3,7 @@
 // Behavior: Creates a modal Win32 dialog and separates display text from canonical account names.
 #include "ClientLocalAccountSelectionDialog.h"
 
+#include "ClientCredentialFormatting.h"
 #include "ClientUiCommon.h"
 #include "Localization.h"
 
@@ -15,19 +16,39 @@ namespace
 		const std::vector<std::wstring>* accounts;
 		const std::vector<std::wstring>* displayAccounts;
 		const std::vector<bool>* storedAccounts;
+		const std::vector<
+			xucrun::account_identity::AdministratorMembership>*
+				administratorMemberships;
 		std::wstring* selectedAccount;
 		const std::wstring* currentAccount;
+		const std::wstring* uacWarning;
 		std::size_t currentAccountIndex;
 		bool noStoredCredentials;
 		xucrun::local_account_selection_dialog::SelectionMode mode;
 	};
 
+	bool IsCredentialManagementMode(
+		xucrun::local_account_selection_dialog::SelectionMode mode)
+	{
+		return xucrun::local_account_selection_dialog::GetSelectionPresentation(mode) !=
+			xucrun::local_account_selection_dialog::SelectionPresentation::Launch;
+	}
+
+	xucrun::account_identity::AdministratorMembership GetMembership(
+		const SelectionContext* context, std::size_t index)
+	{
+		if (!context || !context->administratorMemberships ||
+			index >= context->administratorMemberships->size())
+		{
+			return xucrun::account_identity::AdministratorMembership::Unknown;
+		}
+		return (*context->administratorMemberships)[index];
+	}
+
 	void UpdatePrimaryButton(HWND dialog, const SelectionContext* context,
 		LRESULT selectedIndex)
 	{
-		if (context &&
-			context->mode ==
-				xucrun::local_account_selection_dialog::SelectionMode::Launch)
+		if (context && !IsCredentialManagementMode(context->mode))
 		{
 			SetWindowTextW(GetDlgItem(dialog, IDOK), xucrun::localization::GetText(
 				xucrun::localization::TextId::ButtonNext).c_str());
@@ -49,27 +70,36 @@ namespace
 			auto* context = reinterpret_cast<SelectionContext*>(lParam);
 			SetWindowLongPtrW(dialog, DWLP_USER, reinterpret_cast<LONG_PTR>(context));
 			xucrun::ui::ApplyApplicationIcon(dialog);
-			SetWindowTextW(dialog, xucrun::ui::GetWindowTitle(
-				xucrun::localization::GetText(
-					xucrun::localization::TextId::AccountSelectionTitle)).c_str());
+			const bool approvalDialogHostSelection = context &&
+				xucrun::local_account_selection_dialog::GetSelectionPresentation(
+					context->mode) ==
+					xucrun::local_account_selection_dialog::SelectionPresentation::
+						ApprovalDialogHostCredentialManagement;
+			SetWindowTextW(dialog, xucrun::ui::GetComputerContextWindowTitle(
+				xucrun::localization::GetText(approvalDialogHostSelection
+					? xucrun::localization::TextId::
+						AccountSelectionApprovalDialogHostTitle
+					: xucrun::localization::TextId::AccountSelectionTitle)).c_str());
 			SetWindowPos(dialog, HWND_TOPMOST, 0, 0, 0, 0,
 				SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 			SetForegroundWindow(dialog);
 
 			std::wstring headerText;
 			if (context && context->noStoredCredentials &&
-				context->mode ==
-					xucrun::local_account_selection_dialog::SelectionMode::
-						CredentialManagement)
+				IsCredentialManagementMode(context->mode) &&
+				!approvalDialogHostSelection)
 			{
 				headerText = xucrun::localization::GetText(
 					xucrun::localization::TextId::AccountSelectionFirstUse);
 			}
 			headerText += xucrun::localization::Format(
-				context && context->mode ==
-					xucrun::local_account_selection_dialog::SelectionMode::Launch
-					? xucrun::localization::TextId::AccountSelectionLaunchHeader
-					: xucrun::localization::TextId::AccountSelectionHeader,
+				approvalDialogHostSelection
+					? xucrun::localization::TextId::
+						AccountSelectionApprovalDialogHostHeader
+					: context && !IsCredentialManagementMode(context->mode)
+						? xucrun::localization::TextId::
+							AccountSelectionLaunchHeader
+						: xucrun::localization::TextId::AccountSelectionHeader,
 				{ context && context->currentAccount
 					? *context->currentAccount
 					: xucrun::localization::GetText(
@@ -77,7 +107,21 @@ namespace
 			const int headerHeight = xucrun::ui::MeasureDialogTextHeight(
 				dialog, headerText, 284, 25);
 			const int listY = 9 + headerHeight;
-			const int buttonY = listY + 134;
+			const std::wstring legend = xucrun::localization::GetText(
+				xucrun::localization::TextId::AccountMembershipDisplayLegend);
+			const int legendHeight = xucrun::ui::MeasureDialogTextHeight(
+				dialog, legend, 284, 28);
+			const int legendY = listY + 132;
+			const bool showUacWarning = context && context->uacWarning &&
+				!context->uacWarning->empty();
+			const int warningY = legendY + legendHeight + 4;
+			const int warningHeight = showUacWarning
+				? xucrun::ui::MeasureDialogTextHeight(
+					dialog, *context->uacWarning, 284, 36)
+				: 0;
+			const int buttonY = showUacWarning
+				? warningY + warningHeight + 6
+				: legendY + legendHeight + 6;
 			xucrun::ui::ResizeDialogClientHeight(dialog, buttonY + 22);
 			xucrun::ui::CreateDialogControl(dialog, 0, L"STATIC", headerText.c_str(),
 				SS_LEFT, 8, 7, 284, headerHeight);
@@ -88,19 +132,46 @@ namespace
 				8, listY, 284, 126, AccountListId);
 			if (context && context->displayAccounts)
 			{
-				for (const auto& account : *context->displayAccounts)
+				for (std::size_t index = 0;
+					index < context->displayAccounts->size(); index++)
 				{
+					const auto membership = GetMembership(context, index);
+					std::wstring accessibleAccount =
+						xucrun::credential_formatting::
+							FormatAccountWithAdministratorMembership(
+								(*context->displayAccounts)[index], membership);
+					if (membership ==
+						xucrun::account_identity::AdministratorMembership::Member)
+					{
+						accessibleAccount += xucrun::localization::GetText(
+							xucrun::localization::TextId::
+								AccountSelectionAdministratorAccessible);
+					}
+					else if (membership ==
+						xucrun::account_identity::AdministratorMembership::Unknown)
+					{
+						accessibleAccount += xucrun::localization::GetText(
+							xucrun::localization::TextId::
+								AccountSelectionUnknownAccessible);
+					}
 					SendMessageW(list, LB_ADDSTRING, 0,
-						reinterpret_cast<LPARAM>(account.c_str()));
+						reinterpret_cast<LPARAM>(accessibleAccount.c_str()));
 				}
+			}
+			xucrun::ui::CreateDialogControl(dialog, 0, L"STATIC", legend.c_str(),
+				SS_LEFT, 8, legendY, 284, legendHeight);
+			if (showUacWarning)
+			{
+				xucrun::ui::CreateDialogControl(dialog, 0, L"STATIC",
+					context->uacWarning->c_str(), SS_LEFT,
+					8, warningY, 284, warningHeight);
 			}
 			LRESULT initialIndex = LB_ERR;
 			if (context && context->accounts)
 			{
 				for (std::size_t index = 0; index < context->accounts->size(); index++)
 				{
-					if (context->mode ==
-							xucrun::local_account_selection_dialog::SelectionMode::Launch ||
+					if (!IsCredentialManagementMode(context->mode) ||
 						index != context->currentAccountIndex)
 					{
 						initialIndex = static_cast<LRESULT>(index);
@@ -141,7 +212,9 @@ namespace
 			auto* context = reinterpret_cast<SelectionContext*>(
 				GetWindowLongPtrW(dialog, DWLP_USER));
 			auto* drawItem = reinterpret_cast<DRAWITEMSTRUCT*>(lParam);
-			if (!context || !drawItem || drawItem->CtlID != AccountListId ||
+			if (!drawItem)
+				return FALSE;
+			if (!context || drawItem->CtlID != AccountListId ||
 				drawItem->itemID == static_cast<UINT>(-1))
 			{
 				return FALSE;
@@ -151,12 +224,13 @@ namespace
 			if (context->displayAccounts &&
 				drawItem->itemID < context->displayAccounts->size())
 			{
-				text = (*context->displayAccounts)[drawItem->itemID];
+				text = xucrun::credential_formatting::
+					FormatAccountWithAdministratorMembership(
+						(*context->displayAccounts)[drawItem->itemID],
+						GetMembership(context, drawItem->itemID));
 			}
 			const bool disabled =
-				context->mode ==
-					xucrun::local_account_selection_dialog::SelectionMode::
-						CredentialManagement &&
+				IsCredentialManagementMode(context->mode) &&
 				drawItem->itemID == context->currentAccountIndex;
 			const bool selected = (drawItem->itemState & ODS_SELECTED) != 0;
 			const COLORREF backgroundColor = selected && !disabled
@@ -169,7 +243,7 @@ namespace
 			SetBkColor(drawItem->hDC, backgroundColor);
 			SetTextColor(drawItem->hDC, textColor);
 			RECT textRect = drawItem->rcItem;
-			RECT padding = { 0, 0, 2, 0 };
+			RECT padding = { 0, 0, 6, 0 };
 			MapDialogRect(dialog, &padding);
 			textRect.left += padding.right;
 			DrawTextW(drawItem->hDC, text.c_str(), -1, &textRect,
@@ -189,8 +263,7 @@ namespace
 				const LRESULT selectedIndex = SendMessageW(
 					GetDlgItem(dialog, AccountListId), LB_GETCURSEL, 0, 0);
 				EnableWindow(GetDlgItem(dialog, IDOK), !context ||
-					context->mode ==
-						xucrun::local_account_selection_dialog::SelectionMode::Launch ||
+					!IsCredentialManagementMode(context->mode) ||
 					selectedIndex == LB_ERR || static_cast<std::size_t>(selectedIndex) !=
 					context->currentAccountIndex);
 				UpdatePrimaryButton(dialog, context, selectedIndex);
@@ -209,9 +282,7 @@ namespace
 					MessageBeep(MB_ICONWARNING);
 					return TRUE;
 				}
-				if (context->mode ==
-						xucrun::local_account_selection_dialog::SelectionMode::
-							CredentialManagement &&
+				if (IsCredentialManagementMode(context->mode) &&
 					static_cast<std::size_t>(selectedIndex) ==
 						context->currentAccountIndex)
 				{
@@ -248,8 +319,10 @@ namespace xucrun::local_account_selection_dialog
 	bool Show(const std::vector<std::wstring>& accounts,
 		const std::vector<std::wstring>& displayAccounts,
 		const std::vector<bool>& storedAccounts,
+		const std::vector<account_identity::AdministratorMembership>&
+			administratorMemberships,
 		const std::wstring& currentAccount, std::size_t currentAccountIndex,
-		bool noStoredCredentials, SelectionMode mode,
+		const std::wstring& uacWarning, bool noStoredCredentials, SelectionMode mode,
 		std::wstring& selectedAccount, HWND owner)
 	{
 		struct DialogTemplateHeader
@@ -277,16 +350,21 @@ namespace xucrun::local_account_selection_dialog
 		WORD* data = reinterpret_cast<WORD*>(buffer + sizeof(DialogTemplateHeader));
 		*data++ = 0;
 		*data++ = 0;
-		const std::wstring title = ui::GetWindowTitle(localization::GetText(
-			localization::TextId::AccountSelectionTitle));
+		const bool approvalDialogHostSelection =
+			GetSelectionPresentation(mode) ==
+				SelectionPresentation::ApprovalDialogHostCredentialManagement;
+		const std::wstring title = ui::GetComputerContextWindowTitle(localization::GetText(
+			approvalDialogHostSelection
+				? localization::TextId::AccountSelectionApprovalDialogHostTitle
+				: localization::TextId::AccountSelectionTitle));
 		wcscpy_s(reinterpret_cast<wchar_t*>(data), 100, title.c_str());
 		data += title.size() + 1;
 		ui::WriteDefaultDialogFont(data, 50);
 
 		selectedAccount.clear();
 		SelectionContext context = { &accounts, &displayAccounts, &storedAccounts,
-			&selectedAccount, &currentAccount, currentAccountIndex,
-			noStoredCredentials, mode };
+			&administratorMemberships, &selectedAccount, &currentAccount, &uacWarning,
+			currentAccountIndex, noStoredCredentials, mode };
 		const INT_PTR result = DialogBoxIndirectParamW(GetModuleHandle(nullptr),
 			reinterpret_cast<LPCDLGTEMPLATEW>(buffer),
 			owner ? owner : ui::GetDialogOwnerWindow(), DialogProc,

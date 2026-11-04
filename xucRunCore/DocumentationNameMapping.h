@@ -21,6 +21,8 @@ namespace xucrun::documentation_names
 		bool IsActive() const;
 		std::wstring DisplayAccount(const std::wstring& accountName) const;
 		std::wstring DisplayComputer(const std::wstring& computerName) const;
+		std::wstring DisplayCertificateSubject(
+			const std::wstring& subject, const std::wstring& computerName) const;
 		std::wstring OperationalAccount(const std::wstring& displayedAccountName) const;
 
 	private:
@@ -37,5 +39,6 @@ namespace xucrun::documentation_names
 	bool IsActive();
 	std::wstring DisplayAccount(const std::wstring& accountName);
 	std::wstring DisplayComputer(const std::wstring& computerName);
+	std::wstring DisplayCertificateSubject(const std::wstring& subject);
 	std::wstring OperationalAccount(const std::wstring& displayedAccountName);
 }

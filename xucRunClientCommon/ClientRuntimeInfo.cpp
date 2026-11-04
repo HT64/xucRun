@@ -162,7 +162,8 @@ namespace xucrun::runtime_info
 				info.executablePath, signerTrustStatus, signerCertificate) &&
 			image_trust::GetSignerCertificateInfo(signerCertificate, signerInfo))
 		{
-			info.signerSubject = signerInfo.subject;
+			info.signerSubject =
+				documentation_names::DisplayCertificateSubject(signerInfo.subject);
 			info.signerSha256Fingerprint = signerInfo.sha256Fingerprint;
 			info.signerValidFrom = signerInfo.validFrom;
 			info.signerValidUntil = signerInfo.validUntil;

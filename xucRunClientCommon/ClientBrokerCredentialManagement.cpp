@@ -4,6 +4,7 @@
 #include "ClientBrokerCredentialManagement.h"
 
 #include <CommCtrl.h>
+#include <sddl.h>
 
 #include <algorithm>
 #include <filesystem>
@@ -41,6 +42,8 @@ namespace xucrun::broker_credential_management
 		constexpr int CredentialTableDeleteSelectedId = 1705;
 		constexpr int CredentialTableShowApprovalsId = 1706;
 		constexpr UINT CredentialTableDetailsMenuId = 1707;
+		constexpr wchar_t UacPolicyRegistryPath[] =
+			L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
 
 		enum class CredentialTableAction
 		{
@@ -55,6 +58,106 @@ namespace xucrun::broker_credential_management
 			CredentialTableAction action = CredentialTableAction::Closed;
 			int selectedRow = -1;
 		};
+
+		bool TryReadUacPolicyValue(
+			const wchar_t* valueName, bool missingMeansDisabled, DWORD& value)
+		{
+			value = 0;
+			DWORD valueSize = sizeof(value);
+			const LSTATUS status = RegGetValueW(HKEY_LOCAL_MACHINE,
+				UacPolicyRegistryPath, valueName, RRF_RT_REG_DWORD,
+				nullptr, &value, &valueSize);
+			if (status == ERROR_SUCCESS)
+				return true;
+			if (status == ERROR_FILE_NOT_FOUND && missingMeansDisabled)
+				return true;
+			client_logging::Write(L"Warning",
+				L"Failed to read UAC policy value '" + std::wstring(valueName) +
+				L"': " + std::to_wstring(status));
+			return false;
+		}
+
+		bool IsBuiltInAdministratorSid(const std::wstring& sidString)
+		{
+			PSID sid = nullptr;
+			if (!ConvertStringSidToSidW(sidString.c_str(), &sid))
+			{
+				client_logging::Write(L"Warning",
+					L"Failed to parse resolved account SID '" + sidString + L"'");
+				return false;
+			}
+			const BYTE subAuthorityCount = *GetSidSubAuthorityCount(sid);
+			const bool isBuiltInAdministrator = subAuthorityCount > 0 &&
+				*GetSidSubAuthority(sid, subAuthorityCount - 1) ==
+					DOMAIN_USER_RID_ADMIN;
+			LocalFree(sid);
+			return isBuiltInAdministrator;
+		}
+
+		std::wstring GetCrossAccountUacWarning(
+			const std::vector<std::wstring>& accounts,
+			const std::vector<std::wstring>& displayAccounts,
+			const std::vector<account_identity::AdministratorMembership>&
+				administratorMemberships)
+		{
+			if (std::find(administratorMemberships.begin(),
+				administratorMemberships.end(),
+				account_identity::AdministratorMembership::Member) ==
+					administratorMemberships.end())
+			{
+				return {};
+			}
+
+			DWORD enableLua = 0;
+			if (!TryReadUacPolicyValue(L"EnableLUA", false, enableLua))
+				return {};
+			if (enableLua == 0)
+			{
+				return localization::GetText(
+					localization::TextId::AccountSelectionUacDisabledWarning);
+			}
+
+			DWORD filterAdministratorToken = 0;
+			bool filterAdministratorTokenRead = false;
+			for (std::size_t index = 0; index < accounts.size(); index++)
+			{
+				if (index >= administratorMemberships.size() ||
+					administratorMemberships[index] !=
+						account_identity::AdministratorMembership::Member)
+				{
+					continue;
+				}
+				std::wstring canonicalName;
+				std::wstring sidString;
+				if (!account_identity::ResolveAccountIdentity(
+					accounts[index], canonicalName, sidString) ||
+					!IsBuiltInAdministratorSid(sidString))
+				{
+					continue;
+				}
+				if (!filterAdministratorTokenRead)
+				{
+					if (!TryReadUacPolicyValue(
+						L"FilterAdministratorToken", true,
+						filterAdministratorToken))
+					{
+						return {};
+					}
+					filterAdministratorTokenRead = true;
+				}
+				if (filterAdministratorToken == 0)
+				{
+					const std::wstring account = index < displayAccounts.size()
+						? displayAccounts[index]
+						: canonicalName;
+					return localization::Format(
+						localization::TextId::
+							AccountSelectionBuiltInAdministratorUacWarning,
+						{ account });
+				}
+			}
+			return {};
+		}
 
 		std::wstring DisplayAccount(const std::wstring& accountName)
 		{
@@ -80,8 +183,32 @@ namespace xucrun::broker_credential_management
 			return text.substr(first, last - first + 1);
 		}
 
+		int MeasureWrappedControlTextHeight(
+			HWND control, const std::wstring& text, int width, UINT dpi)
+		{
+			if (!control || text.empty() || width <= 0)
+				return 0;
+			HDC deviceContext = GetDC(control);
+			if (!deviceContext)
+				return MulDiv(18, dpi ? dpi : 96, 96);
+			const HFONT font = reinterpret_cast<HFONT>(
+				SendMessageW(control, WM_GETFONT, 0, 0));
+			const HGDIOBJ previousFont = font
+				? SelectObject(deviceContext, font) : nullptr;
+			RECT bounds = { 0, 0, width, 0 };
+			DrawTextW(deviceContext, text.c_str(), -1, &bounds,
+				DT_CALCRECT | DT_EDITCONTROL | DT_NOPREFIX | DT_WORDBREAK);
+			if (previousFont)
+				SelectObject(deviceContext, previousFont);
+			ReleaseDC(control, deviceContext);
+			return (std::max)(MulDiv(18, dpi ? dpi : 96, 96),
+				static_cast<int>(bounds.bottom - bounds.top));
+		}
+
 		void LayoutCredentialTable(HWND dialog)
 		{
+			const auto* context = reinterpret_cast<const CredentialTableContext*>(
+				GetWindowLongPtrW(dialog, DWLP_USER));
 			RECT clientRect = {};
 			GetClientRect(dialog, &clientRect);
 			const int width = clientRect.right - clientRect.left;
@@ -89,7 +216,12 @@ namespace xucrun::broker_credential_management
 			const UINT dpi = GetDpiForWindow(dialog);
 			const int margin = MulDiv(12, dpi ? dpi : 96, 96);
 			const int summaryHeight = MulDiv(54, dpi ? dpi : 96, 96);
-			const int noteHeight = MulDiv(68, dpi ? dpi : 96, 96);
+			const int contentWidth = (std::max)(1, width - 2 * margin);
+			const int noteHeight = context
+				? MeasureWrappedControlTextHeight(
+					GetDlgItem(dialog, CredentialTableNoteId),
+					*context->note, contentWidth, dpi)
+				: MulDiv(68, dpi ? dpi : 96, 96);
 			const int buttonWidth = MulDiv(76, dpi ? dpi : 96, 96);
 			const int actionWidth = MulDiv(170, dpi ? dpi : 96, 96);
 			const int buttonHeight = MulDiv(26, dpi ? dpi : 96, 96);
@@ -99,12 +231,12 @@ namespace xucrun::broker_credential_management
 			const int listY = margin + summaryHeight;
 
 			MoveWindow(GetDlgItem(dialog, CredentialTableSummaryId), margin, margin,
-				(std::max)(1, width - 2 * margin), summaryHeight - gap, FALSE);
+				contentWidth, summaryHeight - gap, FALSE);
 			HWND list = GetDlgItem(dialog, CredentialTableListId);
-			MoveWindow(list, margin, listY, (std::max)(1, width - 2 * margin),
+			MoveWindow(list, margin, listY, contentWidth,
 				(std::max)(1, noteY - gap - listY), FALSE);
 			MoveWindow(GetDlgItem(dialog, CredentialTableNoteId), margin, noteY,
-				(std::max)(1, width - 2 * margin), noteHeight, FALSE);
+				contentWidth, noteHeight, FALSE);
 			const int buttonsWidth = 2 * actionWidth + 3 * gap + buttonWidth;
 			const int buttonsX = (width - buttonsWidth) / 2;
 			MoveWindow(GetDlgItem(dialog, CredentialTableDeleteAllId),
@@ -158,12 +290,15 @@ namespace xucrun::broker_credential_management
 
 			const auto& credential =
 				(*context->credentials)[static_cast<std::size_t>(selectedRow)];
-			const bool isAdministrator =
-				account_identity::IsUserInAdminGroup(credential.username);
+			const auto administratorMembership =
+				account_identity::GetAdministratorMembership(credential.username);
 			std::wstring content =
 				localization::GetText(
 					localization::TextId::ShowCredentialsColumnAccount) +
-				L":\n" + DisplayAccount(credential.username);
+				L":\n" +
+				credential_formatting::FormatAccountWithAdministratorMembership(
+					DisplayAccount(credential.username),
+					administratorMembership);
 			if (!credential.accountSid.empty())
 			{
 				content += L"\n\n" + localization::GetText(
@@ -176,12 +311,6 @@ namespace xucrun::broker_credential_management
 				L":\n" +
 				credential_formatting::FormatCredentialTimestamp(
 					credential.lastWritten) + L"\n\n" +
-				localization::GetText(
-					localization::TextId::ShowCredentialsColumnAccountType) +
-				L":\n" + localization::GetText(isAdministrator
-					? localization::TextId::ShowCredentialsAdministratorAccount
-					: localization::TextId::ShowCredentialsStandardAccount) +
-				L"\n\n" +
 				localization::GetText(
 					localization::TextId::ShowCredentialsColumnApprovals) +
 				L":\n" + std::to_wstring(
@@ -273,8 +402,8 @@ namespace xucrun::broker_credential_management
 			{
 			case WM_INITDIALOG:
 			{
-				const auto* context =
-					reinterpret_cast<const CredentialTableContext*>(lParam);
+				auto* context =
+					reinterpret_cast<CredentialTableContext*>(lParam);
 				SetWindowLongPtrW(dialog, DWLP_USER, lParam);
 				ui::ApplyApplicationIcon(dialog);
 				SetWindowTextW(dialog, context->title->c_str());
@@ -294,10 +423,9 @@ namespace xucrun::broker_credential_management
 				const localization::TextId columnTextIds[] = {
 					localization::TextId::ShowCredentialsColumnAccount,
 					localization::TextId::ShowCredentialsColumnStored,
-					localization::TextId::ShowCredentialsColumnAccountType,
 					localization::TextId::ShowCredentialsColumnApprovals
 				};
-				for (int column = 0; column < 4; column++)
+				for (int column = 0; column < 3; column++)
 				{
 					const std::wstring text = localization::GetText(columnTextIds[column]);
 					LVCOLUMNW listColumn = {};
@@ -310,23 +438,23 @@ namespace xucrun::broker_credential_management
 				for (int row = 0; row < static_cast<int>(context->credentials->size()); row++)
 				{
 					const CredentialInfo& credential = (*context->credentials)[row];
-					const bool isAdministrator =
-						account_identity::IsUserInAdminGroup(credential.username);
+					const auto administratorMembership =
+						account_identity::GetAdministratorMembership(
+							credential.username);
 					LVITEMW item = {};
 					item.mask = LVIF_TEXT;
 					item.iItem = row;
 					const std::wstring displayedAccount =
-						DisplayAccount(credential.username);
+						credential_formatting::
+							FormatAccountWithAdministratorMembership(
+								DisplayAccount(credential.username),
+								administratorMembership);
 					item.pszText = const_cast<LPWSTR>(displayedAccount.c_str());
 					ListView_InsertItem(list, &item);
 					SetCredentialTableCell(list, row, 1,
 						credential_formatting::FormatCredentialTimestamp(
 							credential.lastWritten));
-					SetCredentialTableCell(list, row, 2, localization::GetText(
-						isAdministrator
-							? localization::TextId::ShowCredentialsAdministratorAccount
-							: localization::TextId::ShowCredentialsStandardAccount));
-					SetCredentialTableCell(list, row, 3, std::to_wstring(
+					SetCredentialTableCell(list, row, 2, std::to_wstring(
 						(*context->approvalCounts)[static_cast<std::size_t>(row)]));
 				}
 
@@ -501,13 +629,23 @@ namespace xucrun::broker_credential_management
 			std::wstring& selectedAccount, HWND owner, bool requireAdministrator,
 			local_account_selection_dialog::SelectionMode selectionMode)
 		{
-			std::vector<std::wstring> accounts =
+			const std::vector<std::wstring> availableAccounts =
 				local_account_enumeration::GetEnabledLocalAccounts();
-			if (requireAdministrator)
+			std::vector<std::wstring> accounts;
+			std::vector<account_identity::AdministratorMembership>
+				administratorMemberships;
+			accounts.reserve(availableAccounts.size());
+			administratorMemberships.reserve(availableAccounts.size());
+			for (const std::wstring& account : availableAccounts)
 			{
-				std::erase_if(accounts, [](const std::wstring& account) {
-					return !account_identity::IsUserInAdminGroup(account);
-				});
+				const auto administratorMembership =
+					account_identity::GetAdministratorMembership(account);
+				if (requireAdministrator &&
+					administratorMembership !=
+						account_identity::AdministratorMembership::Member)
+					continue;
+				accounts.push_back(account);
+				administratorMemberships.push_back(administratorMembership);
 			}
 			std::wstring currentUsername;
 			std::wstring currentDomain;
@@ -524,6 +662,8 @@ namespace xucrun::broker_credential_management
 			displayAccounts.reserve(accounts.size());
 			for (const std::wstring& account : accounts)
 				displayAccounts.push_back(DisplayAccount(account));
+			const std::wstring uacWarning = GetCrossAccountUacWarning(
+				accounts, displayAccounts, administratorMemberships);
 			std::vector<bool> storedAccounts(accounts.size(), false);
 			size_t currentAccountIndex = static_cast<size_t>(-1);
 			std::vector<CredentialInfo> storedCredentials;
@@ -566,7 +706,9 @@ namespace xucrun::broker_credential_management
 
 			return local_account_selection_dialog::Show(
 				accounts, displayAccounts, storedAccounts,
+				administratorMemberships,
 				DisplayAccount(currentAccount), currentAccountIndex,
+				uacWarning,
 				credentialListAvailable && storedCredentials.empty(),
 				selectionMode,
 				selectedAccount, owner);
@@ -719,13 +861,17 @@ namespace xucrun::broker_credential_management
 
 	// Selects the target identity and delegates secure credential capture to the elevated helper.
 	bool PromptAndSaveBrokerCredentials(
-		const std::wstring& prefilledUsername, HWND owner, bool requireAdministrator)
+		const std::wstring& prefilledUsername, HWND owner, bool requireAdministrator,
+		CredentialCapturePurpose purpose)
 	{
 		std::wstring selectedUsername = prefilledUsername;
 		if (selectedUsername.empty() &&
 			!SelectLocalAccount(selectedUsername, owner, requireAdministrator,
-				local_account_selection_dialog::SelectionMode::
-					CredentialManagement))
+				purpose == CredentialCapturePurpose::ApprovalDialogHost
+					? local_account_selection_dialog::SelectionMode::
+						ApprovalDialogHostCredentialManagement
+					: local_account_selection_dialog::SelectionMode::
+						CredentialManagement))
 		{
 			client_logging::Write(L"Info", L"Local user account selection cancelled");
 			return false;
@@ -1122,15 +1268,15 @@ namespace xucrun::broker_credential_management
 				output += localization::Format(
 					localization::TextId::ShowCredentialsEntry,
 					{ std::to_wstring(index + 1),
-						DisplayAccount(credential.username) });
+						credential_formatting::
+							FormatAccountWithAdministratorMembership(
+								DisplayAccount(credential.username),
+								account_identity::GetAdministratorMembership(
+									credential.username)) });
 				output += localization::Format(
 					localization::TextId::ShowCredentialsStored,
 					{ credential_formatting::FormatCredentialTimestamp(
 						credential.lastWritten) });
-				output += localization::GetText(
-					account_identity::IsUserInAdminGroup(credential.username)
-						? localization::TextId::ShowCredentialsAdmin
-						: localization::TextId::ShowCredentialsNotAdmin);
 				output += localization::Format(
 					localization::TextId::ShowCredentialsApprovals,
 					{ std::to_wstring(approvalCounts[index]) });
@@ -1141,7 +1287,7 @@ namespace xucrun::broker_credential_management
 				localization::TextId::ShowCredentialsNote);
 		}
 
-		const std::wstring title = ui::GetWindowTitle(localization::GetText(
+		const std::wstring title = ui::GetComputerContextWindowTitle(localization::GetText(
 			localization::TextId::ShowCredentialsTitle));
 		const std::wstring heading = localization::GetText(
 			localization::TextId::ShowCredentialsHeading);
@@ -1165,7 +1311,9 @@ namespace xucrun::broker_credential_management
 				TrimLineBreaks(localization::GetText(
 					localization::TextId::ShowCredentialsNote)) + L"\n" +
 					localization::GetText(
-						localization::TextId::ShowCredentialsTableLegend),
+						localization::TextId::ShowCredentialsTableLegend) +
+					L"\n" + localization::GetText(
+						localization::TextId::AccountMembershipDisplayLegend),
 				credentials, approvalCounts, ui::GetDialogOwnerWindow());
 			if (dialogResult.action == CredentialTableAction::Closed)
 				return 0;

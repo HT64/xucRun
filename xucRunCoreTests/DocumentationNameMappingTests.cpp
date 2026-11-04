@@ -43,6 +43,12 @@ namespace
 		if (!loaded || !mapping.IsActive() ||
 			mapping.DisplayComputer(L"real-pc") != L"PC-DEMO" ||
 			mapping.DisplayAccount(L"real-pc\\administrator") != L"PC-DEMO\\Admin" ||
+			mapping.DisplayCertificateSubject(
+				L"xucRun Local Signing (real-pc)", L"real-pc") !=
+				L"xucRun Local Signing (PC-DEMO)" ||
+			mapping.DisplayCertificateSubject(
+				L"Unrelated certificate", L"real-pc") !=
+				L"Unrelated certificate" ||
 			mapping.DisplayAccount(L"OTHER\\User") != L"[unmapped account]" ||
 			mapping.DisplayComputer(L"OTHER-PC") != L"[unmapped computer]" ||
 			mapping.OperationalAccount(L"pc-demo\\admin") !=
@@ -85,6 +91,30 @@ namespace
 			failures++;
 		}
 	}
+
+	void ExpectLocalAccountDisplayShortening()
+	{
+		wchar_t computerName[MAX_COMPUTERNAME_LENGTH + 1] = {};
+		DWORD computerNameLength = ARRAYSIZE(computerName);
+		if (!GetComputerNameW(computerName, &computerNameLength))
+		{
+			std::cerr << "local computer name lookup failed\n";
+			failures++;
+			return;
+		}
+		const std::wstring qualifiedAccount =
+			std::wstring(computerName, computerNameLength) + L"\\LocalUser";
+		if (xucrun::documentation_names::DisplayAccount(qualifiedAccount) !=
+				L"LocalUser" ||
+			xucrun::documentation_names::OperationalAccount(L"LocalUser") !=
+				qualifiedAccount ||
+			xucrun::documentation_names::DisplayAccount(L"OTHER\\LocalUser") !=
+				L"OTHER\\LocalUser")
+		{
+			std::cerr << "local account display shortening failed\n";
+			failures++;
+		}
+	}
 }
 
 int RunDocumentationNameMappingTests()
@@ -101,5 +131,6 @@ int RunDocumentationNameMappingTests()
 		"[Accounts]\nREAL\\One=DEMO\\One\nreal\\one=DEMO\\Two\n",
 		"duplicate source account");
 	ExpectUntrustedConfigurationRejected();
+	ExpectLocalAccountDisplayShortening();
 	return failures;
 }

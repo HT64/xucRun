@@ -51,6 +51,22 @@ namespace
 
 namespace xucrun::credential_formatting
 {
+	std::wstring FormatAccountWithAdministratorMembership(
+		const std::wstring& account,
+		account_identity::AdministratorMembership membership)
+	{
+		switch (membership)
+		{
+		case account_identity::AdministratorMembership::Member:
+			return L"[A] " + account;
+		case account_identity::AdministratorMembership::Unknown:
+			return L"[?] " + account;
+		case account_identity::AdministratorMembership::NotMember:
+		default:
+			return L"[S] " + account;
+		}
+	}
+
 	std::wstring GetBrokerChallengeFailureMessage(
 		const broker::ApprovalChallengeResult& result)
 	{

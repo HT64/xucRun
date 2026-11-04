@@ -238,6 +238,13 @@ namespace
 		title << L"xucRun " << VERSION_MAJOR << L"." << VERSION_MINOR << L"."
 			<< VERSION_PATCH << L"." << BUILD_NUMBER << L" - "
 			<< Text(L"Freigabe", L"Approval");
+		wchar_t computerName[MAX_COMPUTERNAME_LENGTH + 1] = {};
+		DWORD length = ARRAYSIZE(computerName);
+		if (GetComputerNameW(computerName, &length) && length != 0)
+		{
+			title << L" - " << xucrun::documentation_names::DisplayComputer(
+				std::wstring(computerName, length));
+		}
 		return title.str();
 	}
 

@@ -10,9 +10,16 @@
 
 namespace xucrun::broker_credential_management
 {
+	enum class CredentialCapturePurpose
+	{
+		TargetAccount,
+		ApprovalDialogHost
+	};
+
 	bool PromptAndSaveBrokerCredentials(
 		const std::wstring& prefilledUsername, HWND owner = nullptr,
-		bool requireAdministrator = false);
+		bool requireAdministrator = false,
+		CredentialCapturePurpose purpose = CredentialCapturePurpose::TargetAccount);
 	bool SelectLocalAccountForLaunch(
 		std::wstring& selectedAccount, HWND owner = nullptr,
 		bool requireAdministrator = false);

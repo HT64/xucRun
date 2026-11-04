@@ -180,8 +180,10 @@ namespace xucrun::administrative_status
 			});
 			std::map<std::wstring, std::wstring> accountNames;
 			for (const auto& credential : response.result.credentials)
+			{
 				accountNames.try_emplace(
 					credential.accountSid, credential.canonicalAccountName);
+			}
 			struct RowRecord
 			{
 				table_dialog::Row row;
@@ -193,9 +195,19 @@ namespace xucrun::administrative_status
 			for (const auto& [ownerSid, data] : owners)
 			{
 				const std::wstring ownerName = ResolveOwnerName(ownerSid);
-				const std::wstring displayedOwnerName = ownerName == ownerSid
-					? localization::GetText(localization::TextId::ValueNotAvailable)
-					: documentation_names::DisplayAccount(ownerName);
+				const bool ownerResolved = ownerName != ownerSid;
+				const std::wstring displayedOwnerName =
+					credential_formatting::
+						FormatAccountWithAdministratorMembership(
+							ownerResolved
+								? documentation_names::DisplayAccount(ownerName)
+								: localization::GetText(
+									localization::TextId::ValueNotAvailable),
+							ownerResolved
+								? account_identity::GetAdministratorMembership(
+									ownerName)
+								: account_identity::
+									AdministratorMembership::Unknown);
 				for (const auto* credential : data.credentials)
 				{
 					broker::AdministrativeDeleteRequest deleteRequest;
@@ -205,8 +217,12 @@ namespace xucrun::administrative_status
 					table_dialog::Row detailsRow = {
 						displayedOwnerName, localization::GetText(
 							localization::TextId::AdministrativeStatusTypeCredential),
-						documentation_names::DisplayAccount(
-							credential->canonicalAccountName), L"",
+						credential_formatting::
+							FormatAccountWithAdministratorMembership(
+								documentation_names::DisplayAccount(
+									credential->canonicalAccountName),
+								account_identity::GetAdministratorMembership(
+									credential->canonicalAccountName)), L"",
 						L"", L"",
 						credential_formatting::FormatCredentialTimestamp(
 							credential->lastWritten),
@@ -227,9 +243,18 @@ namespace xucrun::administrative_status
 						? localization::GetText(
 							localization::TextId::ShowApprovalsAllAccountsValue)
 						: accountName != accountNames.end()
-							? documentation_names::DisplayAccount(accountName->second)
-							: localization::GetText(
-								localization::TextId::ValueNotAvailable);
+							? credential_formatting::
+								FormatAccountWithAdministratorMembership(
+									documentation_names::DisplayAccount(
+										accountName->second),
+									account_identity::GetAdministratorMembership(
+										accountName->second))
+							: credential_formatting::
+								FormatAccountWithAdministratorMembership(
+									localization::GetText(
+										localization::TextId::ValueNotAvailable),
+									account_identity::
+										AdministratorMembership::Unknown);
 					const bool general = approvalValue->programScope ==
 						approval::BrokerApprovalProgramScope::General;
 					const bool exact = approvalValue->programScope ==
@@ -241,7 +266,7 @@ namespace xucrun::administrative_status
 					table_dialog::Row detailsRow = {
 						displayedOwnerName, localization::GetText(
 							localization::TextId::AdministrativeStatusTypeApproval),
-						account,
+							account,
 						credential_formatting::FormatBrokerApprovalScope(*approvalValue),
 						general ? L"" : approvalValue->targetPath,
 						exact
@@ -633,7 +658,7 @@ namespace xucrun::administrative_status
 				return 1;
 			}
 
-			text_dialog::Show(ui::GetWindowTitle(localization::GetText(
+			text_dialog::Show(ui::GetComputerContextWindowTitle(localization::GetText(
 				localization::TextId::AdministrativeStatusTitle)),
 				localization::GetText(
 					localization::TextId::AdministrativeStatusHeading),
@@ -672,7 +697,7 @@ namespace xucrun::administrative_status
 
 		if (view.rows.empty())
 		{
-			text_dialog::Show(ui::GetWindowTitle(localization::GetText(
+			text_dialog::Show(ui::GetComputerContextWindowTitle(localization::GetText(
 				localization::TextId::AdministrativeStatusTitle)),
 				localization::GetText(
 					localization::TextId::AdministrativeStatusHeading),
@@ -693,7 +718,7 @@ namespace xucrun::administrative_status
 				view.detailsRows
 			};
 			const auto dialogResult = table_dialog::Show(
-				ui::GetWindowTitle(localization::GetText(
+				ui::GetComputerContextWindowTitle(localization::GetText(
 					localization::TextId::AdministrativeStatusTitle)),
 				localization::Format(
 					localization::TextId::AdministrativeStatusSummary,
@@ -701,7 +726,9 @@ namespace xucrun::administrative_status
 						std::to_wstring(view.credentialCount),
 						std::to_wstring(view.approvalCount) }),
 				localization::GetText(
-					localization::TextId::AdministrativeStatusLegend),
+					localization::TextId::AdministrativeStatusLegend) + L"\n" +
+					localization::GetText(
+						localization::TextId::AccountMembershipDisplayLegend),
 				view.columns, view.rows, nullptr,
 				localization::GetText(
 					localization::TextId::AdministrativeStatusDeleteAll),
@@ -768,7 +795,8 @@ namespace xucrun::administrative_status
 				}
 				if (view.rows.empty())
 				{
-					text_dialog::Show(ui::GetWindowTitle(localization::GetText(
+					text_dialog::Show(ui::GetComputerContextWindowTitle(
+						localization::GetText(
 						localization::TextId::AdministrativeStatusTitle)),
 						localization::GetText(
 							localization::TextId::AdministrativeStatusHeading),
@@ -795,7 +823,8 @@ namespace xucrun::administrative_status
 				}
 				if (view.rows.empty())
 				{
-					text_dialog::Show(ui::GetWindowTitle(localization::GetText(
+					text_dialog::Show(ui::GetComputerContextWindowTitle(
+						localization::GetText(
 						localization::TextId::AdministrativeStatusTitle)),
 						localization::GetText(
 							localization::TextId::AdministrativeStatusHeading),

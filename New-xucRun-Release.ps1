@@ -24,9 +24,9 @@ destination must not be a reparse point and may contain only the three expected
 release files.
 
 .EXAMPLE
-.\New-xucRun-Release.ps1 -ExpectedVersion 0.9.1.1
+.\New-xucRun-Release.ps1 -ExpectedVersion 0.9.1.2
 
-Builds the unsigned assets for version 0.9.1.1 in the standard release
+Builds the unsigned assets for version 0.9.1.2 in the standard release
 directory and fails if the compiled installer reports another version.
 
 .NOTES

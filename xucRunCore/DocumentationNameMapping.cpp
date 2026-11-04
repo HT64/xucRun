@@ -144,6 +144,30 @@ namespace
 		return {};
 	}
 
+	bool GetLocalComputerName(std::wstring& computerName)
+	{
+		wchar_t buffer[MAX_COMPUTERNAME_LENGTH + 1] = {};
+		DWORD length = ARRAYSIZE(buffer);
+		if (!GetComputerNameW(buffer, &length) || length == 0)
+			return false;
+		computerName.assign(buffer, length);
+		return true;
+	}
+
+	bool SplitQualifiedAccount(const std::wstring& accountName,
+		std::wstring& qualifier, std::wstring& username)
+	{
+		const std::size_t separator = accountName.find(L'\\');
+		if (separator == std::wstring::npos || separator == 0 ||
+			separator + 1 >= accountName.size())
+		{
+			return false;
+		}
+		qualifier = accountName.substr(0, separator);
+		username = accountName.substr(separator + 1);
+		return true;
+	}
+
 	bool IsSupportedConfigurationLocation(
 		const std::wstring& configurationPath, std::wstring& error)
 	{
@@ -373,6 +397,25 @@ namespace xucrun::documentation_names
 		return mapped == computers_.end() ? UnmappedComputer : mapped->second;
 	}
 
+	std::wstring NameMapping::DisplayCertificateSubject(
+		const std::wstring& subject, const std::wstring& computerName) const
+	{
+		if (!active_ || computerName.empty())
+			return subject;
+		const std::wstring displayedComputer = DisplayComputer(computerName);
+		if (displayedComputer == UnmappedComputer)
+			return subject;
+		const std::wstring suffix = L"(" + computerName + L")";
+		if (subject.size() < suffix.size() ||
+			_wcsicmp(subject.c_str() + subject.size() - suffix.size(),
+				suffix.c_str()) != 0)
+		{
+			return subject;
+		}
+		return subject.substr(0, subject.size() - suffix.size()) +
+			L"(" + displayedComputer + L")";
+	}
+
 	std::wstring NameMapping::OperationalAccount(
 		const std::wstring& displayedAccountName) const
 	{
@@ -437,7 +480,35 @@ namespace xucrun::documentation_names
 
 	std::wstring DisplayAccount(const std::wstring& accountName)
 	{
-		return runtimeMapping.DisplayAccount(accountName);
+		const std::wstring displayedAccount =
+			runtimeMapping.DisplayAccount(accountName);
+		if (displayedAccount == UnmappedAccount)
+			return displayedAccount;
+
+		std::wstring localComputer;
+		std::wstring accountQualifier;
+		std::wstring accountUsername;
+		if (!GetLocalComputerName(localComputer) ||
+			!SplitQualifiedAccount(
+				accountName, accountQualifier, accountUsername) ||
+			_wcsicmp(accountQualifier.c_str(), localComputer.c_str()) != 0)
+		{
+			return displayedAccount;
+		}
+
+		std::wstring displayedQualifier;
+		std::wstring displayedUsername;
+		if (!SplitQualifiedAccount(
+			displayedAccount, displayedQualifier, displayedUsername))
+		{
+			return displayedAccount;
+		}
+		const std::wstring displayedComputer =
+			runtimeMapping.DisplayComputer(localComputer);
+		return _wcsicmp(
+			displayedQualifier.c_str(), displayedComputer.c_str()) == 0
+			? displayedUsername
+			: displayedAccount;
 	}
 
 	std::wstring DisplayComputer(const std::wstring& computerName)
@@ -445,8 +516,34 @@ namespace xucrun::documentation_names
 		return runtimeMapping.DisplayComputer(computerName);
 	}
 
+	std::wstring DisplayCertificateSubject(const std::wstring& subject)
+	{
+		std::wstring localComputer;
+		return GetLocalComputerName(localComputer)
+			? runtimeMapping.DisplayCertificateSubject(subject, localComputer)
+			: subject;
+	}
+
 	std::wstring OperationalAccount(const std::wstring& displayedAccountName)
 	{
-		return runtimeMapping.OperationalAccount(displayedAccountName);
+		const std::wstring directlyMapped =
+			runtimeMapping.OperationalAccount(displayedAccountName);
+		if (_wcsicmp(
+			directlyMapped.c_str(), displayedAccountName.c_str()) != 0 ||
+			displayedAccountName == UnmappedAccount ||
+			displayedAccountName.find(L'\\') != std::wstring::npos)
+		{
+			return directlyMapped;
+		}
+
+		std::wstring localComputer;
+		if (!GetLocalComputerName(localComputer))
+			return displayedAccountName;
+		const std::wstring displayedComputer =
+			runtimeMapping.DisplayComputer(localComputer);
+		if (displayedComputer == UnmappedComputer)
+			return displayedAccountName;
+		return runtimeMapping.OperationalAccount(
+			displayedComputer + L"\\" + displayedAccountName);
 	}
 }

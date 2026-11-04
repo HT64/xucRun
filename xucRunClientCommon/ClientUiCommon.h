@@ -25,6 +25,9 @@ namespace xucrun::ui
 	void WriteDefaultDialogFont(WORD* destination, std::size_t faceCapacity);
 	HWND GetDialogOwnerWindow();
 	std::wstring GetWindowTitle(const std::wstring& suffix = L"");
+	std::wstring GetComputerContextWindowTitle(const std::wstring& suffix);
+	std::wstring GetProductComputerContextWindowTitle(
+		const std::wstring& productName, const std::wstring& suffix);
 	int ShowMessageBox(HWND owner, const std::wstring& message,
 		const std::wstring& title, UINT type);
 	void ShowError(const std::wstring& message, HWND owner = nullptr);

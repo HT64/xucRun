@@ -126,7 +126,8 @@ namespace xucrun::info_command
 				approvalCount
 				});
 		text_dialog::Show(
-			ui::GetWindowTitle(localization::GetText(localization::TextId::InfoTitle)),
+			ui::GetComputerContextWindowTitle(
+				localization::GetText(localization::TextId::InfoTitle)),
 			localization::GetText(localization::TextId::InfoHeading),
 			content, ui::GetDialogOwnerWindow());
 		return 0;

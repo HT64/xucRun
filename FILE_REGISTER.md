@@ -49,7 +49,8 @@ treats that encoding as binary.
 | `docs/de/images/reset-approvals.png` | Documentation image | German documentation screenshot showing reset approvals. |
 | `docs/de/images/runtime-information.png` | Documentation image | German documentation screenshot showing runtime information. |
 | `docs/de/images/security-audit.png` | Documentation image | German documentation screenshot showing security audit. |
-| `docs/de/images/target-account-selection.png` | Documentation image | German documentation screenshot showing target account selection. |
+| `docs/de/images/stored-target-account-selection.png` | Documentation image | German documentation screenshot showing selection among target accounts with stored credentials. |
+| `docs/de/images/target-account-selection.png` | Documentation image | German documentation screenshot showing local account selection for credential capture. |
 | `docs/de/images/target-user-selection.png` | Documentation image | German documentation screenshot showing target user selection. |
 | `docs/de/images/uninstallation-success.png` | Documentation image | German documentation screenshot showing uninstallation success. |
 | `docs/de/images/uninstall-blocked-by-tray.png` | Documentation image | German documentation screenshot showing uninstall blocked by tray. |
@@ -75,7 +76,8 @@ treats that encoding as binary.
 | `docs/en/images/reset-approvals.png` | Documentation image | English documentation screenshot showing reset approvals. |
 | `docs/en/images/runtime-information.png` | Documentation image | English documentation screenshot showing runtime information. |
 | `docs/en/images/security-audit.png` | Documentation image | English documentation screenshot showing security audit. |
-| `docs/en/images/target-account-selection.png` | Documentation image | English documentation screenshot showing target account selection. |
+| `docs/en/images/stored-target-account-selection.png` | Documentation image | English documentation screenshot showing selection among target accounts with stored credentials. |
+| `docs/en/images/target-account-selection.png` | Documentation image | English documentation screenshot showing local account selection for credential capture. |
 | `docs/en/images/target-user-selection.png` | Documentation image | English documentation screenshot showing target user selection. |
 | `docs/en/images/uninstallation-success.png` | Documentation image | English documentation screenshot showing uninstallation success. |
 | `docs/en/images/uninstall-blocked-by-tray.png` | Documentation image | English documentation screenshot showing uninstall blocked by tray. |

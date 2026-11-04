@@ -7,6 +7,31 @@ and publication processes are not listed.
 
 ## [Unreleased]
 
+## [0.9.1.2] - 2026-11-04
+
+### Added
+
+- Account displays in credential, approval, administrative-status, and local-account-selection
+  views now mark membership in the local Administrators group as `[A]`, standard accounts as
+  `[S]`, and undetermined membership as `[?]`. The affected dialogs explain these markers.
+- Local account selection now warns when Windows UAC is disabled or when Admin Approval Mode is
+  unavailable for the built-in `Administrator` account and would prevent cross-account elevation.
+
+### Changed
+
+- Credential capture for opening the protected approval dialog now uses role-specific wording and
+  distinguishes this helper account from the target account. The dialog explains that the
+  credentials are stored in xucRun while, for the current launch, they are used to open the
+  protected approval dialog.
+- Information, security-diagnostics, administrative-status, local-account-selection, and
+  approval-dialog titles now include the computer name. Local accounts are displayed without a
+  redundant local-computer prefix.
+- Credential-management notes now adapt their height to the localized text and current window
+  width.
+- The documentation has been reorganized and expanded to clarify account selection, elevation,
+  deliberately restricted target accounts, profile and resource behavior, approvals, Windows
+  UAC, Sudo for Windows, and `runas.exe`.
+
 ## [0.9.1.1] - 2026-11-01
 
 ### Added
@@ -96,7 +121,8 @@ and publication processes are not listed.
   The graphical installer checks this requirement and offers the official Microsoft download if
   necessary.
 
-[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.1...HEAD
+[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.2...HEAD
+[0.9.1.2]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.2
 [0.9.1.1]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.1
 [0.9.1.0]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.0
 [0.9.0.3]: https://github.com/HT64/xucRun/releases/tag/v0.9.0.3

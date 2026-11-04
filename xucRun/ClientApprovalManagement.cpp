@@ -318,7 +318,11 @@ namespace xucrun::approval_management
 						{ credential == brokerCredentials.end()
 							? localization::GetText(
 								localization::TextId::ValueNotAvailable)
-							: DisplayAccount(credential->username) });
+							: credential_formatting::
+								FormatAccountWithAdministratorMembership(
+									DisplayAccount(credential->username),
+									account_identity::GetAdministratorMembership(
+										credential->username)) });
 				}
 				const bool general = approvalValue.programScope ==
 					approval::BrokerApprovalProgramScope::General;
@@ -378,7 +382,8 @@ namespace xucrun::approval_management
 		if (response.result.entries.empty())
 		{
 			text_dialog::Show(
-				ui::GetWindowTitle(title), heading, output, ui::GetDialogOwnerWindow());
+				ui::GetComputerContextWindowTitle(title), heading, output,
+				ui::GetDialogOwnerWindow());
 			return 0;
 		}
 		else if (console_output::WriteToAvailableTarget(heading, output) !=
@@ -448,7 +453,11 @@ namespace xucrun::approval_management
 							localization::TextId::ShowApprovalsAllAccountsValue)
 						: (credential == brokerCredentials.end()
 							? localization::GetText(localization::TextId::ValueNotAvailable)
-							: DisplayAccount(credential->username)),
+							: credential_formatting::
+								FormatAccountWithAdministratorMembership(
+									DisplayAccount(credential->username),
+									account_identity::GetAdministratorMembership(
+										credential->username))),
 					credential_formatting::FormatBrokerApprovalScope(approvalValue),
 					general ? L"" : approvalValue.targetPath,
 					exact
@@ -476,7 +485,9 @@ namespace xucrun::approval_management
 				std::move(detailsRows)
 			};
 			std::wstring note = localization::GetText(
-				localization::TextId::ShowApprovalsLegend);
+				localization::TextId::ShowApprovalsLegend) + L"\n" +
+				localization::GetText(
+					localization::TextId::AccountMembershipDisplayLegend);
 			if (!targetAccountSid.empty())
 			{
 				const auto filteredCredential = std::find_if(
@@ -493,7 +504,8 @@ namespace xucrun::approval_management
 						: DisplayAccount(filteredCredential->username) }) +
 					L"\n" + note;
 			}
-			const auto dialogResult = table_dialog::Show(ui::GetWindowTitle(title),
+			const auto dialogResult = table_dialog::Show(
+				ui::GetComputerContextWindowTitle(title),
 				localization::Format(localization::TextId::ShowApprovalsIntro,
 					{ DisplayAccount(fullCurrentUser) }),
 				note, columns, rows,

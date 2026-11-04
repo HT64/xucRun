@@ -319,7 +319,9 @@ namespace xucrun::broker_launch
 				BrokerCredentialSelectionOutcome::NotFound)
 			{
 				if (!broker_credential_management::PromptAndSaveBrokerCredentials(
-					L"", ui::GetDialogOwnerWindow(), true))
+					L"", ui::GetDialogOwnerWindow(), true,
+					broker_credential_management::CredentialCapturePurpose::
+						ApprovalDialogHost))
 				{
 					return BrokerLaunchOutcome::Cancelled;
 				}

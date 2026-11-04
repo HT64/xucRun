@@ -286,12 +286,19 @@ namespace xucrun::account_identity
 
 	bool IsUserInAdminGroup(const std::wstring& username)
 	{
+		return GetAdministratorMembership(username) ==
+			AdministratorMembership::Member;
+	}
+
+	AdministratorMembership GetAdministratorMembership(
+		const std::wstring& username)
+	{
 		std::vector<BYTE> userSid;
 		if (!ResolveAccountSid(username, userSid))
 		{
 			client_logging::Write(L"Warning",
 				L"SID resolution failed for '" + username + L"'");
-			return false;
+			return AdministratorMembership::Unknown;
 		}
 
 		std::wstring canonicalUsername;
@@ -300,7 +307,7 @@ namespace xucrun::account_identity
 			client_logging::Write(L"Warning",
 				L"Failed to determine canonical account name for '" +
 				username + L"'");
-			return false;
+			return AdministratorMembership::Unknown;
 		}
 
 		LPLOCALGROUP_USERS_INFO_0 groups = nullptr;
@@ -315,7 +322,7 @@ namespace xucrun::account_identity
 			client_logging::Write(L"Warning",
 				L"NetUserGetLocalGroups failed for '" + canonicalUsername +
 				L"' (Error: " + std::to_wstring(status) + L")");
-			return false;
+			return AdministratorMembership::Unknown;
 		}
 
 		BYTE adminSidBuffer[SECURITY_MAX_SID_SIZE] = {};
@@ -325,7 +332,10 @@ namespace xucrun::account_identity
 		{
 			if (groups)
 				NetApiBufferFree(groups);
-			return false;
+			client_logging::Write(L"Warning",
+				L"Failed to create the built-in Administrators group SID (Error: " +
+				std::to_wstring(GetLastError()) + L")");
+			return AdministratorMembership::Unknown;
 		}
 
 		bool isAdmin = false;
@@ -346,6 +356,8 @@ namespace xucrun::account_identity
 			}
 			NetApiBufferFree(groups);
 		}
-		return isAdmin;
+		return isAdmin
+			? AdministratorMembership::Member
+			: AdministratorMembership::NotMember;
 	}
 }

@@ -9,18 +9,44 @@
 #include <string>
 #include <vector>
 
+#include "ClientAccountIdentity.h"
+
 namespace xucrun::local_account_selection_dialog
 {
 	enum class SelectionMode
 	{
 		CredentialManagement,
+		ApprovalDialogHostCredentialManagement,
 		Launch
 	};
+
+	enum class SelectionPresentation
+	{
+		TargetAccountCredentialManagement,
+		ApprovalDialogHostCredentialManagement,
+		Launch
+	};
+
+	constexpr SelectionPresentation GetSelectionPresentation(SelectionMode mode)
+	{
+		switch (mode)
+		{
+		case SelectionMode::CredentialManagement:
+			return SelectionPresentation::TargetAccountCredentialManagement;
+		case SelectionMode::ApprovalDialogHostCredentialManagement:
+			return SelectionPresentation::ApprovalDialogHostCredentialManagement;
+		case SelectionMode::Launch:
+			return SelectionPresentation::Launch;
+		}
+		return SelectionPresentation::Launch;
+	}
 
 	bool Show(const std::vector<std::wstring>& accounts,
 		const std::vector<std::wstring>& displayAccounts,
 		const std::vector<bool>& storedAccounts,
+		const std::vector<account_identity::AdministratorMembership>&
+			administratorMemberships,
 		const std::wstring& currentAccount, std::size_t currentAccountIndex,
-		bool noStoredCredentials, SelectionMode mode,
+		const std::wstring& uacWarning, bool noStoredCredentials, SelectionMode mode,
 		std::wstring& selectedAccount, HWND owner);
 }

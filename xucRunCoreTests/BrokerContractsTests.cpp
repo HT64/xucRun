@@ -12,6 +12,7 @@
 #include "SecureDesktopHost.h"
 #include "SensitiveString.h"
 #include "TargetNaming.h"
+#include "../xucRunClientCommon/ClientLocalAccountSelectionDialog.h"
 
 #include <Windows.h>
 
@@ -28,6 +29,22 @@ int RunDocumentationNameMappingTests();
 namespace
 {
 	int failures = 0;
+
+	void ExpectLocalAccountSelectionPresentations()
+	{
+		using namespace xucrun::local_account_selection_dialog;
+		if (GetSelectionPresentation(SelectionMode::CredentialManagement) !=
+				SelectionPresentation::TargetAccountCredentialManagement ||
+			GetSelectionPresentation(
+				SelectionMode::ApprovalDialogHostCredentialManagement) !=
+				SelectionPresentation::ApprovalDialogHostCredentialManagement ||
+			GetSelectionPresentation(SelectionMode::Launch) !=
+				SelectionPresentation::Launch)
+		{
+			std::cerr << "local account selection presentation mismatch\n";
+			failures++;
+		}
+	}
 
 	void ExpectBrokerBackupArchiveSerialization()
 	{
@@ -3516,6 +3533,7 @@ namespace
 int main()
 {
 	failures += RunDocumentationNameMappingTests();
+	ExpectLocalAccountSelectionPresentations();
 	ExpectBrokerBackupArchiveSerialization();
 	ExpectBrokerBackupContractSerialization();
 	LaunchRequest request = MakeValidRequest();

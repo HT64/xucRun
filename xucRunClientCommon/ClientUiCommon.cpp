@@ -10,6 +10,7 @@
 #include "ClientAccountIdentity.h"
 #include "ClientConsoleOutput.h"
 #include "ClientLogging.h"
+#include "DocumentationNameMapping.h"
 #include "Localization.h"
 #include "ClientResourceIds.h"
 
@@ -19,6 +20,17 @@
 
 namespace
 {
+	std::wstring BuildWindowTitle(
+		const std::wstring& productName, const std::wstring& suffix)
+	{
+		std::wstringstream title;
+		title << productName << L" " << VERSION_MAJOR << L"." << VERSION_MINOR
+			<< L"." << VERSION_PATCH << L"." << BUILD_NUMBER;
+		if (!suffix.empty())
+			title << L" - " << suffix;
+		return title.str();
+	}
+
 	LRESULT CALLBACK ApplyMessageBoxIcon(int code, WPARAM wParam, LPARAM lParam)
 	{
 		if (code == HCBT_ACTIVATE)
@@ -199,12 +211,24 @@ namespace xucrun::ui
 
 	std::wstring GetWindowTitle(const std::wstring& suffix)
 	{
-		std::wstringstream title;
-		title << L"xucRun " << VERSION_MAJOR << L"." << VERSION_MINOR << L"."
-			<< VERSION_PATCH << L"." << BUILD_NUMBER;
-		if (!suffix.empty())
-			title << L" - " << suffix;
-		return title.str();
+		return BuildWindowTitle(L"xucRun", suffix);
+	}
+
+	std::wstring GetComputerContextWindowTitle(const std::wstring& suffix)
+	{
+		return GetProductComputerContextWindowTitle(L"xucRun", suffix);
+	}
+
+	std::wstring GetProductComputerContextWindowTitle(
+		const std::wstring& productName, const std::wstring& suffix)
+	{
+		wchar_t computerName[MAX_COMPUTERNAME_LENGTH + 1] = {};
+		DWORD length = ARRAYSIZE(computerName);
+		if (!GetComputerNameW(computerName, &length) || length == 0)
+			return BuildWindowTitle(productName, suffix);
+		return BuildWindowTitle(productName, suffix + L" - " +
+			documentation_names::DisplayComputer(
+				std::wstring(computerName, length)));
 	}
 
 	int ShowMessageBox(HWND owner, const std::wstring& message,

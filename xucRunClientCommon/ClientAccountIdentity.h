@@ -10,12 +10,21 @@
 
 namespace xucrun::account_identity
 {
+	enum class AdministratorMembership
+	{
+		Member,
+		NotMember,
+		Unknown
+	};
+
 	bool GetCurrentUserInfo(std::wstring& username, std::wstring& domain);
 	bool GetCurrentUserSID(std::wstring& sidString);
 	bool IsRunningAsAdministrator();
 	bool IsCurrentUserAccount(const std::wstring& accountName);
 	bool IsUserInAdminGroup();
 	bool IsUserInAdminGroup(const std::wstring& username);
+	AdministratorMembership GetAdministratorMembership(
+		const std::wstring& username);
 	bool ResolveAccountSid(const std::wstring& accountName,
 		std::vector<BYTE>& sidBuffer);
 	bool GetCanonicalAccountName(PSID sid, std::wstring& accountName);

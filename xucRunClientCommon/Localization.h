@@ -156,6 +156,21 @@ namespace xucrun::localization
 		AccountSelectionLaunchHeader = IDS_ACCOUNT_SELECTION_LAUNCH_HEADER,
 		AccountSelectionCurrent = IDS_ACCOUNT_SELECTION_CURRENT,
 		AccountSelectionStored = IDS_ACCOUNT_SELECTION_STORED,
+		AccountSelectionAdministratorLegend = IDS_ACCOUNT_SELECTION_ADMIN_LEGEND,
+		AccountSelectionAdministratorAccessible =
+			IDS_ACCOUNT_SELECTION_ADMIN_ACCESSIBLE,
+		AccountSelectionUnknownLegend = IDS_ACCOUNT_SELECTION_UNKNOWN_LEGEND,
+		AccountSelectionUnknownAccessible =
+			IDS_ACCOUNT_SELECTION_UNKNOWN_ACCESSIBLE,
+		AccountSelectionApprovalDialogHostTitle =
+			IDS_ACCOUNT_SELECTION_APPROVAL_DIALOG_HOST_TITLE,
+		AccountSelectionApprovalDialogHostHeader =
+			IDS_ACCOUNT_SELECTION_APPROVAL_DIALOG_HOST_HEADER,
+		AccountMembershipDisplayLegend = IDS_ACCOUNT_MEMBERSHIP_DISPLAY_LEGEND,
+		AccountSelectionUacDisabledWarning =
+			IDS_ACCOUNT_SELECTION_UAC_DISABLED_WARNING,
+		AccountSelectionBuiltInAdministratorUacWarning =
+			IDS_ACCOUNT_SELECTION_BUILTIN_ADMIN_UAC_WARNING,
 		ProgramUpdateTitle = IDS_PROGRAM_UPDATE_TITLE,
 		ProgramUpdateHeading = IDS_PROGRAM_UPDATE_HEADING,
 		ProgramUpdateAll = IDS_PROGRAM_UPDATE_ALL,
@@ -244,20 +259,15 @@ namespace xucrun::localization
 		BackupRestoredEmptyState = IDS_BACKUP_RESTORED_EMPTY_STATE,
 		StorageSecurityBlocked = IDS_STORAGE_SECURITY_BLOCKED,
 		ShowCredentialsApproval = IDS_SHOW_CREDENTIALS_APPROVAL,
-		ShowCredentialsAdmin = IDS_SHOW_CREDENTIALS_ADMIN,
-		ShowCredentialsNotAdmin = IDS_SHOW_CREDENTIALS_NOT_ADMIN,
 		ShowCredentialsNote = IDS_SHOW_CREDENTIALS_NOTE,
 		ShowCredentialsTitle = IDS_SHOW_CREDENTIALS_TITLE,
 		ShowCredentialsHeading = IDS_SHOW_CREDENTIALS_HEADING,
 		ShowCredentialsColumnAccount = IDS_SHOW_CREDENTIALS_COLUMN_ACCOUNT,
 		ShowCredentialsColumnStored = IDS_SHOW_CREDENTIALS_COLUMN_STORED,
-		ShowCredentialsColumnAccountType = IDS_SHOW_CREDENTIALS_COLUMN_ACCOUNT_TYPE,
 		ShowCredentialsColumnApprovals = IDS_SHOW_CREDENTIALS_COLUMN_APPROVALS,
 		ShowCredentialsDeleteAll = IDS_SHOW_CREDENTIALS_DELETE_ALL,
 		ShowCredentialsDeleteSelected = IDS_SHOW_CREDENTIALS_DELETE_SELECTED,
 		ShowCredentialsDeleteAllConfirm = IDS_SHOW_CREDENTIALS_DELETE_ALL_CONFIRM,
-		ShowCredentialsAdministratorAccount = IDS_SHOW_CREDENTIALS_ADMINISTRATOR_ACCOUNT,
-		ShowCredentialsStandardAccount = IDS_SHOW_CREDENTIALS_STANDARD_ACCOUNT,
 		ShowCredentialsRelatedApprovals = IDS_SHOW_CREDENTIALS_RELATED_APPROVALS,
 		ShowCredentialsDetails = IDS_SHOW_CREDENTIALS_DETAILS,
 		ShowCredentialsDetailsHeading = IDS_SHOW_CREDENTIALS_DETAILS_HEADING,

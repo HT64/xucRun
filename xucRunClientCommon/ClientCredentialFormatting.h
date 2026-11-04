@@ -10,6 +10,7 @@
 
 #include "ApprovalSerialization.h"
 #include "BrokerContracts.h"
+#include "ClientAccountIdentity.h"
 
 namespace xucrun::credential_formatting
 {
@@ -27,6 +28,9 @@ namespace xucrun::credential_formatting
 	std::wstring GetBrokerLaunchFailureMessage(
 		const broker::ApprovalConfirmationResult& result);
 	std::wstring FormatCredentialTimestamp(ULONGLONG timestamp);
+	std::wstring FormatAccountWithAdministratorMembership(
+		const std::wstring& account,
+		account_identity::AdministratorMembership membership);
 	std::wstring GetCredentialSelectionTitle(CredentialSelectionMode mode);
 	std::wstring GetResetApprovalSelectionHint(std::size_t approvalCount,
 		const std::wstring& accountName);

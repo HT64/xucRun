@@ -43,7 +43,7 @@ namespace
 				context->mode == CredentialSelectionMode::ResetApproval;
 			const bool approvalMode =
 				context->mode == CredentialSelectionMode::ApprovalConfirmation;
-			SetWindowTextW(dialog, xucrun::ui::GetWindowTitle(
+			SetWindowTextW(dialog, xucrun::ui::GetComputerContextWindowTitle(
 				xucrun::credential_formatting::GetCredentialSelectionTitle(
 					context->mode)).c_str());
 
@@ -119,7 +119,12 @@ namespace
 			for (const auto& credential : *context->credentials)
 			{
 				const std::wstring displayedAccount =
-					xucrun::documentation_names::DisplayAccount(credential.username);
+					xucrun::credential_formatting::
+						FormatAccountWithAdministratorMembership(
+							xucrun::documentation_names::DisplayAccount(
+								credential.username),
+							xucrun::account_identity::GetAdministratorMembership(
+								credential.username));
 				SendMessageW(credentialList, LB_ADDSTRING, 0,
 					reinterpret_cast<LPARAM>(displayedAccount.c_str()));
 			}
@@ -278,7 +283,7 @@ namespace xucrun::credential_selection_dialog
 		WORD* data = reinterpret_cast<WORD*>(buffer + sizeof(DialogTemplateHeader));
 		*data++ = 0;
 		*data++ = 0;
-		const std::wstring title = ui::GetWindowTitle(
+		const std::wstring title = ui::GetComputerContextWindowTitle(
 			credential_formatting::GetCredentialSelectionTitle(mode));
 		wcscpy_s(reinterpret_cast<wchar_t*>(data), 100, title.c_str());
 		data += title.size() + 1;
