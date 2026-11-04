@@ -325,12 +325,16 @@ int RunNormalProgramLaunch(int argc, LPWSTR* argv,
 		BrokerCredentialSelectionOutcome selection = SelectBrokerCredential(
 			selectedUserParam, requestElevation, selectedCredential, selectionError);
 		if (selection == BrokerCredentialSelectionOutcome::NotFound &&
-			(!selectedUserParam.empty() || requestElevation))
+			xucrun::same_user_launch::ShouldCreateMissingLaunchCredential(
+				!selectedUserParam.empty(), requestElevation,
+				selectCredentialWithoutElevation))
 		{
-			WriteLog(L"Info", selectedUserParam.empty()
-				? L"No administrator broker credential stored - starting administrator credential creation"
-				: L"Explicit broker credential missing - starting credential prompt for: " +
-					selectedUserParam);
+			WriteLog(L"Info", !selectedUserParam.empty()
+				? L"Explicit broker credential missing - starting credential prompt for: " +
+					selectedUserParam
+				: requestElevation
+					? L"No administrator broker credential stored - starting administrator credential creation"
+					: L"No broker credentials stored for /user - starting target-account credential creation");
 			if (!PromptAndSaveBrokerCredentials(
 				selectedUserParam, GetDialogOwnerWindow(), requestElevation))
 			{

@@ -26,6 +26,15 @@ namespace xucrun::same_user_launch
 			!selectCredentialWithoutElevation && !selectLocalAccount;
 	}
 
+	constexpr bool ShouldCreateMissingLaunchCredential(
+		bool hasSelectedAccount,
+		bool requestElevation,
+		bool selectCredentialWithoutElevation) noexcept
+	{
+		return hasSelectedAccount || requestElevation ||
+			selectCredentialWithoutElevation;
+	}
+
 	static_assert(ShouldUseAutomaticCurrentAdministrator(
 		true, false, false, false));
 	static_assert(!ShouldUseAutomaticCurrentAdministrator(
@@ -36,6 +45,10 @@ namespace xucrun::same_user_launch
 		true, false, true, false));
 	static_assert(!ShouldUseAutomaticCurrentAdministrator(
 		true, false, false, true));
+	static_assert(ShouldCreateMissingLaunchCredential(true, false, false));
+	static_assert(ShouldCreateMissingLaunchCredential(false, true, false));
+	static_assert(ShouldCreateMissingLaunchCredential(false, false, true));
+	static_assert(!ShouldCreateMissingLaunchCredential(false, false, false));
 
 	SameUserLaunchMode GetSameUserLaunchMode(
 		const std::wstring& accountName,

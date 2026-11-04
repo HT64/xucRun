@@ -190,8 +190,8 @@ function Assert-InstalledState {
         Assert-Condition (
             $versionInfo.CompanyName -eq 'HT64' -and
             $versionInfo.LegalCopyright -eq $expectedCopyright -and
-            $versionInfo.FileVersion -eq '0.9.1.2' -and
-            $versionInfo.ProductVersion -eq '0.9.1.2' -and
+            $versionInfo.FileVersion -eq '0.9.1.3' -and
+            $versionInfo.ProductVersion -eq '0.9.1.3' -and
             -not [string]::IsNullOrWhiteSpace($versionInfo.FileDescription) -and
             $versionInfo.OriginalFilename -eq $entry.OriginalFilename) `
             "Installed file metadata is incomplete: $($entry.Path)"
@@ -239,8 +239,8 @@ function Assert-InstalledState {
         [string]$uninstallKey.GetValue('DisplayName', '') -eq 'xucRun') `
         'The uninstall DisplayName is not xucRun.'
     Assert-Condition (
-        [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.1.2') `
-        'The uninstall DisplayVersion is not 0.9.1.2.'
+        [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.1.3') `
+        'The uninstall DisplayVersion is not 0.9.1.3.'
     Assert-Condition (
         [int]$uninstallKey.GetValue('InstallationContractVersion', 0) -eq 1) `
         'The installation contract version is missing or invalid.'

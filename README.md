@@ -393,6 +393,16 @@ several match, a selection dialog is shown.
 | `xucRun.exe /user-elevated:* <Program> [Arguments ...]` | always select an enabled local account that is a member of the local Administrators group and start elevated |
 | `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated; abort if it is not a member of the local Administrators group |
 
+If `/user` finds no stored xucRun credentials, xucRun automatically opens local target-account
+selection for credential creation instead of aborting. After the selected account's credentials
+have been stored through protected password entry, xucRun continues the original program or
+console launch. The current account is not offered for credential creation because xucRun uses
+its existing Windows access token for a launch under that account. The invoking account does not
+itself have to be an administrator, but an administrator context must authorize protected
+credential storage interactively.
+
+![First-use target-account selection](docs/en/images/first-use-target-user-selection.png)
+
 The `:*` forms always show the local target-account selection, even when only one suitable
 account or stored credential is available. The dialog identifies the current account, accounts
 with stored xucRun credentials, and membership in the local Administrators group. For the current
@@ -1118,7 +1128,7 @@ it is first started.
 
 The easiest installation method is
 `xucRun-Installer-<Version>-x64.exe`, for example
-`xucRun-Installer-0.9.1.2-x64.exe`. Before starting it, obtain the file only from the
+`xucRun-Installer-0.9.1.3-x64.exe`. Before starting it, obtain the file only from the
 [official xucRun releases](https://github.com/HT64/xucRun/releases), compare its SHA-256 checksum
 with the checksum published there, and verify any available Authenticode signature.
 

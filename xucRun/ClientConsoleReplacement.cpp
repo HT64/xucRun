@@ -160,14 +160,18 @@ namespace xucrun::console_replacement
 			useBrokerCredential = selection ==
 				broker_credential_selection::BrokerCredentialSelectionOutcome::Selected;
 		}
-		if ((!selectedUsername.empty() || request.requestElevation) &&
+		if (same_user_launch::ShouldCreateMissingLaunchCredential(
+				!selectedUsername.empty(), request.requestElevation,
+				request.selectCredentialWithoutElevation) &&
 			sameUserLaunchMode == same_user_launch::SameUserLaunchMode::Credentials &&
 			selection == broker_credential_selection::BrokerCredentialSelectionOutcome::NotFound)
 		{
-			client_logging::Write(L"Info", selectedUsername.empty()
-				? L"No administrator broker credential stored for elevated console replacement - starting administrator credential creation"
-				: L"Explicit broker credential for console replacement missing - starting credential prompt for: " +
-					selectedUsername);
+			client_logging::Write(L"Info", !selectedUsername.empty()
+				? L"Explicit broker credential for console replacement missing - starting credential prompt for: " +
+					selectedUsername
+				: request.requestElevation
+					? L"No administrator broker credential stored for elevated console replacement - starting administrator credential creation"
+					: L"No broker credentials stored for /user console replacement - starting target-account credential creation");
 			if (!broker_credential_management::PromptAndSaveBrokerCredentials(
 				selectedUsername, ui::GetDialogOwnerWindow(),
 				request.requestElevation))

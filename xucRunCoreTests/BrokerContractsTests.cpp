@@ -8,6 +8,7 @@
 #include "BrokerSerialization.h"
 #include "ClientCommandLine.h"
 #include "ClientProcessContext.h"
+#include "../xucRun/ClientSameUserLaunch.h"
 #include "FileIdentity.h"
 #include "SecureDesktopHost.h"
 #include "SensitiveString.h"
@@ -42,6 +43,19 @@ namespace
 				SelectionPresentation::Launch)
 		{
 			std::cerr << "local account selection presentation mismatch\n";
+			failures++;
+		}
+	}
+
+	void ExpectMissingLaunchCredentialRouting()
+	{
+		using xucrun::same_user_launch::ShouldCreateMissingLaunchCredential;
+		if (!ShouldCreateMissingLaunchCredential(true, false, false) ||
+			!ShouldCreateMissingLaunchCredential(false, true, false) ||
+			!ShouldCreateMissingLaunchCredential(false, false, true) ||
+			ShouldCreateMissingLaunchCredential(false, false, false))
+		{
+			std::cerr << "missing launch credential routing mismatch\n";
 			failures++;
 		}
 	}
@@ -3534,6 +3548,7 @@ int main()
 {
 	failures += RunDocumentationNameMappingTests();
 	ExpectLocalAccountSelectionPresentations();
+	ExpectMissingLaunchCredentialRouting();
 	ExpectBrokerBackupArchiveSerialization();
 	ExpectBrokerBackupContractSerialization();
 	LaunchRequest request = MakeValidRequest();
