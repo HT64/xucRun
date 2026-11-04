@@ -5,8 +5,8 @@ Creates bilingual release notes for one xucRun version.
 .DESCRIPTION
 Extracts the requested version section from the English and German changelogs,
 validates that the supplied checksum file contains the matching installer and
-ZIP entries, and writes UTF-8 release notes containing the notices, both
-changelog sections, links, and checksums.
+ZIP entries, and writes UTF-8 release notes containing the signing and Tray
+update notices, both changelog sections, links, and checksums.
 
 .PARAMETER Version
 Specifies the release version. This mandatory value must contain exactly four
@@ -112,6 +112,12 @@ xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Inst
 besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim
 ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem
 GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
+
+## Update with xucRun Tray / Aktualisierung mit xucRun Tray
+
+If xucRun Tray is installed, uninstall it before updating xucRun. After the Core update, install the xucRun Tray release with exactly the same four-part version.
+
+Wenn xucRun Tray installiert ist, deinstallieren Sie es vor der Aktualisierung von xucRun. Installieren Sie nach dem Core-Update die xucRun-Tray-Veröffentlichung mit exakt derselben vierteiligen Version.
 
 ## Release information
 

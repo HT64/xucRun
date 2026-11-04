@@ -90,7 +90,7 @@ treats that encoding as binary.
 | `LICENSE` | Legal text | Contains the Apache License 2.0 terms governing xucRun. |
 | `New-xucRun-Package.ps1` | PowerShell script | Creates an unsigned xucRun package from compiled public build outputs. |
 | `New-xucRun-Release.ps1` | PowerShell script | Creates unsigned xucRun release assets from a Release build. |
-| `New-xucRun-ReleaseNotes.ps1` | PowerShell script | Creates bilingual release notes for one xucRun version. |
+| `New-xucRun-ReleaseNotes.ps1` | PowerShell script | Creates bilingual release notes with signing and Tray update notices for one xucRun version. |
 | `NOTICE` | Legal notice | Provides attribution and copyright notices for xucRun. |
 | `README.de.md` | Documentation | Introduces xucRun, its security model, use, and documentation in German. |
 | `README.md` | Documentation | Introduces xucRun, its security model, use, and documentation in English. |
