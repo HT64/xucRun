@@ -428,6 +428,12 @@ namespace
 		const std::wstring displayedAccountName =
 			xucrun::documentation_names::DisplayAccount(
 				helperResponse.result.canonicalAccountName);
+		const bool documentationMappingActive =
+			xucrun::documentation_names::IsActive();
+		const std::wstring credentialPromptAccount =
+			xucrun::documentation_names::SelectCredentialPromptAccount(
+				helperResponse.result.canonicalAccountName,
+				displayedAccountName, documentationMappingActive);
 		const std::wstring message = AuthenticityMarkerText(
 			helperResponse.result.authenticityMarker,
 			displayedClientName) + L"\n\n" + std::wstring(Text(
@@ -441,7 +447,7 @@ namespace
 		std::vector<wchar_t> userName(CREDUI_MAX_USERNAME_LENGTH + 1);
 		std::vector<wchar_t> password(CREDUI_MAX_PASSWORD_LENGTH + 1);
 		wcscpy_s(userName.data(), userName.size(),
-			displayedAccountName.c_str());
+			credentialPromptAccount.c_str());
 		BOOL save = FALSE;
 		CredentialDialogTimeoutState timeoutState;
 		timeoutState.stopEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
@@ -478,7 +484,7 @@ namespace
 			password.data(), static_cast<ULONG>(password.size()), &save,
 			CREDUI_FLAGS_ALWAYS_SHOW_UI | CREDUI_FLAGS_DO_NOT_PERSIST |
 			CREDUI_FLAGS_GENERIC_CREDENTIALS | CREDUI_FLAGS_KEEP_USERNAME |
-			(xucrun::documentation_names::IsActive()
+			(documentationMappingActive
 				? 0 : CREDUI_FLAGS_VALIDATE_USERNAME));
 		if (iconHook)
 			UnhookWindowsHookEx(iconHook);

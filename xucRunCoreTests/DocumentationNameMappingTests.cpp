@@ -108,6 +108,10 @@ namespace
 				L"LocalUser" ||
 			xucrun::documentation_names::OperationalAccount(L"LocalUser") !=
 				qualifiedAccount ||
+			xucrun::documentation_names::SelectCredentialPromptAccount(
+				qualifiedAccount, L"LocalUser", false) != qualifiedAccount ||
+			xucrun::documentation_names::SelectCredentialPromptAccount(
+				qualifiedAccount, L"MappedUser", true) != L"MappedUser" ||
 			xucrun::documentation_names::DisplayAccount(L"OTHER\\LocalUser") !=
 				L"OTHER\\LocalUser")
 		{

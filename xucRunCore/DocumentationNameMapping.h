@@ -41,4 +41,13 @@ namespace xucrun::documentation_names
 	std::wstring DisplayComputer(const std::wstring& computerName);
 	std::wstring DisplayCertificateSubject(const std::wstring& subject);
 	std::wstring OperationalAccount(const std::wstring& displayedAccountName);
+	inline std::wstring SelectCredentialPromptAccount(
+		const std::wstring& canonicalAccountName,
+		const std::wstring& displayedAccountName,
+		bool documentationMappingActive)
+	{
+		return documentationMappingActive
+			? displayedAccountName
+			: canonicalAccountName;
+	}
 }
