@@ -47,20 +47,28 @@ namespace xucrun::credential_prompt
 		LPVOID inputAuthBuffer = nullptr;
 		ULONG inputAuthBufferSize = 0;
 		BOOL save = FALSE;
-		const std::wstring displayedPrefilledUsername =
-			documentation_names::DisplayAccount(prefilledUsername);
+		std::wstring credentialPromptUsername;
+		if (!prefilledUsername.empty())
+		{
+			const std::wstring displayedPrefilledUsername =
+				documentation_names::DisplayAccount(prefilledUsername);
+			credentialPromptUsername =
+				documentation_names::SelectCredentialPromptAccount(
+					prefilledUsername, displayedPrefilledUsername,
+					documentation_names::IsActive());
+		}
 
-		if (!displayedPrefilledUsername.empty())
+		if (!credentialPromptUsername.empty())
 		{
 			wchar_t emptyPassword[] = L"";
 			if (!CredPackAuthenticationBufferW(0,
-				const_cast<LPWSTR>(displayedPrefilledUsername.c_str()), emptyPassword,
+				const_cast<LPWSTR>(credentialPromptUsername.c_str()), emptyPassword,
 				nullptr, &inputAuthBufferSize) &&
 				GetLastError() == ERROR_INSUFFICIENT_BUFFER)
 			{
 				inputAuthBuffer = CoTaskMemAlloc(inputAuthBufferSize);
 				if (inputAuthBuffer && !CredPackAuthenticationBufferW(0,
-					const_cast<LPWSTR>(displayedPrefilledUsername.c_str()), emptyPassword,
+					const_cast<LPWSTR>(credentialPromptUsername.c_str()), emptyPassword,
 					static_cast<PBYTE>(inputAuthBuffer), &inputAuthBufferSize))
 				{
 					CoTaskMemFree(inputAuthBuffer);

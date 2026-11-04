@@ -7,7 +7,7 @@ and publication processes are not listed.
 
 ## [Unreleased]
 
-## [0.9.1.2] - 2026-11-04
+## [0.9.1.3] - 2026-11-04
 
 ### Added
 
@@ -121,8 +121,8 @@ and publication processes are not listed.
   The graphical installer checks this requirement and offers the official Microsoft download if
   necessary.
 
-[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.2...HEAD
-[0.9.1.2]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.2
+[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.3...HEAD
+[0.9.1.3]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.3
 [0.9.1.1]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.1
 [0.9.1.0]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.0
 [0.9.0.3]: https://github.com/HT64/xucRun/releases/tag/v0.9.0.3
