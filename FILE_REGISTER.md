@@ -42,6 +42,7 @@ treats that encoding as binary.
 | `docs/de/images/cross-account-elevation-blocked.png` | Documentation image | German documentation screenshot showing cross account elevation blocked. |
 | `docs/de/images/data-backups.png` | Documentation image | German documentation screenshot showing data backups. |
 | `docs/de/images/delete-credential.png` | Documentation image | German documentation screenshot showing delete credential. |
+| `docs/de/images/first-use-target-user-selection.png` | Documentation image | German documentation screenshot showing first-use target account selection. |
 | `docs/de/images/installation-success.png` | Documentation image | German documentation screenshot showing installation success. |
 | `docs/de/images/installer.png` | Documentation image | German documentation screenshot showing installer. |
 | `docs/de/images/installer-process-and-uninstallation.png` | Documentation image | German documentation screenshot showing installer process and uninstallation. |
@@ -69,6 +70,7 @@ treats that encoding as binary.
 | `docs/en/images/cross-account-elevation-blocked.png` | Documentation image | English documentation screenshot showing cross account elevation blocked. |
 | `docs/en/images/data-backups.png` | Documentation image | English documentation screenshot showing data backups. |
 | `docs/en/images/delete-credential.png` | Documentation image | English documentation screenshot showing delete credential. |
+| `docs/en/images/first-use-target-user-selection.png` | Documentation image | English documentation screenshot showing first-use target account selection. |
 | `docs/en/images/installation-success.png` | Documentation image | English documentation screenshot showing installation success. |
 | `docs/en/images/installer.png` | Documentation image | English documentation screenshot showing installer. |
 | `docs/en/images/installer-process-and-uninstallation.png` | Documentation image | English documentation screenshot showing installer process and uninstallation. |
