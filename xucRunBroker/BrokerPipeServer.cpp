@@ -514,6 +514,12 @@ namespace
 			WaitForSingleObject(expectedHost, 0) == WAIT_TIMEOUT;
 	}
 
+	bool ShouldRetainCredentialCaptureChallenge(
+		xucrun::broker::CredentialSaveStatus status) noexcept
+	{
+		return status == xucrun::broker::CredentialSaveStatus::InvalidCredentials;
+	}
+
 	bool IsBoundCredentialCommitHost(
 		const std::deque<PendingCredentialCaptureChallenge>& challenges,
 		DWORD processId, DWORD sessionId)
@@ -2794,6 +2800,13 @@ namespace
 	// otherwise identical challenge without a completed submission is rejected.
 	bool RunEmptyPasswordCommitHostSelfTest()
 	{
+		if (!ShouldRetainCredentialCaptureChallenge(
+				xucrun::broker::CredentialSaveStatus::InvalidCredentials) ||
+			ShouldRetainCredentialCaptureChallenge(
+				xucrun::broker::CredentialSaveStatus::Failed))
+		{
+			return false;
+		}
 		const DWORD processId = GetCurrentProcessId();
 		DWORD sessionId = 0;
 		if (!ProcessIdToSessionId(processId, &sessionId))

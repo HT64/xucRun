@@ -11,11 +11,15 @@ Approach: Combines conceptual guidance, security boundaries, examples, and links
 
 **Download:** [Latest release](https://github.com/HT64/xucRun/releases/latest)
 
+**Build from source:** [Build instructions](docs/en/BUILDING.md)
+
 **xucRun** stands for **eXecute Under User Context**.
 
-> **Status:** xucRun is under development. The documentation describes the intended behavior. The
-> current state may contain defects, differ from that behavior, and change. The source can be built
-> and installed with a local test certificate.
+> **Status:** xucRun is actively maintained and continues to evolve. For its intended use, it has
+> already been proven in practical use on the systems tested so far. Further changes are possible,
+> and defects cannot be ruled out. The 0.x.x.x version designation is not intended as a quality
+> rating; it will be retained until more practical experience and feedback from other user
+> environments are available.
 
 ## Overview
 
@@ -112,6 +116,11 @@ xucRun.exe powershell.exe -NoExit
 xucRun.exe cmd.exe /c "net stop MyService"
 ```
 
+The [short demonstration video](docs/media/xucRun-simple-elevation.mp4) (58 seconds, MP4, English
+user interface) shows how xucRun replaces a non-elevated Command Prompt with one running under the
+configured administrator account and how it runs an individual administrative command from the
+original shell.
+
 If a suitable account, stored credentials, or an applicable approval is missing, xucRun guides
 the user through the required steps during the current invocation.
 
@@ -128,6 +137,11 @@ Start an administrative PowerShell script:
 ```powershell
 xucRun.exe powershell.exe -File "C:\Scripts\AdminScript.ps1"
 ```
+
+The [short PowerShell demonstration video](docs/media/xucRun-elevated-powershell.mp4) (34 seconds,
+MP4, English user interface) shows an online Windows-feature query failing without elevation and
+succeeding after xucRun starts PowerShell with elevated privileges under the administrator
+account. `whoami` confirms the target account.
 
 Stop a Windows service through `cmd.exe`:
 
@@ -365,13 +379,23 @@ user's own SID-bound credentials. The inner invocation processes `/user:<Account
 visible Total Commander instance under the target account. Elevation of the outer intermediate
 stage is not transferred to the target account; its privileges remain unchanged.
 
-For example, the command can be added to a custom menu:
+For example, the documented start commands can be grouped in a custom menu:
 
 ```text
-POPUP "User"
-  MENUITEM "Start Total Commander for <Account>", em_TCStart_Account
+POPUP "xucRun"
+  MENUITEM "Start with elevated privileges", em_TCStart_Elevated
+  MENUITEM "Restart with elevated privileges", em_TCReStart_Elevated
+  MENUITEM "Start as LocalSystem", em_TCStart_System
+  MENUITEM SEPARATOR
+  POPUP "Start as user"
+    MENUITEM "<Account>", em_TCStart_Account
+  END_POPUP
 END_POPUP
 ```
+
+The [demonstration video](docs/media/xucRun-with-total-commander.mp4) (1:33, MP4, English user
+interface) shows this menu in practical use and illustrates how it can start programs through
+xucRun with and without elevated privileges and under different accounts.
 
 Additional accounts can be added in the same way. For each additional account, you can create a
 separate command in `usercmd.ini` and a corresponding `MENUITEM`.
@@ -393,6 +417,13 @@ several match, a selection dialog is shown.
 | `xucRun.exe /user-elevated:* <Program> [Arguments ...]` | always select an enabled local account that is a member of the local Administrators group and start elevated |
 | `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated; abort if it is not a member of the local Administrators group |
 
+The [short demonstration video about launching under another user
+account](docs/media/xucRun-other-user-profile.mp4) (38 seconds, MP4, English user interface) first
+shows xucRun opening the Windows environment-variables dialog under an explicitly specified
+standard account. The displayed standard-account name and associated profile paths make the target
+account's user context visible. It then shows interactive target-account selection with `/user:*`;
+`whoami` confirms the selected account.
+
 If `/user` finds no stored xucRun credentials, xucRun automatically opens local target-account
 selection for credential creation instead of aborting. After the selected account's credentials
 have been stored through protected password entry, xucRun continues the original program or
@@ -400,6 +431,10 @@ console launch. The current account is not offered for credential creation becau
 its existing Windows access token for a launch under that account. The invoking account does not
 itself have to be an administrator, but an administrator context must authorize protected
 credential storage interactively.
+
+If Windows rejects the entered credentials—for example because the local security policy
+restricts blank passwords—xucRun displays the reason reported by Windows on the protected desktop
+and then opens the credential dialog again.
 
 ![First-use target-account selection](docs/en/images/first-use-target-user-selection.png)
 
@@ -460,6 +495,11 @@ Enclose program paths and individual arguments containing spaces in quotation ma
 xucRun also supports batch files and carries common shell special characters across the additional
 process boundaries. Characters that `cmd.exe`, PowerShell, or another calling shell evaluates
 before xucRun starts remain subject to that shell's rules.
+
+For security reasons, xucRun rejects target arguments containing non-printing control characters,
+such as tabs or line breaks, as well as certain invisible or bidirectional Unicode control
+characters. The quoting and shell-metacharacter rules described above apply independently of this
+restriction.
 
 For a launch handled by the xucRun broker service—the privileged component that verifies and
 performs permitted program starts—of a `.bat` or `.cmd` file whose file name contains one of the
@@ -1128,7 +1168,7 @@ it is first started.
 
 The easiest installation method is
 `xucRun-Installer-<Version>-x64.exe`, for example
-`xucRun-Installer-0.9.1.3-x64.exe`. Before starting it, obtain the file only from the
+`xucRun-Installer-0.9.1.4-x64.exe`. Before starting it, obtain the file only from the
 [official xucRun releases](https://github.com/HT64/xucRun/releases), compare its SHA-256 checksum
 with the checksum published there, and verify any available Authenticode signature.
 

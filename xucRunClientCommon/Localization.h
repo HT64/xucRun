@@ -179,6 +179,7 @@ namespace xucrun::localization
 		BrokerWorkingDirectoryFailed = IDS_BROKER_WORKING_DIRECTORY_FAILED,
 		BrokerBatchFailed = IDS_BROKER_BATCH_FAILED,
 		BrokerLaunchRequestFailed = IDS_BROKER_LAUNCH_REQUEST_FAILED,
+		BrokerLaunchArgumentsInvalid = IDS_BROKER_LAUNCH_ARGUMENTS_INVALID,
 		BrokerConfirmationRequestFailed = IDS_BROKER_CONFIRMATION_REQUEST_FAILED,
 		BrokerConfirmationTransportFailed = IDS_BROKER_CONFIRMATION_TRANSPORT_FAILED,
 		BrokerFailureWithError = IDS_BROKER_FAILURE_WITH_ERROR,

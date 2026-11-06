@@ -8,6 +8,27 @@ aufgeführt.
 
 ## [Unveröffentlicht]
 
+## [0.9.1.4] - 2026-11-07
+
+### Hinzugefügt
+
+- In der README wurden Demonstrationsvideos ergänzt und angepasst.
+
+### Behoben
+
+- Wenn Windows eingegebene Anmeldedaten zurückweist, zeigt xucRun jetzt den von Windows gemeldeten
+  Grund an und öffnet den geschützten Anmeldedatendialog erneut, statt den laufenden Vorgang zu
+  beenden.
+- Im geschützten Anmeldedatendialog werden das Sicherheitsmerkmal und der Hinweis zur Eingabe der
+  Anmeldedaten jetzt korrekt voneinander getrennt.
+
+### Sicherheit
+
+- xucRun weist jetzt Zielargumente mit nicht druckbaren, unsichtbaren oder bidirektionalen
+  Steuerzeichen zurück, bevor sie in Freigabe- oder LocalSystem-Bestätigungsdialogen angezeigt
+  werden können. Dadurch können diese Zeichen die dargestellten Startdetails nicht optisch
+  verändern.
+
 ## [0.9.1.3] - 2026-11-04
 
 ### Hinzugefügt
@@ -132,7 +153,8 @@ aufgeführt.
   Der grafische Installer prüft diese Voraussetzung und bietet bei Bedarf den offiziellen
   Microsoft-Download an.
 
-[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.3...HEAD
+[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.4...HEAD
+[0.9.1.4]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.4
 [0.9.1.3]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.3
 [0.9.1.1]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.1
 [0.9.1.0]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.0

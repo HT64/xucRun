@@ -7,6 +7,25 @@ and publication processes are not listed.
 
 ## [Unreleased]
 
+## [0.9.1.4] - 2026-11-07
+
+### Added
+
+- Added and updated demonstration videos in the README.
+
+### Fixed
+
+- When Windows rejects entered credentials, xucRun now shows the reason reported by Windows and
+  reopens the protected credential dialog instead of ending the current operation.
+- The protected credential prompt now separates the authenticity marker from the credential-entry
+  instruction correctly.
+
+### Security
+
+- xucRun now rejects target arguments containing non-printing, invisible, or bidirectional control
+  characters before they can be displayed in approval or LocalSystem confirmation dialogs. This
+  prevents those characters from visually altering the displayed launch details.
+
 ## [0.9.1.3] - 2026-11-04
 
 ### Added
@@ -121,7 +140,8 @@ and publication processes are not listed.
   The graphical installer checks this requirement and offers the official Microsoft download if
   necessary.
 
-[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.3...HEAD
+[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.4...HEAD
+[0.9.1.4]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.4
 [0.9.1.3]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.3
 [0.9.1.1]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.1
 [0.9.1.0]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.0

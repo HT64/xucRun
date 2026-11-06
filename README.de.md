@@ -11,11 +11,15 @@ Approach: Combines conceptual guidance, security boundaries, examples, and links
 
 **Download:** [Aktuelle Version](https://github.com/HT64/xucRun/releases/latest)
 
+**Selbst bauen:** [Build-Anleitung](docs/de/BUILDING.md)
+
 **xucRun** steht für **eXecute Under User Context**.
 
-> **Status:** xucRun befindet sich in Entwicklung. Die Dokumentation beschreibt das vorgesehene
-> Verhalten. Der aktuelle Stand kann Fehler enthalten, davon abweichen und sich ändern. Der
-> Quellcode kann selbst gebaut und mit einem lokalen Testzertifikat installiert werden.
+> **Status:** xucRun wird aktiv weiterentwickelt und ist für den vorgesehenen Einsatz auf den
+> bislang getesteten Systemen bereits praktisch erprobt. Weitere Änderungen sind möglich, und
+> Fehler können nicht ausgeschlossen werden. Die Versionskennzeichnung 0.x.x.x dient nicht als
+> Qualitätsbewertung, sondern wird beibehalten, bis mehr praktische Erfahrungen und Rückmeldungen
+> aus anderen Benutzerumgebungen vorliegen.
 
 ## Überblick
 
@@ -119,6 +123,11 @@ xucRun.exe powershell.exe -NoExit
 xucRun.exe cmd.exe /c "net stop MyService"
 ```
 
+Das [kurze Demonstrationsvideo](docs/media/xucRun-simple-elevation.mp4) (58 Sekunden, MP4,
+englische Benutzeroberfläche) zeigt, wie xucRun eine nicht erhöhte Eingabeaufforderung durch eine
+unter dem konfigurierten Administratorkonto ausgeführte Eingabeaufforderung ersetzt und wie es einen
+einzelnen administrativen Befehl aus der ursprünglichen Shell ausführt.
+
 Fehlen ein geeignetes Konto, gespeicherte Anmeldedaten oder eine passende Freigabe, führt xucRun
 im laufenden Aufruf durch die erforderlichen Schritte.
 
@@ -135,6 +144,11 @@ Eine administrative PowerShell mit einem Skript starten:
 ```powershell
 xucRun.exe powershell.exe -File "C:\Scripts\AdminScript.ps1"
 ```
+
+Das [kurze PowerShell-Demonstrationsvideo](docs/media/xucRun-elevated-powershell.mp4) (34 Sekunden,
+MP4, englische Benutzeroberfläche) zeigt, wie eine Abfrage aktivierter Windows-Komponenten ohne
+Erhöhung fehlschlägt und erfolgreich ausgeführt wird, nachdem xucRun PowerShell mit erhöhten
+Rechten unter dem Administratorkonto gestartet hat. `whoami` bestätigt das Zielkonto.
 
 Einen Windows-Dienst über `cmd.exe` stoppen:
 
@@ -384,13 +398,25 @@ eigene, an seine SID gebundenen Anmeldedaten verwenden. Der innere Aufruf verarb
 Erhöhung der äußeren Zwischenstufe wird nicht auf das Zielkonto übertragen; dessen Rechte bleiben
 unverändert.
 
-Der Befehl kann beispielsweise in ein benutzerdefiniertes Menü aufgenommen werden:
+Die dokumentierten Startbefehle können beispielsweise in einem benutzerdefinierten Menü
+zusammengefasst werden:
 
 ```text
-POPUP "Benutzer"
-  MENUITEM "Total Commander für <Konto> starten", em_TCStart_Konto
+POPUP "xucRun"
+  MENUITEM "Mit erhöhten Rechten starten", em_TCStart_Elevated
+  MENUITEM "Mit erhöhten Rechten neu starten", em_TCReStart_Elevated
+  MENUITEM "Als LocalSystem starten", em_TCStart_System
+  MENUITEM SEPARATOR
+  POPUP "Als Benutzer starten"
+    MENUITEM "<Konto>", em_TCStart_Konto
+  END_POPUP
 END_POPUP
 ```
+
+Das [Demonstrationsvideo](docs/media/xucRun-with-total-commander.mp4) (1:33 Minuten, MP4,
+englische Benutzeroberfläche) zeigt dieses Menü im praktischen Einsatz und veranschaulicht, wie
+darüber Programme mit xucRun mit und ohne erhöhte Rechte sowie unter verschiedenen Konten
+gestartet werden können.
 
 Auf dieselbe Weise können weitere Konten ergänzt werden. Dazu können für jedes weitere Konto ein
 eigener Befehl in `usercmd.ini` sowie ein darauf verweisender `MENUITEM` angelegt werden.
@@ -412,6 +438,13 @@ gewählt; bei mehreren erscheint eine Auswahl.
 | `xucRun.exe /user-elevated:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, das Mitglied der lokalen Administratorengruppe ist, und erhöht starten |
 | `xucRun.exe /user-elevated:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden und erhöht starten; ist es kein Mitglied der lokalen Administratorengruppe, wird der Start abgebrochen |
 
+Das [kurze Demonstrationsvideo zum Start unter einem anderen
+Benutzerkonto](docs/media/xucRun-other-user-profile.mp4) (38 Sekunden, MP4, englische
+Benutzeroberfläche) zeigt zunächst, wie xucRun den Windows-Dialog für Umgebungsvariablen unter einem
+ausdrücklich angegebenen Standardkonto öffnet. Der dort angezeigte Name des Standardkontos und die
+zugehörigen Profilpfade machen den Benutzerkontext des Zielkontos sichtbar. Anschließend zeigt
+`/user:*` die interaktive Zielkontoauswahl; `whoami` bestätigt das ausgewählte Konto.
+
 Findet `/user` keine gespeicherten xucRun-Anmeldedaten, öffnet xucRun statt eines Abbruchs
 automatisch die lokale Zielkontoauswahl zum Anlegen von Anmeldedaten. Nachdem die Anmeldedaten des
 gewählten Kontos über die geschützte Kennworteingabe gespeichert wurden, setzt xucRun den
@@ -419,6 +452,10 @@ ursprünglichen Programm- oder Konsolenstart fort. Das aktuelle Konto wird zum A
 Anmeldedaten nicht angeboten, weil xucRun für einen Start unter diesem Konto dessen vorhandenen
 Windows-Zugriffstoken verwendet. Das aufrufende Konto muss nicht selbst Administrator sein; ein
 Administratorkontext muss das geschützte Speichern jedoch interaktiv autorisieren.
+
+Lehnt Windows die eingegebenen Anmeldedaten ab – beispielsweise weil leere Kennwörter durch die
+lokale Sicherheitsrichtlinie eingeschränkt sind –, zeigt xucRun den von Windows gemeldeten Grund
+auf dem geschützten Desktop an und öffnet anschließend den Eingabedialog erneut.
 
 ![Zielkontoauswahl bei der ersten Verwendung](docs/de/images/first-use-target-user-selection.png)
 
@@ -482,6 +519,11 @@ gesetzt. xucRun unterstützt auch Batchdateien und überträgt typische Shell-So
 zusätzlichen Prozessgrenzen. Welche Zeichen von `cmd.exe`, PowerShell oder einer anderen
 aufrufenden Shell schon vor dem Start von xucRun ausgewertet werden, richtet sich weiterhin nach
 dieser Shell.
+
+Aus Sicherheitsgründen weist xucRun Zielargumente mit nicht druckbaren Steuerzeichen, etwa
+Tabulatoren oder Zeilenumbrüchen, sowie mit bestimmten unsichtbaren oder bidirektionalen
+Unicode-Steuerzeichen ab. Die zuvor beschriebenen Regeln für Quoting und Shell-Metazeichen gelten
+unabhängig von dieser Einschränkung.
 
 Bei einem vom xucRun-Brokerdienst – der privilegierten Komponente zur Prüfung und Ausführung
 erlaubter Programmstarts – vermittelten Start einer `.bat`- oder `.cmd`-Datei, deren Dateiname eines
@@ -1203,7 +1245,7 @@ deshalb beim ersten Start einen unbekannten Herausgeber melden.
 
 Der einfachste Installationsweg ist
 `xucRun-Installer-<Version>-x64.exe`, beispielsweise
-`xucRun-Installer-0.9.1.3-x64.exe`. Vor dem Start sollte die Datei nur aus den
+`xucRun-Installer-0.9.1.4-x64.exe`. Vor dem Start sollte die Datei nur aus den
 [offiziellen xucRun-Veröffentlichungen](https://github.com/HT64/xucRun/releases) bezogen, ihre
 SHA-256-Prüfsumme mit der dort veröffentlichten Prüfsumme verglichen und eine vorhandene
 Authenticode-Signatur geprüft werden.

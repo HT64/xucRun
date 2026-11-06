@@ -14,7 +14,7 @@ and `.DESCRIPTION` explains how it does it. Generated commentable files retain m
 their generators. MSBuild XML files (`.vcxproj`, `.props`, and `.targets`) use one comment block
 after the optional XML declaration, with `<!--`, `Purpose: ...`, `Approach: ...`, and `-->` each
 on its own line. Formats that cannot safely carry comments--such as the Visual Studio solution,
-images and icons, legal texts, and plain semantic build data--are documented only here. The
+images, icons, videos, legal texts, and plain semantic build data--are documented only here. The
 existing UTF-16 Windows Registry export is also kept byte-stable and documented here because Git
 treats that encoding as binary.
 
@@ -86,13 +86,17 @@ treats that encoding as binary.
 | `docs/en/images/uninstall-confirmation.png` | Documentation image | English documentation screenshot showing uninstall confirmation. |
 | `docs/en/INSTALLATION.md` | Documentation | Explains how users install xucRun in English. |
 | `docs/en/MANUAL_REMOVAL.md` | Documentation | Explains how users manually remove xucRun in English. |
+| `docs/media/xucRun-elevated-powershell.mp4` | Documentation video | Demonstrates a PowerShell command failing without elevation and succeeding after an elevated xucRun launch. |
+| `docs/media/xucRun-other-user-profile.mp4` | Documentation video | Demonstrates an explicit standard-account launch and interactive target-account selection with `/user:*`. |
+| `docs/media/xucRun-simple-elevation.mp4` | Documentation video | Demonstrates replacing a non-elevated shell and running an individual command under the configured administrator account. |
+| `docs/media/xucRun-with-total-commander.mp4` | Documentation video | Demonstrates xucRun account and privilege transitions from a custom Total Commander menu. |
 | `ExplorerKontextMenue.reg` | Registry script | Adds xucRun commands to Windows Explorer context menus for supported files, folders, folder backgrounds, and drives. |
 | `FILE_REGISTER.md` | Documentation | Catalogs every tracked and unignored repository file and its purpose. |
 | `Install-xucRun.ps1` | PowerShell script | Installs, updates, or uninstalls xucRun on the local Windows computer. |
 | `LICENSE` | Legal text | Contains the Apache License 2.0 terms governing xucRun. |
 | `New-xucRun-Package.ps1` | PowerShell script | Creates an unsigned xucRun package from compiled public build outputs. |
 | `New-xucRun-Release.ps1` | PowerShell script | Creates unsigned xucRun release assets from a Release build. |
-| `New-xucRun-ReleaseNotes.ps1` | PowerShell script | Creates bilingual release notes with signing and Tray update notices for one xucRun version. |
+| `New-xucRun-ReleaseNotes.ps1` | PowerShell script | Creates bilingual release notes with signing, version-designation, and Tray update notices for one xucRun version. |
 | `NOTICE` | Legal notice | Provides attribution and copyright notices for xucRun. |
 | `README.de.md` | Documentation | Introduces xucRun, its security model, use, and documentation in German. |
 | `README.md` | Documentation | Introduces xucRun, its security model, use, and documentation in English. |

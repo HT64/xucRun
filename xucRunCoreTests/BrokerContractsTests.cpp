@@ -570,6 +570,20 @@ namespace
 		failures++;
 	}
 
+	void ExpectSystemValidation(const char* name,
+		const xucrun::broker::SystemLaunchRequest& request,
+		ContractValidationError expected)
+	{
+		const ContractValidationError actual =
+			xucrun::broker::ValidateSystemLaunchRequest(request);
+		if (actual == expected)
+			return;
+
+		std::cerr << name << " failed: expected " << static_cast<int>(expected)
+			<< ", got " << static_cast<int>(actual) << '\n';
+		failures++;
+	}
+
 	// Creates a fully valid reference request for targeted negative tests.
 	LaunchRequest MakeValidRequest()
 	{
@@ -579,6 +593,45 @@ namespace
 		request.executablePath = L"C:\\Windows\\System32\\notepad.exe";
 		request.workingDirectory = L"C:\\Windows";
 		return request;
+	}
+
+	void ExpectUnsafeApprovalArgumentsRejected()
+	{
+		constexpr wchar_t UnsafeCharacters[] = {
+			L'\t', L'\r', L'\n', 0x007f, 0x0085, 0x061c, 0x200b, 0x200e,
+			0x2028, 0x202e, 0x2060, 0x2066, 0x2069, 0xfeff, 0xfff9
+		};
+		for (const wchar_t character : UnsafeCharacters)
+		{
+			LaunchRequest launch = MakeValidRequest();
+			launch.argumentTail = L"/c echo before";
+			launch.argumentTail.push_back(character);
+			launch.argumentTail += L"Working directory: C:\\spoofed";
+			ExpectValidation("unsafe approval argument", launch,
+				ContractValidationError::InvalidArguments);
+
+			xucrun::broker::SystemLaunchRequest systemLaunch;
+			systemLaunch.requestId = 1;
+			systemLaunch.executablePath = L"C:\\Windows\\System32\\cmd.exe";
+			systemLaunch.argumentTail = launch.argumentTail;
+			systemLaunch.workingDirectory = L"C:\\Windows";
+			ExpectSystemValidation("unsafe SYSTEM approval argument", systemLaunch,
+				ContractValidationError::InvalidArguments);
+
+			xucrun::broker::ApprovalChallengeRequest approval;
+			approval.requestId = 1;
+			approval.requestedAccountSid = L"S-1-5-21-1-2-3-1001";
+			approval.approvalAccountSid = L"S-1-5-21-1-2-3-1002";
+			approval.executablePath = L"C:\\Windows\\System32\\cmd.exe";
+			approval.argumentTail = launch.argumentTail;
+			approval.workingDirectory = L"C:\\Windows";
+			if (xucrun::broker::ValidateApprovalChallengeRequest(approval) !=
+				ContractValidationError::InvalidArguments)
+			{
+				std::cerr << "unsafe approval challenge argument accepted\n";
+				failures++;
+			}
+		}
 	}
 
 	// Verifies that all inputs are copied unchanged into a launch request.
@@ -3584,6 +3637,8 @@ int main()
 	request = MakeValidRequest();
 	request.argumentTail.assign(xucrun::broker::MaximumArgumentLength + 1, L'x');
 	ExpectValidation("argument length", request, ContractValidationError::ArgumentsTooLong);
+
+	ExpectUnsafeApprovalArgumentsRejected();
 
 	request = MakeValidRequest();
 	request.workingDirectory.assign(xucrun::broker::MaximumPathLength + 1, L'x');

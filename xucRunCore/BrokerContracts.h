@@ -358,6 +358,7 @@ namespace xucrun::broker
 		MissingExecutablePath,
 		ExecutablePathTooLong,
 		ArgumentsTooLong,
+		InvalidArguments,
 		WorkingDirectoryTooLong,
 		MissingPassword,
 		PasswordTooLong,
@@ -998,6 +999,7 @@ namespace xucrun::broker
 		const std::wstring& argumentTail,
 		const std::wstring& workingDirectory,
 		ElevationMode elevationMode);
+	bool IsUnsafeApprovalDisplayCharacter(wchar_t character) noexcept;
 	ContractValidationError ValidateLaunchRequest(const LaunchRequest& request) noexcept;
 	ResultValidationError ValidateLaunchResult(const LaunchResult& result) noexcept;
 	ContractValidationError ValidateSystemLaunchRequest(

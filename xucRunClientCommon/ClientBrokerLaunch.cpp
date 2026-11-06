@@ -360,6 +360,19 @@ namespace xucrun::broker_launch
 				L"Generating the broker launch request identifier failed.");
 			return BrokerLaunchOutcome::Failed;
 		}
+		const broker::ContractValidationError validationError =
+			broker::ValidateApprovalChallengeRequest(request);
+		if (validationError != broker::ContractValidationError::None)
+		{
+			const localization::TextId errorText =
+				validationError == broker::ContractValidationError::InvalidArguments
+					? localization::TextId::BrokerLaunchArgumentsInvalid
+					: localization::TextId::BrokerLaunchRequestFailed;
+			ui::ReportError(localization::GetText(errorText) + accountContext,
+				L"Validating the broker launch request failed. Contract validation error: " +
+					std::to_wstring(static_cast<unsigned int>(validationError)));
+			return BrokerLaunchOutcome::Failed;
+		}
 
 		const broker::PipeApprovalChallengeResponse challenge =
 			broker::SubmitApprovalChallengeRequest(request,

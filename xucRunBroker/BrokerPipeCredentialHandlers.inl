@@ -627,7 +627,6 @@
 					result.status = xucrun::broker::CredentialSaveStatus::InvalidCredentials;
 					result.windowsError = error == NO_ERROR
 						? ERROR_INVALID_ACCOUNT_NAME : error;
-					pendingChallenges.erase(pending);
 				}
 				else
 				{
@@ -649,7 +648,8 @@
 							CredentialValidationStatus::Rejected
 							? xucrun::broker::CredentialSaveStatus::InvalidCredentials
 							: xucrun::broker::CredentialSaveStatus::Failed;
-						pendingChallenges.erase(pending);
+						if (!ShouldRetainCredentialCaptureChallenge(result.status))
+							pendingChallenges.erase(pending);
 					}
 					if (log)
 						log(validationStatus == CredentialValidationStatus::Failed

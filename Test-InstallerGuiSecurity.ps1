@@ -23,10 +23,12 @@ Requires PowerShell and Git in a working tree of this repository. Commentable
 formats without a structural validator and non-PowerShell script extensions
 fail explicitly. Generated BuildVersion.h metadata is also checked in its generator. The
 existing UTF-16 registry export is treated as a byte-stable format exception
-because Git handles it as binary. CHANGELOG.md and CHANGELOG.de.md are the only
-commentable files exempt from structured metadata heads. The test reads source
-files only and performs no installation, signing, network, service, registry,
-or certificate operation. Documentation, parser, parameter, and
+because Git handles it as binary. Images, icons, and MPEG-4 documentation
+videos are validated through FILE_REGISTER.md because their formats cannot
+carry the structured metadata head. CHANGELOG.md and CHANGELOG.de.md are the
+only commentable files exempt from structured metadata heads. The test reads
+source files only and performs no installation, signing, network, service,
+registry, or certificate operation. Documentation, parser, parameter, and
 staging-contract violations are terminating errors and yield a nonzero host
 exit code. Success returns exit code 0.
 #>
@@ -106,7 +108,9 @@ function Assert-FileRegister {
 function Assert-StructuredFileHeaders {
     param([string[]]$RepositoryFiles)
 
-    $nonCommentableExtensions = @('.ico', '.jpg', '.png', '.sln', '.txt')
+    $nonCommentableExtensions = @(
+        '.ico', '.jpg', '.mp4', '.png', '.sln', '.txt'
+    )
     $nonCommentableNames = @('LICENSE', 'NOTICE')
     $headerExceptionPaths = @('CHANGELOG.de.md', 'CHANGELOG.md')
     foreach ($relativePath in $RepositoryFiles) {

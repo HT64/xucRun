@@ -5,8 +5,9 @@ Creates bilingual release notes for one xucRun version.
 .DESCRIPTION
 Extracts the requested version section from the English and German changelogs,
 validates that the supplied checksum file contains the matching installer and
-ZIP entries, and writes UTF-8 release notes containing the signing and Tray
-update notices, both changelog sections, links, and checksums.
+ZIP entries, and writes UTF-8 release notes containing the signing, version
+designation, and Tray update notices, both changelog sections, links, and
+checksums.
 
 .PARAMETER Version
 Specifies the release version. This mandatory value must contain exactly four
@@ -22,9 +23,9 @@ Specifies the mandatory output file. Its parent directory is created when
 necessary, and an existing file is replaced.
 
 .EXAMPLE
-.\New-xucRun-ReleaseNotes.ps1 -Version 0.9.1.3 -ChecksumPath .\artifacts\Release\0.9.1.3\SHA256SUMS.txt -DestinationPath .\artifacts\Release\0.9.1.3\RELEASE_NOTES.md
+.\New-xucRun-ReleaseNotes.ps1 -Version 0.9.1.4 -ChecksumPath .\artifacts\Release\0.9.1.4\SHA256SUMS.txt -DestinationPath .\artifacts\Release\0.9.1.4\RELEASE_NOTES.md
 
-Creates release notes for version 0.9.1.3 from the matching checksums and
+Creates release notes for version 0.9.1.4 from the matching checksums and
 changelog sections.
 
 .NOTES
@@ -112,6 +113,14 @@ xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Inst
 besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim
 ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem
 GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
+
+## Version designation / Versionskennzeichnung
+
+The 0.x.x.x version designation is not intended as a quality rating. It will be retained until
+more practical experience and feedback from other user environments are available.
+
+Die Versionskennzeichnung 0.x.x.x dient nicht als Qualitätsbewertung. Sie wird beibehalten, bis
+mehr praktische Erfahrungen und Rückmeldungen aus anderen Benutzerumgebungen vorliegen.
 
 ## Update with xucRun Tray / Aktualisierung mit xucRun Tray
 

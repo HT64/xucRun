@@ -17,3 +17,4 @@
 *.md text eol=lf
 
 *.ico binary
+*.mp4 binary

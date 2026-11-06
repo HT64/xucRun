@@ -302,6 +302,32 @@ namespace
 		return result;
 	}
 
+	std::wstring FormatWindowsError(DWORD error)
+	{
+		wchar_t* buffer = nullptr;
+		const DWORD length = FormatMessageW(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			nullptr, error, 0, reinterpret_cast<wchar_t*>(&buffer), 0, nullptr);
+		std::wstring message = length != 0 && buffer
+			? std::wstring(buffer, length)
+			: Text(L"Windows-Fehler ", L"Windows error ") + std::to_wstring(error);
+		if (buffer)
+			LocalFree(buffer);
+		while (!message.empty() &&
+			(message.back() == L'\r' || message.back() == L'\n'))
+		{
+			message.pop_back();
+		}
+		return message;
+	}
+
+	bool ShouldRetryCredentialCapture(
+		xucrun::broker::CredentialSaveStatus status) noexcept
+	{
+		return status == xucrun::broker::CredentialSaveStatus::InvalidCredentials;
+	}
+
 	void WriteDefaultDialogFont(WORD* destination, std::size_t faceCapacity)
 	{
 		LOGFONTW font = {};
@@ -434,12 +460,13 @@ namespace
 			xucrun::documentation_names::SelectCredentialPromptAccount(
 				helperResponse.result.canonicalAccountName,
 				displayedAccountName, documentationMappingActive);
-		const std::wstring message = AuthenticityMarkerText(
-			helperResponse.result.authenticityMarker,
-			displayedClientName) + L"\n\n" + std::wstring(Text(
-			L"Zugangsdaten auf dem geschützten privaten Desktop eingeben für ",
-			L"Enter credentials on the protected private desktop for ")) +
-			displayedAccountName;
+		const std::wstring message = ToWindowsLineEndings(
+			AuthenticityMarkerText(
+				helperResponse.result.authenticityMarker,
+				displayedClientName) + L"\n\n" + std::wstring(Text(
+				L"Zugangsdaten auf dem geschützten privaten Desktop eingeben für ",
+				L"Enter credentials on the protected private desktop for ")) +
+				displayedAccountName);
 		CREDUI_INFOW ui = {};
 		ui.cbSize = sizeof(ui);
 		ui.pszCaptionText = caption.c_str();
@@ -448,95 +475,112 @@ namespace
 		std::vector<wchar_t> password(CREDUI_MAX_PASSWORD_LENGTH + 1);
 		wcscpy_s(userName.data(), userName.size(),
 			credentialPromptAccount.c_str());
-		BOOL save = FALSE;
-		CredentialDialogTimeoutState timeoutState;
-		timeoutState.stopEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
-		timeoutState.timeoutMilliseconds =
-			xucrun::broker::CredentialCaptureDialogTimeoutMilliseconds;
-		HANDLE timeoutThread = timeoutState.stopEvent
-			? CreateThread(nullptr, 0, CredentialDialogTimeoutThread,
-				&timeoutState, 0, nullptr)
-			: nullptr;
-		if (!timeoutState.stopEvent || !timeoutThread)
+		for (;;)
 		{
-			const DWORD timeoutError = GetLastError();
-			if (timeoutState.stopEvent) CloseHandle(timeoutState.stopEvent);
-			consumeChallenge();
-			return timeoutError == NO_ERROR ? ERROR_NOT_ENOUGH_MEMORY : timeoutError;
-		}
-		activeCredentialDialogTimeout = &timeoutState;
-		HHOOK iconHook = SetWindowsHookExW(
-			WH_CBT, ApplyDialogIcon, nullptr, GetCurrentThreadId());
-		if (!iconHook)
-		{
-			const DWORD hookError = GetLastError();
+			BOOL save = FALSE;
+			CredentialDialogTimeoutState timeoutState;
+			timeoutState.stopEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+			timeoutState.timeoutMilliseconds =
+				xucrun::broker::CredentialCaptureDialogTimeoutMilliseconds;
+			HANDLE timeoutThread = timeoutState.stopEvent
+				? CreateThread(nullptr, 0, CredentialDialogTimeoutThread,
+					&timeoutState, 0, nullptr)
+				: nullptr;
+			if (!timeoutState.stopEvent || !timeoutThread)
+			{
+				const DWORD timeoutError = GetLastError();
+				if (timeoutState.stopEvent) CloseHandle(timeoutState.stopEvent);
+				consumeChallenge();
+				return timeoutError == NO_ERROR ? ERROR_NOT_ENOUGH_MEMORY : timeoutError;
+			}
+			activeCredentialDialogTimeout = &timeoutState;
+			HHOOK iconHook = SetWindowsHookExW(
+				WH_CBT, ApplyDialogIcon, nullptr, GetCurrentThreadId());
+			if (!iconHook)
+			{
+				const DWORD hookError = GetLastError();
+				activeCredentialDialogTimeout = nullptr;
+				SetEvent(timeoutState.stopEvent);
+				WaitForSingleObject(timeoutThread, INFINITE);
+				CloseHandle(timeoutThread);
+				CloseHandle(timeoutState.stopEvent);
+				consumeChallenge();
+				return hookError == NO_ERROR ? ERROR_GEN_FAILURE : hookError;
+			}
+			const DWORD promptResult = CredUIPromptForCredentialsW(&ui,
+				L"xucRun/CredentialCapture", nullptr, 0,
+				userName.data(), static_cast<ULONG>(userName.size()),
+				password.data(), static_cast<ULONG>(password.size()), &save,
+				CREDUI_FLAGS_ALWAYS_SHOW_UI | CREDUI_FLAGS_DO_NOT_PERSIST |
+				CREDUI_FLAGS_GENERIC_CREDENTIALS | CREDUI_FLAGS_KEEP_USERNAME |
+				(documentationMappingActive
+					? 0 : CREDUI_FLAGS_VALIDATE_USERNAME));
+			if (iconHook)
+				UnhookWindowsHookEx(iconHook);
 			activeCredentialDialogTimeout = nullptr;
 			SetEvent(timeoutState.stopEvent);
 			WaitForSingleObject(timeoutThread, INFINITE);
 			CloseHandle(timeoutThread);
 			CloseHandle(timeoutState.stopEvent);
-			consumeChallenge();
-			return hookError == NO_ERROR ? ERROR_GEN_FAILURE : hookError;
-		}
-		const DWORD promptResult = CredUIPromptForCredentialsW(&ui,
-			L"xucRun/CredentialCapture", nullptr, 0,
-			userName.data(), static_cast<ULONG>(userName.size()),
-			password.data(), static_cast<ULONG>(password.size()), &save,
-			CREDUI_FLAGS_ALWAYS_SHOW_UI | CREDUI_FLAGS_DO_NOT_PERSIST |
-			CREDUI_FLAGS_GENERIC_CREDENTIALS | CREDUI_FLAGS_KEEP_USERNAME |
-			(documentationMappingActive
-				? 0 : CREDUI_FLAGS_VALIDATE_USERNAME));
-		if (iconHook)
-			UnhookWindowsHookEx(iconHook);
-		activeCredentialDialogTimeout = nullptr;
-		SetEvent(timeoutState.stopEvent);
-		WaitForSingleObject(timeoutThread, INFINITE);
-		CloseHandle(timeoutThread);
-		CloseHandle(timeoutState.stopEvent);
-		const bool timedOut = timeoutState.timedOut.load();
-		if (timedOut)
-		{
-			SecureZeroMemory(password.data(), password.size() * sizeof(wchar_t));
-			SubmitCredentialCaptureCancellation(
-				challengeId, helperResponse.result.canonicalAccountName);
-			return ERROR_TIMEOUT;
-		}
-		if (promptResult == ERROR_CANCELLED)
-		{
-			SecureZeroMemory(password.data(), password.size() * sizeof(wchar_t));
-			return SubmitCredentialCaptureCancellation(
-				challengeId, helperResponse.result.canonicalAccountName);
-		}
-		if (promptResult != ERROR_SUCCESS)
-		{
-			SecureZeroMemory(password.data(), password.size() * sizeof(wchar_t));
-			consumeChallenge();
-			return promptResult;
-		}
+			const bool timedOut = timeoutState.timedOut.load();
+			if (timedOut)
+			{
+				SecureZeroMemory(password.data(), password.size() * sizeof(wchar_t));
+				SubmitCredentialCaptureCancellation(
+					challengeId, helperResponse.result.canonicalAccountName);
+				return ERROR_TIMEOUT;
+			}
+			if (promptResult == ERROR_CANCELLED)
+			{
+				SecureZeroMemory(password.data(), password.size() * sizeof(wchar_t));
+				return SubmitCredentialCaptureCancellation(
+					challengeId, helperResponse.result.canonicalAccountName);
+			}
+			if (promptResult != ERROR_SUCCESS)
+			{
+				SecureZeroMemory(password.data(), password.size() * sizeof(wchar_t));
+				consumeChallenge();
+				return promptResult;
+			}
 
-		xucrun::broker::CredentialCaptureSubmitRequest submit;
-		submit.requestId = xucrun::broker::GenerateBrokerRequestId();
-		submit.challengeId = challengeId;
-		submit.enteredAccountName =
-			xucrun::documentation_names::OperationalAccount(userName.data());
-		const std::size_t passwordCharacters = wcsnlen_s(password.data(), password.size());
-		if (!submit.password.assign(password.data(), passwordCharacters))
-		{
+			xucrun::broker::CredentialCaptureSubmitRequest submit;
+			submit.requestId = xucrun::broker::GenerateBrokerRequestId();
+			submit.challengeId = challengeId;
+			submit.enteredAccountName =
+				xucrun::documentation_names::OperationalAccount(userName.data());
+			const std::size_t passwordCharacters =
+				wcsnlen_s(password.data(), password.size());
+			if (!submit.password.assign(password.data(), passwordCharacters))
+			{
+				SecureZeroMemory(password.data(), password.size() * sizeof(wchar_t));
+				consumeChallenge();
+				return ERROR_NOT_ENOUGH_MEMORY;
+			}
 			SecureZeroMemory(password.data(), password.size() * sizeof(wchar_t));
-			consumeChallenge();
-			return ERROR_NOT_ENOUGH_MEMORY;
-		}
-		SecureZeroMemory(password.data(), password.size() * sizeof(wchar_t));
-		const auto submitResponse =
-			xucrun::broker::SubmitCredentialCaptureSubmitRequest(submit);
-		submit.password.clear();
-		if (submitResponse.status != xucrun::broker::PipeCredentialSaveStatus::Succeeded)
-			return submitResponse.windowsError != NO_ERROR
-				? submitResponse.windowsError : ERROR_BROKEN_PIPE;
-		return submitResponse.result.status == xucrun::broker::CredentialSaveStatus::Succeeded
-			? ERROR_SUCCESS
-			: submitResponse.result.windowsError != NO_ERROR
+			const auto submitResponse =
+				xucrun::broker::SubmitCredentialCaptureSubmitRequest(submit);
+			submit.password.clear();
+			if (submitResponse.status !=
+				xucrun::broker::PipeCredentialSaveStatus::Succeeded)
+			{
+				return submitResponse.windowsError != NO_ERROR
+					? submitResponse.windowsError : ERROR_BROKEN_PIPE;
+			}
+			if (submitResponse.result.status ==
+				xucrun::broker::CredentialSaveStatus::Succeeded)
+			{
+				return ERROR_SUCCESS;
+			}
+			const DWORD submitError = submitResponse.result.windowsError != NO_ERROR
 				? submitResponse.result.windowsError : ERROR_GEN_FAILURE;
+			if (!ShouldRetryCredentialCapture(submitResponse.result.status))
+				return submitError;
+			ShowMessageBox(
+				std::wstring(Text(L"Die Anmeldedaten wurden nicht akzeptiert.",
+					L"The credentials were not accepted.")) +
+				L"\r\n\r\n" + FormatWindowsError(submitError),
+				caption, MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
+		}
 	}
 
 	std::wstring Hex(const std::array<std::uint8_t, 32>& value)
@@ -548,6 +592,28 @@ namespace
 		{
 			text.push_back(Digits[byte >> 4]);
 			text.push_back(Digits[byte & 0x0F]);
+		}
+		return text;
+	}
+
+	std::wstring EscapeApprovalDisplayText(const std::wstring& value)
+	{
+		constexpr wchar_t Digits[] = L"0123456789ABCDEF";
+		std::wstring text;
+		text.reserve(value.size());
+		for (const wchar_t character : value)
+		{
+			if (!xucrun::broker::IsUnsafeApprovalDisplayCharacter(character))
+			{
+				text.push_back(character);
+				continue;
+			}
+			const std::uint32_t code = static_cast<std::uint32_t>(character);
+			text += L"\\u";
+			text.push_back(Digits[(code >> 12) & 0x0f]);
+			text.push_back(Digits[(code >> 8) & 0x0f]);
+			text.push_back(Digits[(code >> 4) & 0x0f]);
+			text.push_back(Digits[code & 0x0f]);
 		}
 		return text;
 	}
@@ -1779,7 +1845,7 @@ namespace
 		{
 			std::wstring command = L"\"" + challenge.finalExecutablePath + L"\"";
 			if (!challenge.argumentTail.empty())
-				command += L" " + challenge.argumentTail;
+				command += L" " + EscapeApprovalDisplayText(challenge.argumentTail);
 			const std::wstring content = std::wstring(Text(
 				L"Der folgende Befehl erhält vollständige LocalSystem-Rechte:\n\n",
 				L"The following command will receive full LocalSystem privileges:\n\n")) +
@@ -1848,7 +1914,8 @@ namespace
 			SignatureStatusDetails(challenge.executableTrustStatus) +
 			SignatureDetails(challenge.executableSignatureDetails);
 		details +=
-			Text(L"\n\nArgumente: ", L"\n\nArguments: ") + challenge.argumentTail +
+			Text(L"\n\nArgumente: ", L"\n\nArguments: ") +
+			EscapeApprovalDisplayText(challenge.argumentTail) +
 			Text(L"\nArbeitsverzeichnis: ", L"\nWorking directory: ") +
 			challenge.workingDirectory;
 		if (!challenge.directScriptPath.empty())

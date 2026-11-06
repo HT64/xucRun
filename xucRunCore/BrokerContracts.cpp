@@ -122,6 +122,18 @@ namespace
 
 namespace xucrun::broker
 {
+	bool IsUnsafeApprovalDisplayCharacter(wchar_t character) noexcept
+	{
+		const std::uint32_t value = static_cast<std::uint32_t>(character);
+		return value < 0x20 || (value >= 0x7f && value <= 0x9f) ||
+			value == 0x061c ||
+			(value >= 0x200b && value <= 0x200f) ||
+			(value >= 0x2028 && value <= 0x202e) ||
+			(value >= 0x2060 && value <= 0x206f) ||
+			value == 0xfeff ||
+			(value >= 0xfff9 && value <= 0xfffb);
+	}
+
 	// Creates a start request from the contract fields supplied by the caller.
 	LaunchRequest BuildLaunchRequest(
 		std::uint64_t requestId,
@@ -158,6 +170,11 @@ namespace xucrun::broker
 			return ContractValidationError::ExecutablePathTooLong;
 		if (request.argumentTail.size() > MaximumArgumentLength)
 			return ContractValidationError::ArgumentsTooLong;
+		if (std::any_of(request.argumentTail.begin(), request.argumentTail.end(),
+			IsUnsafeApprovalDisplayCharacter))
+		{
+			return ContractValidationError::InvalidArguments;
+		}
 		if (request.workingDirectory.size() > MaximumPathLength)
 			return ContractValidationError::WorkingDirectoryTooLong;
 		if (request.elevationMode != ElevationMode::PreserveToken &&
@@ -203,6 +220,11 @@ namespace xucrun::broker
 			return ContractValidationError::ExecutablePathTooLong;
 		if (request.argumentTail.size() > MaximumArgumentLength)
 			return ContractValidationError::ArgumentsTooLong;
+		if (std::any_of(request.argumentTail.begin(), request.argumentTail.end(),
+			IsUnsafeApprovalDisplayCharacter))
+		{
+			return ContractValidationError::InvalidArguments;
+		}
 		if (request.workingDirectory.size() > MaximumPathLength)
 			return ContractValidationError::WorkingDirectoryTooLong;
 		return ContractValidationError::None;
