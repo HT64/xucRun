@@ -40,44 +40,54 @@ group is authorized to run programs with administrator rights. Depending on the 
 Account Control (UAC) configuration, a launched process either already has those rights or
 requests them through UAC. Any program can make such a request.
 
+A user who already works from an account that belongs to the local Administrators group and wants
+to occasionally launch programs with elevated privileges under that same account can use
+Windows' built-in UAC mechanisms, including Sudo for Windows. xucRun also supports this use case,
+but for that purpose alone offers no substantial additional benefit over the built-in Windows
+features.
+
 A standard account has no administrator rights of its own and cannot obtain them through UAC for
 its own identity. System-wide changes to programs, services, or protected configuration therefore
 require a separate account that belongs to the local Administrators group; the elevated process
 runs under that account's identity. This limits what accidental actions and processes running in
 the user's normal context can change without a separate, deliberate authorization step.
 
-### How xucRun supports this workflow
+A suitable method must be chosen for performing administrative actions from the standard-user
+context. Users can use built-in Windows features or additional tools for this purpose. In
+particular, tools that store credentials or reuse authorization decisions require additional
+safeguards and introduce risks of their own. Each user must therefore decide whether the benefit
+of account separation justifies the associated setup and operational effort and the risks of the
+chosen method.
+
+Making this assessment and securely configuring and using the chosen method require sufficient
+knowledge of Windows account, UAC, and permission models. xucRun is therefore intended for
+experienced Windows users.
+
+### How xucRun supports administrative actions from a standard account
 
 **xucRun preserves this separation and treats account selection and elevation as separate
 decisions.** It does not temporarily turn the standard user into an administrator or add
-administrative privileges to that account. xucRun supports working both with a standard account
-and with an account that is a member of the local Administrators group.
+administrative privileges to that account.
 
-If a signed-in member of the local Administrators group uses xucRun to elevate a process through
-UAC under the current account, Windows does not change the user identity. The elevated process
-therefore continues to use that account's permissions and user profile.
-
-Regardless of whether the signed-in user is working with a standard account or with an account
-that is a member of the local Administrators group, the user can select a target account other than
-the signed-in account for the launch with xucRun. The process then uses that account's identity and
-permissions, for example when accessing network shares, as well as its loaded user profile.
-Examples include per-user profile data, email-account sign-ins stored in applications, and
-registry settings. Accordingly, `HKEY_CURRENT_USER` refers to the target account's registry hive,
-not to the signed-in user's hive.
+With xucRun, the signed-in standard user can select a target account other than the signed-in
+account for a launch. The target account can also be another standard account. For administrative
+actions, the user can instead select an account that belongs to the local Administrators group;
+only then can the launch optionally use elevated privileges. The process then uses the identity
+and permissions of the selected target account, including when accessing network shares. The user
+profile of that account is also loaded. Examples include per-user profile data, email-account
+sign-ins stored in applications, and registry settings. Accordingly, `HKEY_CURRENT_USER` refers to
+the target account's registry hive, not to the signed-in user's hive.
 
 xucRun combines Windows account switching and UAC with credentials managed by xucRun for target
-accounts. These credentials remain protected and are used only when a matching
-[xucRun approval](#approval-dialog-duration-and-scope) allows the requested execution. The
-approved launch takes place only under the target account selected for that invocation; the
-account's identity and privileges are not transferred to the signed-in standard account or to
-another user account. An approval bound to a specific target account can be used only for starts
-under that account.
+accounts. These credentials are stored in protected form and are used only when a matching
+[xucRun approval](#approval-dialog-duration-and-scope) allows the requested execution. An approval
+bound to a specific target account can be used only for starts under that account.
 
 After the initial setup, specifying the program, command, or script and its arguments is
-sufficient for a typical launch. With this configured use, neither the account name nor the
-password needs to be stored in the xucRun invocation, whether it is launched from a console, a
-context menu, a desktop shortcut, or a script. xucRun reuses matching selection and approval
-decisions already made and obtains missing decisions interactively. Required
+sufficient for a typical launch. Neither the account name nor the password then needs to be stored
+in the xucRun invocation, whether it is launched from a console, a context menu, a desktop
+shortcut, or a script. xucRun reuses matching selection and approval decisions already made and
+obtains missing decisions interactively. Required
 [Windows UAC confirmation](#relationship-between-xucrun-approvals-and-windows-uac) remains interactive.
 
 ## Quick start
@@ -1043,36 +1053,30 @@ responsible component must also reliably decide which user may start which progr
 account, with which arguments, and with which privileges.
 
 xucRun therefore separates this security-sensitive capability into a privileged broker service.
-Only the broker stores, decrypts, and uses credentials. It verifies the actual caller and binds
-credential use to the user, Windows session, target account, target program and its file hash,
-arguments, working directory, and whether the program is to start with or without elevated
-administrator privileges. The encrypted stored credentials and their internal associations are
-also not provided to the normal client. They reside in storage protected by Windows for the
+Only the broker stores and decrypts credentials, performs the Windows logon, and starts the
+permitted program. It verifies the actual caller and binds credential use to the verified context
+of the specific program start. The encrypted stored credentials and their internal associations
+are also not provided to the normal client. They reside in storage protected by Windows for the
 system account and are additionally bound to that account on the local computer. A normal user
-process therefore cannot decrypt them in its own security context.
+process therefore cannot decrypt them in its own security context. The normal client receives
+neither the stored password nor a permission with which it could start programs under the target
+account itself. If a required check fails, no program is started with the stored credentials;
+there is no fallback to client-side decryption.
 
-The broker then performs the Windows logon and permitted program start itself. The normal client
-receives neither the stored password nor a permission with which it could start programs under
-the target account itself. If a required check fails, no program is started with the stored
-credentials; there is no fallback to client-side decryption.
-
-A service running under the Windows `LocalSystem` account has extensive privileges and therefore
-itself increases the security-relevant attack surface. xucRun does not use this architecture
-because a background service is secure by itself, but to separate use of stored credentials and
-decisions about permitted program starts from the normal user process. This additional security
-boundary in turn requires systematic protection of the broker.
+The service used for this purpose runs under the Windows `LocalSystem` account, has extensive
+privileges, and therefore itself increases the security-relevant attack surface. This additional
+security boundary requires systematic protection of the broker.
 
 The broker does not trust identity, path, or approval information merely asserted by a client. It
 derives the calling process, user, Windows session, and privilege level from the actual local
 connection and from Windows itself. For security-sensitive requests, it checks, among other
 properties, the protected installation location, actual program path, file hash, and Windows
-digital signature. It also restricts which functions each xucRun component may use. The client in
-turn verifies that the other end of its local connection belongs to the registered xucRun
-service. Immediately before starting the program, the broker checks the target program and working
-directory again. It determines the actual program path and its file hash as well as the actual
-working directory itself and keeps the verified Windows objects open until the start. This is
-intended to prevent a previously checked target from being replaced unnoticed between approval
-and program start.
+digital signature. The client in turn verifies that the other end of its local connection belongs
+to the registered xucRun service. Immediately before starting the program, the broker checks the
+target program and working directory again. It determines the actual program path and its file
+hash as well as the actual working directory itself and keeps the verified Windows objects open
+until the start. This is intended to prevent a previously checked target from being replaced
+unnoticed between approval and program start.
 
 For each sensitive operation, the broker creates a short-lived security proof that can be used
 only once. It applies only to the specific calling process, user, Windows session, target account,
@@ -1316,7 +1320,9 @@ than appended to a setting.
   `Language=en` selects English explicitly. The change applies to newly started xucRun processes.
   Running Tray instances restart after a language change made through xucRun. Tray detects a
   manual external change when its context menu is next opened and then restarts itself. Other
-  already running xucRun processes do not adopt the change.
+  already running xucRun processes do not adopt the change. German and English are provided
+  through separate, signed language resource files. The localization architecture can be extended
+  with additional languages, but the current version supports only German and English.
 - A missing or empty `ClientLogDirectory` disables client file logging. Specifying a path enables
   it. Environment variables are expanded in the context of each starting client. The path must
   be accessible to every client and wrapper account in use, with the permissions required to

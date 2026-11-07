@@ -42,6 +42,12 @@ auszuführen. Je nach Konfiguration der Windows-Benutzerkontensteuerung (User Ac
 stehen diese Rechte einem gestarteten Prozess bereits zur Verfügung oder werden über UAC
 angefordert. Eine solche Anforderung kann grundsätzlich jedes Programm stellen.
 
+Wer für die tägliche Arbeit ohnehin mit einem Konto arbeitet, das Mitglied der lokalen
+Administratorengruppe ist, und gelegentlich Programme unter demselben Konto mit erhöhten Rechten
+starten möchte, kann dafür die Windows-eigenen UAC-Mechanismen einschließlich Windows Sudo
+verwenden. xucRun unterstützt auch diesen Anwendungsfall, bietet dafür allein gegenüber den
+Windows-eigenen Funktionen jedoch keinen wesentlichen zusätzlichen Nutzen.
+
 Ein Standardkonto besitzt selbst keine Administratorrechte und kann sie über UAC nicht für seine
 eigene Identität erhalten. Systemweite Änderungen an Programmen, Diensten oder geschützten
 Konfigurationen erfordern deshalb ein getrenntes Konto, das Mitglied der lokalen
@@ -49,40 +55,44 @@ Administratorengruppe ist; der erhöhte Prozess läuft dann unter dessen Identit
 begrenzt, was versehentliche Aktionen und Prozesse im normalen Benutzerkontext ohne einen
 getrennten, bewusst bestätigten Autorisierungsschritt ändern können.
 
-### Wie xucRun diesen Arbeitsablauf unterstützt
+Für administrative Aktionen aus dem Standardbenutzerkontext muss ein geeignetes Verfahren gewählt
+werden. Dafür können Windows-eigene Funktionen oder zusätzliche Hilfsprogramme eingesetzt werden.
+Insbesondere Werkzeuge, die Anmeldedaten speichern oder Autorisierungen wiederverwenden, erfordern
+zusätzliche Schutzmaßnahmen und bringen eigene Risiken mit sich. Jeder Anwender muss deshalb
+abwägen, ob der Nutzen der Kontotrennung den damit verbundenen Einrichtungs- und Bedienaufwand
+sowie die Risiken des gewählten Verfahrens für ihn rechtfertigt.
+
+Diese Abwägung sowie die sichere Einrichtung und Nutzung des gewählten Verfahrens setzen
+ausreichende Kenntnisse der Windows-Konten-, UAC- und Berechtigungsmodelle voraus. xucRun richtet
+sich deshalb an erfahrene Windows-Anwender.
+
+### Wie xucRun administrative Aktionen aus einem Standardkonto unterstützt
 
 **xucRun erhält diese Trennung aufrecht und behandelt Kontowahl und Erhöhung als getrennte
 Entscheidungen.** Es macht den Standardbenutzer nicht vorübergehend zum Administrator und
-erweitert dessen Rechte nicht. xucRun unterstützt dabei sowohl die Arbeit mit einem Standardkonto
-als auch mit einem Konto, das Mitglied der lokalen Administratorengruppe ist.
+erweitert dessen Rechte nicht.
 
-Verwendet ein angemeldetes Mitglied der lokalen Administratorengruppe xucRun, um einen Prozess über
-UAC unter seinem aktuellen Konto zu erhöhen, wechselt Windows die Benutzeridentität nicht. Der
-erhöhte Prozess verwendet deshalb weiterhin die Berechtigungen und das Benutzerprofil dieses
-Kontos.
-
-Unabhängig davon, ob der angemeldete Benutzer mit einem Standardkonto oder einem Konto arbeitet,
-das Mitglied der lokalen Administratorengruppe ist, kann er für den Start mit xucRun ein vom
-Anmeldekonto abweichendes Zielkonto wählen. Der Prozess verwendet dann dessen Identität und
-Berechtigungen, etwa beim Zugriff auf Netzwerkfreigaben, sowie dessen geladenes Benutzerprofil.
-Dazu gehören beispielsweise benutzerbezogene Profildaten, in Anwendungen gespeicherte Anmeldungen
-für E-Mail-Konten und Registry-Einstellungen. `HKEY_CURRENT_USER` verweist dementsprechend auf den
-Registry-Hive des Zielkontos und nicht auf den des an Windows angemeldeten Benutzers.
+Mit xucRun kann der angemeldete Standardbenutzer für einen Start ein vom Anmeldekonto abweichendes
+Zielkonto wählen. Das Zielkonto kann auch ein anderes Standardkonto sein. Für administrative
+Aktionen kann stattdessen ein Konto gewählt werden, das der lokalen Administratorengruppe
+angehört; nur dann ist optional ein Start mit erhöhten Rechten möglich. Der Prozess verwendet dann
+die Identität und Berechtigungen des gewählten Zielkontos, etwa beim Zugriff auf Netzwerkfreigaben.
+Außerdem wird das Benutzerprofil dieses Kontos geladen. Dazu gehören beispielsweise
+benutzerbezogene Profildaten, in Anwendungen gespeicherte Anmeldungen für E-Mail-Konten und
+Registry-Einstellungen. `HKEY_CURRENT_USER` verweist dementsprechend auf den Registry-Hive des
+Zielkontos und nicht auf den des an Windows angemeldeten Benutzers.
 
 xucRun verbindet Windows-Kontowechsel und UAC mit von xucRun verwalteten Anmeldedaten für
-Zielkonten. Diese Anmeldedaten bleiben geschützt und werden nur verwendet, wenn eine passende
-[xucRun-Freigabe](#freigabedialog-dauer-und-umfang) die angeforderte Ausführung erlaubt. Der
-freigegebene Start erfolgt ausschließlich unter dem für diesen Aufruf ausgewählten Zielkonto;
-dessen Identität und Berechtigungen werden weder auf das angemeldete Standardkonto noch auf ein
-anderes Benutzerkonto übertragen. Eine an ein bestimmtes Zielkonto gebundene Freigabe kann nur
-für Starts unter diesem Konto verwendet werden.
+Zielkonten. Diese Anmeldedaten werden geschützt gespeichert und nur verwendet, wenn eine passende
+[xucRun-Freigabe](#freigabedialog-dauer-und-umfang) die angeforderte Ausführung erlaubt. Eine an ein
+bestimmtes Zielkonto gebundene Freigabe kann nur für Starts unter diesem Konto verwendet werden.
 
 Nach der einmaligen Einrichtung genügt für einen typischen Start die Angabe des Programms, Befehls
-oder Skripts und der zugehörigen Argumente. Bei dieser eingerichteten Nutzung müssen weder
-Kontoname noch Kennwort im eigentlichen xucRun-Aufruf hinterlegt werden – unabhängig davon, ob der
-Start aus einer Konsole, über ein Kontextmenü, über eine Desktopverknüpfung oder aus einem Skript
-erfolgt. Bereits getroffene passende Auswahl- und Freigabeentscheidungen verwendet xucRun erneut;
-fehlende Entscheidungen fragt es interaktiv ab. Eine notwendige
+oder Skripts und der zugehörigen Argumente. Dabei müssen weder Kontoname noch Kennwort im
+eigentlichen xucRun-Aufruf hinterlegt werden – unabhängig davon, ob der Start aus einer Konsole,
+über ein Kontextmenü, über eine Desktopverknüpfung oder aus einem Skript erfolgt. Bereits
+getroffene passende Auswahl- und Freigabeentscheidungen verwendet xucRun erneut; fehlende
+Entscheidungen fragt es interaktiv ab. Eine notwendige
 [Windows-UAC-Bestätigung](#verhältnis-zwischen-xucrun-freigaben-und-windows-uac) bleibt interaktiv.
 
 ## Schnellstart
@@ -1105,39 +1115,32 @@ zuständige Komponente muss außerdem zuverlässig entscheiden, welcher Benutzer
 unter welchem Konto, mit welchen Argumenten und mit welchen Rechten starten darf.
 
 xucRun trennt diese sicherheitskritische Fähigkeit deshalb in einen privilegierten Brokerdienst.
-Nur der Broker speichert, entschlüsselt und verwendet die Anmeldedaten. Er prüft den tatsächlichen
-Aufrufer und bindet ihre Verwendung an den Benutzer, die Windows-Sitzung, das Zielkonto, das
-Zielprogramm und dessen Dateihash, die Argumente, das Arbeitsverzeichnis sowie den angeforderten
-Start mit oder ohne erhöhte Administratorrechte. Auch die verschlüsselt gespeicherten
-Anmeldedaten und ihre internen Zuordnungen werden nicht an den normalen Client ausgegeben. Sie
-liegen in einem durch Windows geschützten Speicher des Systemkontos und sind zusätzlich an dieses
-Konto auf dem lokalen Computer gebunden. Ein normaler Benutzerprozess kann sie deshalb nicht in
-seinem eigenen Sicherheitskontext entschlüsseln.
+Nur der Broker speichert und entschlüsselt die Anmeldedaten, führt die Windows-Anmeldung aus und
+startet das erlaubte Programm. Er prüft den tatsächlichen Aufrufer und bindet die Verwendung der
+Anmeldedaten an den verifizierten Kontext des konkreten Programmstarts. Auch die verschlüsselt
+gespeicherten Anmeldedaten und ihre internen Zuordnungen werden nicht an den normalen Client
+ausgegeben. Sie liegen in einem durch Windows geschützten Speicher des Systemkontos und sind
+zusätzlich an dieses Konto auf dem lokalen Computer gebunden. Ein normaler Benutzerprozess kann
+sie deshalb nicht in seinem eigenen Sicherheitskontext entschlüsseln. Der normale Client erhält
+weder das gespeicherte Kennwort noch eine Berechtigung, mit der er selbst Programme unter dem
+Zielkonto starten könnte. Schlägt eine erforderliche Prüfung fehl, wird kein Programm mit den
+gespeicherten Anmeldedaten gestartet; es gibt keinen Rückfall auf eine clientseitige
+Entschlüsselung.
 
-Anschließend führt der Broker die Windows-Anmeldung und den erlaubten Programmstart selbst aus.
-Der normale Client erhält weder das gespeicherte Kennwort noch eine Berechtigung, mit der er
-selbst Programme unter dem Zielkonto starten könnte. Schlägt eine erforderliche Prüfung fehl,
-wird kein Programm mit den gespeicherten Anmeldedaten gestartet; es gibt keinen Rückfall auf eine
-clientseitige Entschlüsselung.
-
-Ein unter dem Windows-Systemkonto `LocalSystem` laufender Dienst besitzt jedoch weitreichende
-Rechte und vergrößert damit selbst die sicherheitsrelevante Angriffsfläche. xucRun verwendet diese
-Architektur nicht, weil ein Hintergrunddienst an sich sicherer wäre, sondern um die Verwendung
-gespeicherter Anmeldedaten und die Entscheidung über erlaubte Programmstarts vom normalen
-Benutzerprozess zu trennen. Diese zusätzliche Sicherheitsgrenze erfordert ihrerseits eine
-konsequente Absicherung des Brokers.
+Der dafür unter dem Windows-Systemkonto `LocalSystem` laufende Dienst besitzt jedoch weitreichende
+Rechte und vergrößert damit selbst die sicherheitsrelevante Angriffsfläche. Die zusätzliche
+Sicherheitsgrenze erfordert deshalb eine konsequente Absicherung des Brokers.
 
 Der Broker vertraut Identitäts-, Pfad- oder Freigabeangaben eines Clients nicht ungeprüft. Er
 ermittelt den aufrufenden Prozess, den Benutzer, die Windows-Sitzung und dessen Berechtigungsstufe
 über die tatsächliche lokale Verbindung und über Windows selbst. Für sicherheitsrelevante
 Anfragen prüft er unter anderem den geschützten Installationsort, den tatsächlichen Programmpfad,
-den Dateihash und die digitale Windows-Signatur. Er beschränkt außerdem, welche Funktionen die
-jeweilige xucRun-Komponente verwenden darf. Der Client prüft umgekehrt, ob die Gegenstelle seiner
-lokalen Verbindung tatsächlich zum registrierten xucRun-Dienst gehört. Unmittelbar vor dem
-Programmstart prüft der Broker das Zielprogramm und das Arbeitsverzeichnis erneut. Er ermittelt den
-tatsächlichen Programmpfad und dessen Dateihash sowie das tatsächliche Arbeitsverzeichnis selbst
-und hält die geprüften Windows-Objekte bis zum Start fest. Dadurch soll verhindert werden, dass ein
-bereits geprüftes Ziel zwischen Freigabe und Programmstart unbemerkt ausgetauscht wird.
+den Dateihash und die digitale Windows-Signatur. Der Client prüft umgekehrt, ob die Gegenstelle
+seiner lokalen Verbindung tatsächlich zum registrierten xucRun-Dienst gehört. Unmittelbar vor dem
+Programmstart prüft der Broker das Zielprogramm und das Arbeitsverzeichnis erneut. Er ermittelt
+den tatsächlichen Programmpfad und dessen Dateihash sowie das tatsächliche Arbeitsverzeichnis
+selbst und hält die geprüften Windows-Objekte bis zum Start fest. Dadurch soll verhindert werden,
+dass ein bereits geprüftes Ziel zwischen Freigabe und Programmstart unbemerkt ausgetauscht wird.
 
 Für jeden sensiblen Vorgang erzeugt der Broker einen kurzlebigen, nur einmal verwendbaren
 Sicherheitsnachweis. Dieser gilt ausschließlich für den konkreten aufrufenden Prozess, Benutzer,
@@ -1398,7 +1401,10 @@ und nicht an eine Einstellung angehängt werden.
   `Language=en` ausdrücklich Englisch. Die Änderung gilt für neu gestartete xucRun-Prozesse.
   Laufende Tray-Instanzen starten sich nach einer über xucRun gesetzten Sprachänderung neu. Eine
   manuelle externe Änderung erkennt das Tray beim nächsten Öffnen seines Kontextmenüs und startet
-  sich dann neu. Andere bereits laufende xucRun-Prozesse übernehmen die Änderung nicht.
+  sich dann neu. Andere bereits laufende xucRun-Prozesse übernehmen die Änderung nicht. Deutsch
+  und Englisch werden über getrennte, signierte Sprachressourcendateien bereitgestellt. Die
+  Lokalisierungsarchitektur kann um zusätzliche Sprachen erweitert werden; die aktuelle Version
+  unterstützt jedoch ausschließlich Deutsch und Englisch.
 - Ein fehlendes oder leeres `ClientLogDirectory` deaktiviert das Client-Dateilog. Ein eingetragener
   Pfad aktiviert es. Umgebungsvariablen werden im Kontext des jeweils startenden Clients
   aufgelöst. Der Pfad muss für jedes verwendete Client- und Wrapperkonto erreichbar und mit den
