@@ -89,6 +89,7 @@ treats that encoding as binary.
 | `docs/media/xucRun-elevated-powershell.mp4` | Documentation video | Demonstrates a PowerShell command failing without elevation and succeeding after an elevated xucRun launch. |
 | `docs/media/xucRun-other-user-profile.mp4` | Documentation video | Demonstrates an explicit standard-account launch and interactive target-account selection with `/user:*`. |
 | `docs/media/xucRun-simple-elevation.mp4` | Documentation video | Demonstrates replacing a non-elevated shell and running an individual command under the configured administrator account. |
+| `docs/media/xucRun-total-commander-menu.png` | Documentation image | Shows the custom xucRun menu in Total Commander with elevated, LocalSystem, and target-account launch options. |
 | `docs/media/xucRun-with-total-commander.mp4` | Documentation video | Demonstrates xucRun account and privilege transitions from a custom Total Commander menu. |
 | `ExplorerKontextMenue.reg` | Registry script | Adds xucRun commands to Windows Explorer context menus for supported files, folders, folder backgrounds, and drives. |
 | `FILE_REGISTER.md` | Documentation | Catalogs every tracked and unignored repository file and its purpose. |
