@@ -5,7 +5,7 @@ Approach: Uses a self-contained SVG with system fonts, a fixed light background,
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 508" width="960" height="508" role="img" aria-labelledby="title desc" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif" fill="#1f2328">
   <title id="title">xucRun im Überblick: eine Windows-Sitzung, zwei Identitäten</title>
-  <desc id="desc">Der angemeldete Standardbenutzer ruft xucRun in seiner Windows-Sitzung auf, wählt ein Zielkonto und entscheidet über die Erhöhung. Der privilegierte xucRun-Brokerdienst verwendet geschützt gespeicherte Anmeldedaten nur mit passender Freigabe und startet das Programm unter dem Zielkonto. Die Rechte des Standardbenutzers bleiben unverändert.</desc>
+  <desc id="desc">Der angemeldete Standardbenutzer ruft xucRun in seiner Windows-Sitzung auf, wählt ein Zielkonto und entscheidet über die Erhöhung. Der privilegierte xucRun-Brokerdienst verwendet gespeicherte Anmeldedaten nur mit passender Freigabe und startet das Programm unter dem Zielkonto. Die Rechte des Standardbenutzers bleiben unverändert.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
       <path d="M0 0 L10 5 L0 10 Z" fill="#57606a"/>
@@ -93,6 +93,6 @@ Approach: Uses a self-contained SVG with system fonts, a fixed light background,
   </g>
   <text x="341" y="392" font-size="11" font-weight="700" letter-spacing="0.8" fill="#116329">PRIVILEGIERTER WINDOWS-DIENST</text>
   <text x="341" y="420" font-size="17" font-weight="600">xucRun-Brokerdienst</text>
-  <text x="341" y="447" font-size="13.5">Speichert die Anmeldedaten der Zielkonten geschützt und verwendet sie nur</text>
-  <text x="341" y="466" font-size="13.5">mit passender xucRun-Freigabe. Startet das Programm unter dem Zielkonto.</text>
+  <text x="341" y="447" font-size="13.5">Speichert die Anmeldedaten der Zielkonten und verwendet sie nur mit passender</text>
+  <text x="341" y="466" font-size="13.5">xucRun-Freigabe. Startet das Programm unter dem Zielkonto.</text>
 </svg>
