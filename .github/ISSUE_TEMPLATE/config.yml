@@ -1,0 +1,7 @@
+# Purpose: Configures the xucRun issue chooser so that vulnerabilities are routed to private reporting while other feedback remains possible.
+# Approach: Keeps blank issues enabled for general feedback and adds a contact link to GitHub Private Vulnerability Reporting.
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability / Sicherheitslücke melden
+    url: https://github.com/HT64/xucRun/security/advisories/new
+    about: Suspected vulnerabilities must be reported confidentially, never in a public issue. / Vermutete Sicherheitslücken ausschließlich vertraulich melden, nie in einem öffentlichen Issue.

@@ -22,6 +22,9 @@ treats that encoding as binary.
 |---|---|---|
 | `.gitattributes` | Repository configuration | Defines text normalization and binary handling for repository files. |
 | `.github/FUNDING.yml` | YAML configuration | Links xucRun to its optional Patreon funding page. |
+| `.github/ISSUE_TEMPLATE/bug_report.de.yml` | YAML configuration | German issue form collecting version, Windows build, account scenario, command line, and reproduction details for bug reports. |
+| `.github/ISSUE_TEMPLATE/bug_report.yml` | YAML configuration | English issue form collecting version, Windows build, account scenario, command line, and reproduction details for bug reports. |
+| `.github/ISSUE_TEMPLATE/config.yml` | YAML configuration | Configures the issue chooser and routes suspected vulnerabilities to private reporting. |
 | `.github/workflows/ci.yml` | YAML configuration | Builds and validates xucRun on a clean Windows runner. |
 | `.github/workflows/release.yml` | YAML configuration | Builds and attests unsigned xucRun release assets and stages unpublished releases as drafts. |
 | `.gitignore` | Repository configuration | Excludes xucRun build outputs, IDE state, and generated packages. |

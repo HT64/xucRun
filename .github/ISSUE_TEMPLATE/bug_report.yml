@@ -1,0 +1,101 @@
+# Purpose: Structured bug report form for xucRun that collects the environment and reproduction details needed for a single maintainer to investigate.
+# Approach: Uses a GitHub issue form with required version and reproduction fields and routes suspected vulnerabilities to private reporting.
+name: Bug report
+description: Report a reproducible problem with xucRun (English).
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a problem.
+
+        **Do not report suspected security vulnerabilities here.** Use the confidential process in
+        [SECURITY.md](../blob/main/SECURITY.md) (GitHub Private Vulnerability Reporting) instead.
+
+        Please check the [README](../blob/main/README.md) first; many behaviors, in particular around
+        UAC, account selection, approvals, and the `/system` and `/trustedinstaller` modes, are
+        documented there.
+  - type: input
+    id: xucrun-version
+    attributes:
+      label: xucRun version
+      description: Output of `xucRun.exe /info` or the version shown in the dialog title bar, for example `0.9.1.5`.
+      placeholder: "0.9.1.5"
+    validations:
+      required: true
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      description: Edition and build, for example `Windows 11 Pro 24H2 (26100.2605)` or `Windows 10 Pro 22H2 (19045.5131)`.
+    validations:
+      required: true
+  - type: dropdown
+    id: tray-installed
+    attributes:
+      label: xucRun Tray installed?
+      options:
+        - "No"
+        - "Yes, same version as xucRun"
+        - "Yes, different version"
+    validations:
+      required: true
+  - type: dropdown
+    id: account-scenario
+    attributes:
+      label: Account scenario
+      description: Which combination of calling and target account were you using?
+      options:
+        - "Standard account launching under a separate administrator account"
+        - "Administrator account launching under the same account (UAC)"
+        - "Launch under another standard account"
+        - "/system or /trustedinstaller"
+        - "Other / not applicable"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command line
+      description: The xucRun invocation as used, including all switches. Replace account names and paths with placeholders if needed, but keep the structure. Never include passwords.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the exact text of any dialog or console message. Screenshots are welcome; please mask account names you do not want to publish.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Diagnostics (optional)
+      description: Relevant lines from the client log (`ClientLogDirectory` in `xucRun.ini`), the `xucRunBroker` entries in the Windows Application event log, or the output of `xucRun.exe /audit`. Remove anything you consider sensitive.
+      render: text
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: This report does not describe a security vulnerability.
+          required: true
+        - label: I have removed passwords and other secrets from the report.
+          required: true
