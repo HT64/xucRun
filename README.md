@@ -172,6 +172,11 @@ and unchanged privilege mode:
 xucRun.exe /user:MailUser "$env:ProgramFiles\Mozilla Thunderbird\thunderbird.exe"
 ```
 
+To keep a specific target account out of the invocation, use `/user` without an account name
+instead. If exactly one account has stored xucRun credentials, xucRun selects it automatically.
+If several accounts do, the target-account selection is shown. If no xucRun credentials have been
+stored yet, xucRun offers local target-account selection followed by protected password entry.
+
 xucRun selects the Windows account, not a mail account within Thunderbird. The command assumes
 Thunderbird's default installation path.
 
@@ -249,26 +254,33 @@ arguments. `GOTO :eof` prevents the non-elevated run from continuing after the r
 
 ### Desktop shortcut for an elevated Explorer
 
-A desktop shortcut can open an Explorer window for a fixed directory directly under a specific
-account that is a member of the local Administrators group, has stored xucRun credentials, and
-will be used with elevated privileges. For example, enter the following in the shortcut's
-**Target** field:
+A desktop shortcut can open an Explorer window for a fixed directory directly under a suitable
+account with elevated privileges. To let xucRun determine the account automatically, enter the
+following in the shortcut's **Target** field:
+
+```text
+"%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%WINDIR%\explorer.exe" "/root,"D:\Example\TargetFolder""
+```
+
+With `/user-elevated`, xucRun uses the current account when it is a member of the local
+Administrators group. Otherwise, xucRun determines a suitable account that is a member of the
+local Administrators group and for which xucRun credentials are stored. This means that neither
+the account name nor its password has to appear in the shortcut.
+
+If the shortcut must always select one particular administrator account, append its name to the
+switch:
 
 ```text
 "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated:Administrator "%WINDIR%\explorer.exe" "/root,"D:\Example\TargetFolder""
 ```
 
-Use `/user-elevated:Administrator` when the shortcut must always select one particular
-account that is a member of the local Administrators group and for which xucRun credentials are
-stored, and explicitly start Explorer with elevated privileges. Omit the switch when xucRun
-should determine the suitable account automatically. If Explorer should run under a specific
+Replace `Administrator` with the required account that is a member of the local Administrators
+group and for which xucRun credentials are stored. If Explorer should run under a specific
 different account without elevation being enforced by xucRun, use `/user:<Account>` instead.
 
-Replace `Administrator` with the required account that is a member of the local Administrators
-group and for which xucRun credentials are stored, and replace the example path with the directory
-to open. `/root` makes this directory the root of the new Explorer window. The nested quotation
-marks must remain unchanged. Stored credentials do not replace the interactive Windows UAC
-confirmation.
+Replace the example path with the directory to open. `/root` makes this directory the root of the
+new Explorer window. The nested quotation marks must remain unchanged. Stored credentials do not
+replace the interactive Windows UAC confirmation.
 
 ### Explorer context-menu integration
 

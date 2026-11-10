@@ -179,6 +179,12 @@ Rechtemodus starten:
 xucRun.exe /user:MailUser "$env:ProgramFiles\Mozilla Thunderbird\thunderbird.exe"
 ```
 
+Soll kein bestimmtes Zielkonto im Aufruf stehen, kann stattdessen `/user` ohne Kontonamen
+verwendet werden. Gibt es genau ein Konto mit gespeicherten xucRun-Anmeldedaten, wählt xucRun es
+automatisch. Bei mehreren solchen Konten erscheint die Zielkontoauswahl. Sind noch keine
+xucRun-Anmeldedaten gespeichert, bietet xucRun die lokale Zielkontoauswahl und anschließend die
+geschützte Kennworteingabe an.
+
 xucRun wählt dabei das Windows-Konto aus, nicht ein Mailkonto innerhalb von Thunderbird. Der
 Befehl setzt den Standardinstallationspfad von Thunderbird voraus.
 
@@ -259,26 +265,33 @@ erneuten Start fortgesetzt wird. Die Prüfung mit `NET SESSION` setzt voraus, da
 ### Desktop-Verknüpfung für einen erhöhten Explorer
 
 Eine Desktop-Verknüpfung kann ein Explorer-Fenster für ein festgelegtes Verzeichnis direkt unter
-einem bestimmten Konto öffnen, das Mitglied der lokalen Administratorengruppe ist, für das
-xucRun-Anmeldedaten gespeichert sind und das mit erhöhten Rechten verwendet wird. Im Feld
-**Ziel** der Verknüpfung steht beispielsweise:
+einem geeigneten Konto mit erhöhten Rechten öffnen. Soll xucRun das Konto automatisch bestimmen,
+steht im Feld **Ziel** der Verknüpfung beispielsweise:
+
+```text
+"%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%WINDIR%\explorer.exe" "/root,"D:\Beispiel\Zielordner""
+```
+
+Mit `/user-elevated` verwendet xucRun das aktuelle Konto, wenn es Mitglied der lokalen
+Administratorengruppe ist. Andernfalls bestimmt xucRun ein geeignetes Konto, das Mitglied der
+lokalen Administratorengruppe ist und für das xucRun-Anmeldedaten gespeichert sind. Dadurch müssen
+weder der Kontoname noch das Kennwort in der Verknüpfung stehen.
+
+Soll die Verknüpfung immer ein bestimmtes Administratorkonto wählen, wird dessen Name an den
+Schalter angehängt:
 
 ```text
 "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated:Administrator "%WINDIR%\explorer.exe" "/root,"D:\Beispiel\Zielordner""
 ```
 
-`/user-elevated:Administrator` sollte verwendet werden, wenn die Verknüpfung immer ein bestimmtes
-Konto wählen soll, das Mitglied der lokalen Administratorengruppe ist und für das
-xucRun-Anmeldedaten gespeichert sind, und den Explorer ausdrücklich mit erhöhten Rechten starten
-soll. Soll xucRun das passende Konto automatisch bestimmen, wird der Schalter weggelassen. Soll
-der Explorer zwar unter einem bestimmten anderen Konto, aber ohne durch xucRun erzwungene
-Erhöhung starten, wird stattdessen `/user:<Konto>` verwendet.
-
 `Administrator` ist durch das gewünschte Konto zu ersetzen, das Mitglied der lokalen
-Administratorengruppe ist und für das xucRun-Anmeldedaten gespeichert sind; der Beispielpfad ist
-durch das zu öffnende Verzeichnis zu ersetzen. `/root` setzt dieses Verzeichnis als Wurzel des
-neuen Explorer-Fensters. Die verschachtelten Anführungszeichen müssen unverändert erhalten
-bleiben. Die gespeicherten Anmeldedaten ersetzen nicht die interaktive
+Administratorengruppe ist und für das xucRun-Anmeldedaten gespeichert sind. Soll der Explorer
+zwar unter einem bestimmten anderen Konto, aber ohne durch xucRun erzwungene Erhöhung starten,
+wird stattdessen `/user:<Konto>` verwendet.
+
+Der Beispielpfad ist durch das zu öffnende Verzeichnis zu ersetzen. `/root` setzt dieses
+Verzeichnis als Wurzel des neuen Explorer-Fensters. Die verschachtelten Anführungszeichen müssen
+unverändert erhalten bleiben. Die gespeicherten Anmeldedaten ersetzen nicht die interaktive
 Windows-UAC-Bestätigung.
 
 ### Integration in das Explorer-Kontextmenü
