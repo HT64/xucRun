@@ -58,10 +58,11 @@ namespace xucrun::broker_launch
 		return true;
 	}
 
-	BrokerLaunchOutcome LaunchSystemWithProtectedConfirmation(
+	BrokerLaunchOutcome LaunchPrivilegedWithProtectedConfirmation(
 		const std::wstring& executablePath,
 		const std::wstring& argumentTail,
 		const std::wstring& workingDirectory,
+		broker::PrivilegedLaunchIdentity identity,
 		DWORD& processId, DWORD& error)
 	{
 		processId = 0;
@@ -83,7 +84,10 @@ namespace xucrun::broker_launch
 		request.workingDirectory = workingDirectory;
 		request.elevationMode = broker::ElevationMode::RequireElevated;
 		request.visibility = broker::LaunchVisibility::Normal;
-		request.systemLaunch = true;
+		request.systemLaunch =
+			identity == broker::PrivilegedLaunchIdentity::LocalSystem;
+		request.trustedInstallerLaunch =
+			identity == broker::PrivilegedLaunchIdentity::TrustedInstaller;
 		if (request.requestId == 0)
 		{
 			error = ERROR_GEN_FAILURE;
@@ -99,7 +103,9 @@ namespace xucrun::broker_launch
 			return BrokerLaunchOutcome::Failed;
 		}
 		if (challenge.result.status != broker::ApprovalChallengeStatus::Issued ||
-			!challenge.result.systemLaunchConfirmation ||
+			challenge.result.systemLaunchConfirmation != request.systemLaunch ||
+			challenge.result.trustedInstallerLaunchConfirmation !=
+				request.trustedInstallerLaunch ||
 			challenge.result.helperStartMode !=
 				broker::ApprovalHelperStartMode::BrokerStarted ||
 			challenge.result.approvalHelperProcessHandle == 0)
@@ -389,11 +395,14 @@ namespace xucrun::broker_launch
 		}
 		if (challenge.result.status != broker::ApprovalChallengeStatus::Issued)
 		{
-			ui::ReportError(localization::Format(
-				localization::TextId::BrokerFailureWithError,
-				{ credential_formatting::GetBrokerChallengeFailureMessage(challenge.result),
-				  windows_error::FormatWindowsError(challenge.result.windowsError) }) +
-				accountContext,
+			const std::wstring failureMessage =
+				credential_formatting::GetBrokerChallengeFailureMessage(challenge.result);
+			ui::ReportError((credential_formatting::ShouldShowBrokerFailureErrorCode(
+					challenge.result.failureReason)
+				? localization::Format(localization::TextId::BrokerFailureWithError,
+					{ failureMessage,
+					  windows_error::FormatWindowsError(challenge.result.windowsError) })
+				: failureMessage) + accountContext,
 				L"The broker rejected the launch challenge. Status: " +
 					std::to_wstring(static_cast<unsigned int>(challenge.result.status)) +
 					L"; Windows error: " +
@@ -479,11 +488,14 @@ namespace xucrun::broker_launch
 		if (response.result.status != broker::ApprovalConfirmationStatus::Confirmed ||
 			response.result.processId == 0)
 		{
-			ui::ReportError(localization::Format(
-				localization::TextId::BrokerFailureWithError,
-				{ credential_formatting::GetBrokerLaunchFailureMessage(response.result),
-				  windows_error::FormatWindowsError(response.result.windowsError) }) +
-				accountContext,
+			const std::wstring failureMessage =
+				credential_formatting::GetBrokerLaunchFailureMessage(response.result);
+			ui::ReportError((credential_formatting::ShouldShowBrokerFailureErrorCode(
+					response.result.failureReason)
+				? localization::Format(localization::TextId::BrokerFailureWithError,
+					{ failureMessage,
+					  windows_error::FormatWindowsError(response.result.windowsError) })
+				: failureMessage) + accountContext,
 				L"The broker did not confirm the launch. Status: " +
 					std::to_wstring(static_cast<unsigned int>(response.result.status)) +
 					L"; Windows error: " +

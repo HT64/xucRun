@@ -16,6 +16,7 @@
 #include "SessionTestLauncher.h"
 #include "SecurityAclAudit.h"
 #include "SensitiveClientAuthorization.h"
+#include "TrustedInstallerToken.h"
 
 #include <Windows.h>
 #include <sddl.h>
@@ -1089,6 +1090,25 @@ int wmain(int argc, wchar_t* argv[])
 			? 0
 			: static_cast<int>(error == NO_ERROR ? ERROR_GEN_FAILURE : error);
 	}
+#ifdef _DEBUG
+	if (argc == 3 &&
+		_wcsicmp(argv[1], L"/trustedinstaller-token-child-test") == 0)
+	{
+		wchar_t* end = nullptr;
+		const unsigned long parsedSessionId = wcstoul(argv[2], &end, 10);
+		if (!argv[2][0] || !end || *end != L'\0')
+			return ERROR_INVALID_PARAMETER;
+		DWORD error = NO_ERROR;
+		std::wstring failedStage;
+		if (RunTrustedInstallerTokenChildSelfTest(
+			static_cast<DWORD>(parsedSessionId), error, failedStage))
+			return 0;
+		std::wcerr << L"xucRunBroker TrustedInstaller child test failed at stage "
+			<< failedStage << L" (error " << error << L")\n";
+		return static_cast<int>(
+			error == NO_ERROR ? ERROR_GEN_FAILURE : error);
+	}
+#endif
 	if (argc == 2)
 	{
 		const std::wstring command = argv[1];
@@ -1247,6 +1267,29 @@ int wmain(int argc, wchar_t* argv[])
 			}
 			std::wcerr << L"xucRunBroker approval challenge identity: tests failed\n";
 			return 35;
+		}
+		if (_wcsicmp(command.c_str(), L"/trustedinstaller-token-test") == 0)
+		{
+			DWORD error = NO_ERROR;
+			std::wstring failedStage;
+			if (RunTrustedInstallerTokenSelfTest(error, failedStage))
+			{
+				std::wcout << L"xucRunBroker TrustedInstaller token: test passed\n";
+				return 0;
+			}
+			std::wcerr << L"xucRunBroker TrustedInstaller token test failed at stage "
+				<< failedStage << L" (error " << error << L")\n";
+			return 38;
+		}
+		if (_wcsicmp(command.c_str(), L"/trustedinstaller-token-rules-test") == 0)
+		{
+			if (RunTrustedInstallerTokenRuleSelfTest())
+			{
+				std::wcout << L"xucRunBroker TrustedInstaller token rules: tests passed\n";
+				return 0;
+			}
+			std::wcerr << L"xucRunBroker TrustedInstaller token rules: tests failed\n";
+			return 39;
 		}
 		if (_wcsicmp(command.c_str(), L"/tracked-process-list-test") == 0)
 		{

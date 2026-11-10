@@ -148,6 +148,41 @@ bool LaunchSystemProcess(
 	return started;
 }
 
+bool LaunchTrustedInstallerProcess(
+	DWORD sessionId,
+	const std::wstring& executablePath,
+	const std::wstring& argumentTail,
+	const std::wstring& workingDirectory,
+	DWORD& processId,
+	std::wstring& effectiveWorkingDirectory,
+	DWORD& error,
+	std::wstring& failedStage)
+{
+	processId = 0;
+	effectiveWorkingDirectory.clear();
+	error = NO_ERROR;
+	failedStage = L"TrustedInstaller launch privilege";
+	if (!EnablePrivilege(SE_ASSIGNPRIMARYTOKEN_NAME, error) ||
+		!EnablePrivilege(SE_INCREASE_QUOTA_NAME, error))
+		return false;
+
+	HANDLE launchToken = nullptr;
+	if (!AcquireTrustedInstallerLaunchToken(
+		sessionId, launchToken, error, failedStage))
+		return false;
+	if (!GrantInteractiveDesktopAccessInSession(
+		launchToken, sessionId, error, failedStage))
+	{
+		CloseHandle(launchToken);
+		return false;
+	}
+	const bool started = LaunchBoundProcess(launchToken, executablePath,
+		argumentTail, workingDirectory, xucrun::broker::LaunchVisibility::Normal,
+		processId, &effectiveWorkingDirectory, error, failedStage);
+	CloseHandle(launchToken);
+	return started;
+}
+
 // Logs on the target account and launches only after SID, session, and object access validation.
 bool LaunchCredentialTestProcess(
 	HANDLE clientProcess,

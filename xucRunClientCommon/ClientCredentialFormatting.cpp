@@ -78,6 +78,11 @@ namespace xucrun::credential_formatting
 		return localization::GetText(localization::TextId::BrokerChallengeDenied);
 	}
 
+	bool ShouldShowBrokerFailureErrorCode(broker::ApprovalFailureReason reason)
+	{
+		return reason != broker::ApprovalFailureReason::CrossAccountUacUnavailable;
+	}
+
 	std::wstring GetBrokerLaunchFailureMessage(
 		const broker::ApprovalConfirmationResult& result)
 	{

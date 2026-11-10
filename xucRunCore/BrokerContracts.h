@@ -14,7 +14,7 @@
 
 namespace xucrun::broker
 {
-	inline constexpr std::uint32_t ProtocolVersion = 45;
+	inline constexpr std::uint32_t ProtocolVersion = 48;
 	inline constexpr std::uint32_t PolicyDeniedWindowsError = 5;
 	inline constexpr std::size_t MaximumAccountSidLength = 184;
 	inline constexpr std::size_t MaximumPathLength = 32767;
@@ -102,6 +102,12 @@ namespace xucrun::broker
 		Normal,
 		Hidden,
 		HiddenMonitor
+	};
+
+	enum class PrivilegedLaunchIdentity : std::uint8_t
+	{
+		LocalSystem,
+		TrustedInstaller
 	};
 
 	enum class LaunchStatus : std::uint8_t
@@ -733,6 +739,9 @@ namespace xucrun::broker
 		RequestNonce trackingId = {};
 		std::uint32_t processId = 0;
 		std::wstring processBaseName;
+		bool trustedInstaller = false;
+		std::wstring accountSid;
+		std::wstring canonicalAccountName;
 	};
 
 	struct TrackedProcessListResult
@@ -842,6 +851,7 @@ namespace xucrun::broker
 		ElevationMode elevationMode = ElevationMode::PreserveToken;
 		LaunchVisibility visibility = LaunchVisibility::Normal;
 		bool systemLaunch = false;
+		bool trustedInstallerLaunch = false;
 	};
 
 	enum class AuthenticodeSignatureKind : std::uint8_t
@@ -898,6 +908,7 @@ namespace xucrun::broker
 		ApprovalHelperStartMode helperStartMode = ApprovalHelperStartMode::None;
 		bool approvalHelperView = false;
 		bool systemLaunchConfirmation = false;
+		bool trustedInstallerLaunchConfirmation = false;
 		bool storedApprovalPresenceConfirmation = false;
 		ApprovalFailureReason writableElevatedTargetReason = ApprovalFailureReason::None;
 		std::uint64_t approvalHelperProcessHandle = 0;

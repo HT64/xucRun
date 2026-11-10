@@ -5,9 +5,9 @@ Creates bilingual release notes for one xucRun version.
 .DESCRIPTION
 Extracts the requested version section from the English and German changelogs,
 validates that the supplied checksum file contains the matching installer and
-ZIP entries, and writes UTF-8 release notes containing the signing, version
-designation, and Tray update notices, both changelog sections, links, and
-checksums.
+ZIP entries, and writes UTF-8 release notes containing the signing, pre-installation
+README, version designation, and Tray update notices, both changelog sections,
+links, and checksums.
 
 .PARAMETER Version
 Specifies the release version. This mandatory value must contain exactly four
@@ -23,9 +23,9 @@ Specifies the mandatory output file. Its parent directory is created when
 necessary, and an existing file is replaced.
 
 .EXAMPLE
-.\New-xucRun-ReleaseNotes.ps1 -Version 0.9.1.4 -ChecksumPath .\artifacts\Release\0.9.1.4\SHA256SUMS.txt -DestinationPath .\artifacts\Release\0.9.1.4\RELEASE_NOTES.md
+.\New-xucRun-ReleaseNotes.ps1 -Version 0.9.1.5 -ChecksumPath .\artifacts\Release\0.9.1.5\SHA256SUMS.txt -DestinationPath .\artifacts\Release\0.9.1.5\RELEASE_NOTES.md
 
-Creates release notes for version 0.9.1.4 from the matching checksums and
+Creates release notes for version 0.9.1.5 from the matching checksums and
 changelog sections.
 
 .NOTES
@@ -104,23 +104,21 @@ $germanChanges = Get-ChangelogVersionBody `
 $notes = @"
 ## Important notice / Wichtiger Hinweis
 
-xucRun is a non-commercial open-source project. The provided installer is not signed by a
-publicly trusted publisher. Windows may therefore report an unknown publisher when it is first
-started. Download the files only from this GitHub Release and compare the SHA-256 checksum before
-starting the installer.
+xucRun is a non-commercial open-source project. The provided installer is not signed by a publicly trusted publisher. Windows may therefore report an unknown publisher when it is first started. Download the files only from this GitHub Release and compare the SHA-256 checksum before starting the installer.
 
-xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei
-besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim
-ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem
-GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
+xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
+
+## Before installing / Vor der Installation
+
+xucRun is a powerful tool. Using it involves risks that the user must understand. Before installing, therefore, be sure to read the [README](https://github.com/HT64/xucRun/blob/v$Version/README.md), in particular the section [``Important security notice``](https://github.com/HT64/xucRun/blob/v$Version/README.md#requirements-and-intended-use).
+
+xucRun ist ein mächtiges Werkzeug. Seine Nutzung birgt Risiken, die der Anwender verstanden haben muss. Lesen Sie deshalb vor der Installation unbedingt die [README](https://github.com/HT64/xucRun/blob/v$Version/README.de.md), insbesondere den Abschnitt [``Wichtiger Sicherheitshinweis``](https://github.com/HT64/xucRun/blob/v$Version/README.de.md#voraussetzungen-und-einsatzbereich).
 
 ## Version designation / Versionskennzeichnung
 
-The 0.x.x.x version designation is not intended as a quality rating. It will be retained until
-more practical experience and feedback from other user environments are available.
+The 0.x.x.x version designation is not intended as a quality rating. It will be retained until more practical experience and feedback from other user environments are available.
 
-Die Versionskennzeichnung 0.x.x.x dient nicht als Qualitätsbewertung. Sie wird beibehalten, bis
-mehr praktische Erfahrungen und Rückmeldungen aus anderen Benutzerumgebungen vorliegen.
+Die Versionskennzeichnung 0.x.x.x dient nicht als Qualitätsbewertung. Sie wird beibehalten, bis mehr praktische Erfahrungen und Rückmeldungen aus anderen Benutzerumgebungen vorliegen.
 
 ## Update with xucRun Tray / Aktualisierung mit xucRun Tray
 

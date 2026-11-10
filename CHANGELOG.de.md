@@ -8,6 +8,33 @@ aufgeführt.
 
 ## [Unveröffentlicht]
 
+## [0.9.1.5] - 2026-11-09
+
+### Hinzugefügt
+
+- Der Startmodus `/trustedinstaller` wurde ergänzt. Er startet eine lokale Anwendung oder ersetzt
+  die aufrufende Eltern-Shell mit `LocalSystem`-Rechten und der wirksamen Dienstidentität
+  `NT SERVICE\TrustedInstaller`. Wie `/system` steht er nur Mitgliedern der lokalen
+  Administratorengruppe zur Verfügung, verwendet weder gespeicherte Anmeldedaten noch Freigaben
+  und verlangt bei jedem Aufruf eine eigene, nicht speicherbare Bestätigung auf dem geschützten
+  privaten Desktop. Der Bestätigungsdialog warnt ausdrücklich vor Änderungen geschützter
+  Windows-Dateien und Registrierungseinträge. Kann die TrustedInstaller-Identität nicht
+  hergestellt werden, schlägt der Start fehl; es gibt keinen Rückfall auf einen normalen
+  `/system`-Start.
+- Der Broker meldet jetzt die validierte wirksame Identität verfolgter erhöhter Prozesse
+  (erhöhtes Administratorkonto, `LocalSystem` oder TrustedInstaller), damit xucRun Tray sie
+  anzeigen kann.
+
+### Geändert
+
+- Wird ein erhöhter kontenübergreifender Start blockiert, weil für das Zielkonto der
+  Administratorbestätigungsmodus deaktiviert ist, erklären der Fehlerdialog und der Hinweis in
+  der lokalen Kontoauswahl jetzt, wie der Modus aktiviert wird, und zeigen keinen irreführenden
+  Windows-Fehlercode mehr an.
+- Die README beschreibt die Startmodi für `LocalSystem` und TrustedInstaller jetzt in einem
+  gemeinsamen Abschnitt mit Screenshots beider Bestätigungsdialoge und erklärt, warum diese Modi
+  weder gespeicherte Anmeldedaten noch Freigaben verwenden.
+
 ## [0.9.1.4] - 2026-11-07
 
 ### Hinzugefügt
@@ -153,7 +180,8 @@ aufgeführt.
   Der grafische Installer prüft diese Voraussetzung und bietet bei Bedarf den offiziellen
   Microsoft-Download an.
 
-[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.4...HEAD
+[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.5...HEAD
+[0.9.1.5]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.5
 [0.9.1.4]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.4
 [0.9.1.3]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.3
 [0.9.1.1]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.1

@@ -30,6 +30,7 @@ namespace
 	constexpr int WritableTargetApproveButton = 132;
 	constexpr int BroadInterpreterApprovalButton = 133;
 	constexpr int SystemLaunchApproveButton = 134;
+	constexpr int TrustedInstallerLaunchApproveButton = 135;
 	constexpr UINT_PTR ApprovalCountdownTimer = 1;
 	constexpr int ApprovalDetailsControl = 1250;
 	constexpr int ApprovalDurationFirst = 1300;
@@ -1841,28 +1842,60 @@ namespace
 		const std::wstring displayedClientName =
 			xucrun::documentation_names::DisplayAccount(
 				challenge.canonicalClientName);
-		if (challenge.systemLaunchConfirmation)
+		if (challenge.systemLaunchConfirmation ||
+			challenge.trustedInstallerLaunchConfirmation)
 		{
 			std::wstring command = L"\"" + challenge.finalExecutablePath + L"\"";
 			if (!challenge.argumentTail.empty())
 				command += L" " + EscapeApprovalDisplayText(challenge.argumentTail);
-			const std::wstring content = std::wstring(Text(
-				L"Der folgende Befehl erhält vollständige LocalSystem-Rechte:\n\n",
-				L"The following command will receive full LocalSystem privileges:\n\n")) +
-				command + Text(L"\n\nArbeitsverzeichnis:\n",
-					L"\n\nWorking directory:\n") +
-				challenge.workingDirectory;
+			const bool trustedInstaller =
+				challenge.trustedInstallerLaunchConfirmation;
+			const std::wstring content = trustedInstaller
+				? std::wstring(Text(
+					L"Der folgende Befehl erhält vollständige LocalSystem-Rechte und "
+					L"zusätzlich die wirksame Dienstidentität "
+					L"NT SERVICE\\TrustedInstaller:\n\n",
+					L"The following command will receive full LocalSystem privileges "
+					L"and the effective NT SERVICE\\TrustedInstaller service identity:\n\n")) +
+					command + Text(L"\n\nArbeitsverzeichnis:\n",
+						L"\n\nWorking directory:\n") +
+					challenge.workingDirectory + Text(
+						L"\n\nDas gestartete Programm kann geschützte Windows-Dateien und "
+						L"Registrierungseinträge verändern. Änderungen können Windows Update, "
+						L"Komponentenreparatur oder den Systemstart beschädigen. Diese "
+						L"Bestätigung gilt für die gesamte Programmlaufzeit einschließlich "
+						L"gestarteter Kindprozesse.",
+						L"\n\nThe started program can modify protected Windows files and "
+						L"registry entries. Changes can damage Windows Update, component "
+						L"repair, or system startup. This confirmation covers the entire "
+						L"program lifetime, including child processes.")
+				: std::wstring(Text(
+					L"Der folgende Befehl erhält vollständige LocalSystem-Rechte:\n\n",
+					L"The following command will receive full LocalSystem privileges:\n\n")) +
+					command + Text(L"\n\nArbeitsverzeichnis:\n",
+						L"\n\nWorking directory:\n") +
+					challenge.workingDirectory;
 			const TASKDIALOG_BUTTON buttons[] = {
-				{ SystemLaunchApproveButton, Text(
-					L"Einmal als LocalSystem starten",
-					L"Start once as LocalSystem") }
+				{ trustedInstaller
+					? TrustedInstallerLaunchApproveButton
+					: SystemLaunchApproveButton,
+				  trustedInstaller
+					? Text(L"Einmal mit TrustedInstaller-Rechten starten",
+						L"Start once with TrustedInstaller privileges")
+					: Text(L"Einmal als LocalSystem starten",
+						L"Start once as LocalSystem") }
 			};
 			const int selected = ShowChoice(challenge.challengeId,
 				challenge.authenticityMarker, displayedClientName,
-				Text(L"LocalSystem-Start bestätigen",
-					L"Confirm LocalSystem launch"),
+				trustedInstaller
+					? Text(L"TrustedInstaller-Start bestätigen",
+						L"Confirm TrustedInstaller launch")
+					: Text(L"LocalSystem-Start bestätigen",
+						L"Confirm LocalSystem launch"),
 				content, buttons, static_cast<UINT>(std::size(buttons)),
-				timedOut, Text(L"Ablehnen", L"Deny"));
+				timedOut, trustedInstaller
+					? Text(L"Abbrechen", L"Cancel")
+					: Text(L"Ablehnen", L"Deny"));
 			decision.persistence =
 				xucrun::broker::ApprovalPersistence::Once;
 			decision.programScope =
@@ -1871,10 +1904,13 @@ namespace
 				xucrun::broker::ApprovalAccountScope::CurrentAccount;
 			decision.updateScope =
 				xucrun::broker::ApprovalUpdateScope::None;
-			decision.decision = selected == SystemLaunchApproveButton
+			const int approveButton = trustedInstaller
+				? TrustedInstallerLaunchApproveButton
+				: SystemLaunchApproveButton;
+			decision.decision = selected == approveButton
 				? xucrun::broker::ApprovalDecision::ApproveOnce
 				: xucrun::broker::ApprovalDecision::Deny;
-			return selected == SystemLaunchApproveButton;
+			return selected == approveButton;
 		}
 		const std::wstring displayedAccountName =
 			xucrun::documentation_names::DisplayAccount(

@@ -27,6 +27,8 @@ namespace xucrun::credential_formatting
 		const broker::ApprovalChallengeResult& result);
 	std::wstring GetBrokerLaunchFailureMessage(
 		const broker::ApprovalConfirmationResult& result);
+	// Configuration-state refusals carry a transport error value that would mislead the user.
+	bool ShouldShowBrokerFailureErrorCode(broker::ApprovalFailureReason reason);
 	std::wstring FormatCredentialTimestamp(ULONGLONG timestamp);
 	std::wstring FormatAccountWithAdministratorMembership(
 		const std::wstring& account,

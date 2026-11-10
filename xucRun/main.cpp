@@ -536,6 +536,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		processMode = L"broker store purge command";
 	else if (initialArgument == L"/system")
 		processMode = L"LocalSystem launch";
+	else if (initialArgument == L"/trustedinstaller")
+		processMode = L"TrustedInstaller launch";
 	writeModeStart(processMode);
 
 	if (argc == 2 && _wcsicmp(argv[1], L"/enable-broker") == 0)
@@ -798,6 +800,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		firstArg == L"/help" || firstArg == L"--help" || firstArg == L"/?" ||
 		firstArg == L"/info" ||
 		firstArg == L"/system" ||
+		firstArg == L"/trustedinstaller" ||
 		firstArg == L"/admin-status" ||
 		firstArg == L"/backup" || firstArg == L"/backup-create" ||
 		firstArg == L"/backup-list" || firstArg == L"/backup-delete-all" ||
@@ -839,7 +842,16 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 	if (firstArg == L"/system")
 	{
-		const int result = RunSystemProgramLaunch(argc, argv);
+		const int result = RunPrivilegedProgramLaunch(argc, argv,
+			xucrun::broker::PrivilegedLaunchIdentity::LocalSystem);
+		LocalFree(argv);
+		return result;
+	}
+
+	if (firstArg == L"/trustedinstaller")
+	{
+		const int result = RunPrivilegedProgramLaunch(argc, argv,
+			xucrun::broker::PrivilegedLaunchIdentity::TrustedInstaller);
 		LocalFree(argv);
 		return result;
 	}

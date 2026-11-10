@@ -229,7 +229,8 @@ Shell bestimmt. In einem Skript sollte sie nur verwendet werden, wenn das Schlie
 Konsole und der interaktive Start einer Ersatz-Shell ausdrücklich beabsichtigt sind. Für eine
 normale Desktop-Verknüpfung ist der parameterlose Aufruf nicht geeignet.
 
-Unterstützte Eltern-Shells sind `cmd.exe`, `powershell.exe`, `pwsh.exe` und `tcc.exe`.
+Unterstützte Eltern-Shells sind `cmd.exe`, `powershell.exe`, `pwsh.exe` und `tcc.exe`. (TCC ist
+die Konsole von [Take Command von JP Software](https://jpsoft.com/).)
 
 ### Batchdatei bei Bedarf erhöht neu starten
 
@@ -374,9 +375,7 @@ Befehl nur bewusst für Wartung und Diagnose.
 
 xucRun kann Total Commander außerdem unter einem ausdrücklich ausgewählten anderen Windows-Konto
 starten, ohne dass dieses bereits interaktiv angemeldet ist. So lassen sich Dateioperationen aus
-einer normalen Benutzersitzung heraus in einem anderen Kontokontext ausführen. Für erhöhte
-administrative Dateioperationen muss das Zielkonto über Administratorrechte verfügen und die
-Windows-UAC-Abfrage bestätigt werden.
+einer normalen Benutzersitzung heraus in einem anderen Kontokontext ausführen.
 
 Für dieses Beispiel ist `<Konto>` durch den eingerichteten Kontonamen zu ersetzen; die
 Total-Commander-Variablen und das Quoting müssen unverändert übernommen werden:
@@ -556,6 +555,7 @@ Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
 | `xucRun.exe /showapprovals` | gespeicherte Freigaben anzeigen |
 | `xucRun.exe /resetapprovals[:<Konto>]` | Freigaben zurücksetzen |
 | `xucRun.exe /system [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell als `LocalSystem` starten |
+| `xucRun.exe /trustedinstaller [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell mit `LocalSystem`-Rechten und der TrustedInstaller-Dienstidentität starten |
 | `xucRun.exe /info` | Version, Copyright, Signierzertifikat, Brokerstatus und aktuelle Konfiguration anzeigen |
 | `xucRun.exe /admin-status` | Daten aller Windows-Benutzer erhöht anzeigen und verwalten |
 | `xucRun.exe /backup` | lokale Datensicherungen verwalten |
@@ -572,43 +572,74 @@ nicht verborgen oder überwacht.
 Vorgang fehlschlägt, abgelehnt oder abgebrochen wird. Der Exitcode eines gestarteten Zielprogramms
 wird nicht als Exitcode von `xucRun.exe` zurückgegeben.
 
-### Anwendung oder Ersatz-Shell als LocalSystem starten
+### Anwendung oder Ersatz-Shell als LocalSystem oder TrustedInstaller starten
 
-`xucRun.exe /system [<Anwendung> [Argumente...]]` startet die angegebene lokale Anwendung oder
-ohne angegebene Anwendung eine Ersatz-Shell unter dem Windows-Konto `LocalSystem` in der
-interaktiven Sitzung des Aufrufers. Dieser Modus steht nur Mitgliedern der lokalen
-Administratorengruppe zur Verfügung. Ein noch nicht erhöht gestarteter Administrator erhält eine
-Windows-UAC-Abfrage; ein bereits erhöhter Administrator führt den Start ohne weitere UAC-Abfrage
-aus. Standardbenutzer werden vor einer Erhöhungsanforderung abgewiesen.
+`xucRun.exe /system [<Anwendung> [Argumente...]]` startet die angegebene lokale Anwendung unter
+dem Windows-Konto `LocalSystem` in der interaktiven Sitzung des Aufrufers.
+`xucRun.exe /trustedinstaller [<Anwendung> [Argumente...]]` startet sie mit `LocalSystem`-Rechten
+und zusätzlich der wirksamen Dienstidentität `NT SERVICE\TrustedInstaller`.
 
-Ohne Anwendung ersetzt `xucRun.exe /system` eine aufrufende TCC-, Eingabeaufforderungs-, Windows-
-PowerShell- oder PowerShell-Core-Shell durch dieselbe Shell unter `LocalSystem`. Das aktuelle
-Arbeitsverzeichnis bleibt erhalten, die neue Shell wird in den Vordergrund gebracht und die
-bisherige Shell erst nach erfolgreichem Start des Ersatzes geschlossen.
+Beide Modi stehen nur Mitgliedern der lokalen Administratorengruppe zur Verfügung. Ein noch nicht
+erhöht gestarteter Administrator erhält eine Windows-UAC-Abfrage; ein bereits erhöhter
+Administrator führt den Start ohne weitere UAC-Abfrage aus. Standardbenutzer werden vor einer
+Erhöhungsanforderung abgewiesen. Das erhöhte Konto, das Mitglied der lokalen
+Administratorengruppe ist, darf vom in der interaktiven Sitzung angemeldeten Konto abweichen;
+beide Modi können deshalb auch aus einer erhöhten Ersatz-Shell in der Sitzung eines anderen
+Benutzers aufgerufen werden.
 
-Das erhöhte Konto, das Mitglied der lokalen Administratorengruppe ist, darf vom in der
-interaktiven Sitzung angemeldeten Konto abweichen. Dadurch kann `/system` aus einer erhöhten
-Ersatz-Shell in der Sitzung eines anderen Benutzers aufgerufen werden.
+Ohne Anwendung ersetzen beide Modi eine aufrufende TCC-, Eingabeaufforderungs-, Windows-
+PowerShell- oder PowerShell-Core-Shell durch denselben Shelltyp unter der gewählten Identität.
+Das aktuelle Arbeitsverzeichnis bleibt erhalten, die neue Shell wird in den Vordergrund gebracht
+und die bisherige Shell erst nach dem bestätigten und erfolgreichen Ersatzstart geschlossen.
+Unbekannte Eltern-Shells werden abgewiesen.
 
-`/system` verwendet keine gespeicherten Anmeldedaten oder Freigaben. Jeder Start muss separat im
-signierten xucRun-Freigabehelper bestätigt werden, der die geschützten Bestätigungsdialoge
-anzeigt. Der Dialog erscheint auf dem geschützten privaten xucRun-Desktop und zeigt die genaue
-Programmdatei, alle Argumente und das Arbeitsverzeichnis. Die Bestätigung gilt nur für diesen
-einen Aufruf und kann nicht gespeichert werden. xucRun prüft die Programmdatei unmittelbar vor
-dem Start erneut.
+Keiner der beiden Modi verwendet gespeicherte Anmeldedaten oder Freigaben: `LocalSystem` und
+`TrustedInstaller` sind keine Benutzerkonten mit Kennwort, und eine gespeicherte Freigabe würde
+jedem späteren Start derselben Programmdatei unbemerkt vollständige Systemkontrolle gewähren.
+Jeder Aufruf muss deshalb separat im signierten xucRun-Freigabehelper bestätigt werden, der die
+geschützten Bestätigungsdialoge anzeigt. Der Dialog erscheint auf dem geschützten privaten
+xucRun-Desktop und zeigt die genaue Programmdatei, alle Argumente und das Arbeitsverzeichnis; bei
+`/trustedinstaller` ergänzt er eine besondere Warnung vor Änderungen geschützter Windows-Dateien
+und Registrierungseinträge. Die Bestätigung gilt nur für diesen einen Aufruf, kann nicht
+gespeichert werden und autorisiert das gewählte Programm für seine gesamte Laufzeit,
+einschließlich Bedienhandlungen und Kindprozessen, die seinen privilegierten Kontext erben oder
+anderweitig verwenden. Ein Dateimanager, Registrierungs-Editor, eine Shell oder ein
+Skriptinterpreter ermöglicht deshalb sehr weitreichende Systemkontrolle. xucRun prüft die
+Programmdatei unmittelbar vor dem Start erneut.
+
+| Bestätigung für `/system` | Bestätigung für `/trustedinstaller` mit besonderer Warnung |
+|:---:|:---:|
+| ![Bestätigung eines LocalSystem-Starts auf dem privaten Desktop](docs/de/images/system-confirmation.png) | ![Bestätigung eines TrustedInstaller-Starts mit besonderer Warnung](docs/de/images/trustedinstaller-confirmation.png) |
 
 Der private Desktop schützt die Bestätigung vor normalen Anwendungen auf dem normalen Desktop. Er
 kann jedoch nicht vor Schadsoftware schützen, die bereits mit erhöhten Administratorrechten in
-derselben Anmeldesitzung ausgeführt wird. Verwenden Sie `/system` deshalb nur aus einer
+derselben Anmeldesitzung ausgeführt wird. Verwenden Sie beide Modi deshalb nur aus einer
 vertrauenswürdigen erhöhten Administratorsitzung.
-
-```cmd
-xucRun.exe /system "%SystemRoot%\regedit.exe" /m
-```
 
 Als `LocalSystem` ausgeführte Anwendungen besitzen weitreichende Kontrolle über den Rechner.
 Insbesondere bezeichnet `HKEY_CURRENT_USER` das Profil von `LocalSystem` und nicht das Profil des
-angemeldeten Benutzers. Verwenden Sie diesen Modus nur bewusst für Wartung und Diagnose.
+angemeldeten Benutzers.
+
+TrustedInstaller ist keine allgemeine Berechtigungsstufe oberhalb von `LocalSystem`. Dieser Modus
+verbindet `LocalSystem`-Rechte mit der TrustedInstaller-Dienstidentität und ermöglicht
+zusätzlichen Zugriff daher nur auf Objekte, für die Windows dieser Identität entsprechende Rechte
+gewährt. Ist der benötigte Windows-Dienst gestoppt, darf xucRun ihn starten, verändert aber weder
+seine Startkonfiguration noch beendet es ihn anschließend. Ein so gestarteter Dienst läuft
+deshalb zunächst weiter und beendet sich üblicherweise selbst, sobald Windows ihn nicht mehr
+benötigt; ein bereits gestartetes Programm behält seine Rechte davon unabhängig. Kann xucRun die
+erforderliche TrustedInstaller-Identität nicht herstellen, schlägt der Start fehl; es gibt keinen
+Rückfall auf einen normalen `/system`-Start.
+
+```cmd
+xucRun.exe /system "%SystemRoot%\regedit.exe" /m
+xucRun.exe /trustedinstaller "%SystemRoot%\regedit.exe"
+```
+
+Verwenden Sie beide Modi nur bewusst für Wartung und Diagnose. Die TrustedInstaller-Identität
+macht manuelle Änderungen nicht zu unterstützter Windows-Komponentenwartung. Änderungen an
+geschützten Dateien oder Registrierungsdaten können den Komponentenstore inkonsistent machen oder
+Windows Update, Komponentenreparatur beziehungsweise Systemstart beschädigen. Verwenden Sie
+Windows Update oder einen anderen dokumentierten Windows-Wartungsweg, wenn ein solcher existiert.
 
 ## Anmeldedaten und Freigaben verwalten
 
@@ -696,6 +727,11 @@ ergänzen. Dieser Komfort bringt zusätzliche Risiken mit sich. Wer Anmeldedaten
 wiederverwenden möchte, sollte stattdessen Windows-eigene Alternativen wie den schnellen
 Benutzerwechsel nutzen.
 
+Über diesen Kernablauf hinaus sind die zusätzlichen Startmodi für `LocalSystem` und die
+TrustedInstaller-Dienstidentität für gezielte Wartungs- und Diagnoseaufgaben vorgesehen. Sie
+erweitern die Möglichkeiten von xucRun, sind aber weder sein Ausgangspunkt noch sein gewöhnlicher
+Anwendungsfall.
+
 Wie sich dieser Ansatz von Windows-UAC, `runas`, Windows Sudo und anderen Lösungen unterscheidet,
 beschreibt der folgende Abschnitt.
 
@@ -714,17 +750,15 @@ Arbeitsumgebung des anderen Benutzers benötigt wird.
 
 Gegenüber dem schnellen Benutzerwechsel bleibt der Anwender mit xucRun in seiner aktuellen Sitzung
 und startet nur das benötigte Programm unter dem gewählten anderen Benutzerkonto, mit oder ohne
-erhöhte Rechte. Wer dafür keine Anmeldedaten speichern möchte, kann stattdessen den schnellen
-Benutzerwechsel verwenden.
+erhöhte Rechte.
 
 ### Windows-UAC und Windows Sudo
 
 Die Windows-Benutzerkontensteuerung (User Account Control, UAC) ist die Windows-Sicherheitsfunktion,
 über die ein Benutzer den Start mit Administratorrechten ausdrücklich bestätigt. Abhängig vom
-konkreten Startpfad und der Windows-Konfiguration kann ein Kontowechsel mit xucRun eine
-UAC-Bestätigung erfordern. Bei einem Start ohne Erhöhung kann UAC über den xucRun-Helfer die
-Anwesenheit des Benutzers bestätigen; bei einer Erhöhung kann UAC stattdessen den Start des
-Zielprogramms bestätigen und ihm die angeforderten Administratorrechte erteilen.
+konkreten Startpfad und der Windows-Konfiguration kann auch ein Kontowechsel mit xucRun eine
+UAC-Bestätigung erfordern; das Zusammenspiel beschreibt der Abschnitt
+[Verhältnis zwischen xucRun-Freigaben und Windows-UAC](#verhältnis-zwischen-xucrun-freigaben-und-windows-uac).
 
 [Windows Sudo](https://learn.microsoft.com/windows/advanced-settings/sudo/) startet aus einer
 nicht erhöhten Konsole einen einzelnen Prozess über Windows-UAC mit Administratorrechten. Die
@@ -791,8 +825,7 @@ runas.exe /savecred /user:Administrator "elevate.exe %windir%\System32\mmc.exe %
 Die genaue Syntax hängt vom gewählten Elevationswerkzeug ab. In der Werkzeugkette muss der
 Kontoname im Aufruf stehen und die gesamte nachgelagerte Befehlszeile als ein Argument an
 `runas.exe` übergeben werden. xucRun benötigt im Hauptanwendungsfall keinen Kontonamen und hält
-Programm und Argumente in einem gemeinsamen Aufruf getrennt. Die UAC-Bestätigung bleibt bei beiden
-Varianten interaktiv.
+Programm und Argumente in einem gemeinsamen Aufruf getrennt.
 
 Ein Beispiel mit komplexeren Argumenten ist das Anlegen einer Firewallregel für ein Programm,
 dessen Pfad Leerzeichen enthält:
@@ -809,8 +842,7 @@ Sonderzeichen hinge außerdem vom konkreten Elevationswerkzeug und dessen Quotin
 Nach der erstmaligen Kennworteingabe kann `runas.exe /savecred /user:Administrator` dasselbe Konto,
 dessen Anmeldedaten gespeichert wurden, auch für andere Programme verwenden, ohne erneut das
 Kennwort oder eine obligatorische Bestätigung anzufordern. xucRun verlangt dagegen eine passende
-ausdrückliche Freigabe, bevor gespeicherte Anmeldedaten verwendet werden. Jede für den konkreten
-Start erforderliche Windows-UAC-Bestätigung bleibt interaktiv.
+ausdrückliche Freigabe, bevor gespeicherte Anmeldedaten verwendet werden.
 
 `runas.exe /savecred` und xucRun verwenden voneinander getrennte, nicht kompatible Speicherungen
 für Anmeldedaten. Eine xucRun-Freigabe kann eng an das aufrufende Benutzerkonto, das Zielkonto, die
@@ -851,7 +883,7 @@ xucRun keinen eigenen Freigabedialog; die Zustimmung erfolgt ausschließlich üb
 xucRun-Programmfreigaben gelten für Starts mit den gespeicherten Anmeldedaten eines anderen
 Kontos. Im vorgesehenen Ablauf aus einem nicht erhöhten Standardbenutzerkonto bleibt ein
 erforderlicher Kontowechsel beziehungsweise eine erforderliche Rechteerhöhung interaktiv. Bei
-einem Start ohne Erhöhung kann UAC über das xucRun-Hilfsprogramm die Anwesenheit des Benutzers
+einem Start ohne Erhöhung kann UAC über den xucRun-Freigabehelper die Anwesenheit des Benutzers
 bestätigen; das Zielprogramm läuft danach mit den nicht erhöhten Rechten des Zielkontos. Bei einer
 Erhöhung kann UAC stattdessen den Start des Zielprogramms bestätigen und ihm die angeforderten
 Administratorrechte erteilen. Welche UAC-Abfrage Windows tatsächlich zeigt, hängt vom konkreten
@@ -868,12 +900,11 @@ oder ob sie an den genauen Aufruf, ein Zielprogramm oder alle Programme gebunden
 Reichweite ist beim Anlegen der Freigabe im xucRun-Freigabedialog und später in der
 Freigabenverwaltung sichtbar.
 
-![Windows-UAC-Anwesenheitsbestätigung für den xucRun Approval Helper](docs/de/images/approval-helper-uac.png)
+![Windows-UAC-Anwesenheitsbestätigung für den xucRun-Freigabehelper](docs/de/images/approval-helper-uac.png)
 
-Auch ein Start unter einem anderen Standardkonto kann eine UAC-Anwesenheitsbestätigung erfordern.
-Verwendet xucRun dafür ein Konto, das Mitglied der lokalen Administratorengruppe ist, dient dieses
-Konto bei diesem Start nur zum Öffnen des xucRun-Dialogs auf dem separaten Windows-Desktop. Das
-Zielprogramm läuft weiterhin unter dem gewählten Standardkonto.
+Auch ein Start unter einem anderen Standardkonto kann eine solche UAC-Anwesenheitsbestätigung
+erfordern; das dafür verwendete Konto der lokalen Administratorengruppe dient dann nur zum Öffnen
+des Dialogs, wie unter [Kontowahl und Rechtemodus](#kontowahl-und-rechtemodus) beschrieben.
 
 Ist keine passende Freigabe aktiv, erscheint der xucRun-Freigabedialog auf einem separaten
 Windows-Desktop. Im vorgesehenen Ablauf trennt Windows diesen Desktop von normalen, nicht erhöhten
@@ -896,7 +927,7 @@ Beim ersten solchen Dialog erzeugt xucRun für das aufrufende Windows-Benutzerko
 zufälliges Sicherheitsmerkmal im Format `XXXX-XXXX`. Kennwort-, Freigabe- und Risikodialoge zeigen
 es anschließend unverändert an. Nach der Prüfung der Installationsdatei sollte der Benutzer es
 beim bewusst ausgelösten ersten Dialog einprägen oder geschützt notieren und spätere Dialoge nur
-bei Übereinstimmung bestätigen. Das Merkmal weist auf den xucRun-Helperdialog hin, beweist aber
+bei Übereinstimmung bestätigen. Das Merkmal weist auf einen Dialog des xucRun-Freigabehelpers hin, beweist aber
 weder die Ungefährlichkeit noch den Ursprung einer Operation. Es bietet keinen vollständigen
 Schutz auf einem kompromittierten System und hilft nur, wenn der Benutzer es tatsächlich
 vergleicht.
@@ -915,7 +946,7 @@ Der differenzierte Freigabedialog ermöglicht es, Freigabedauer, Programm- und A
 die einbezogenen Zielkonten an den konkreten Anwendungsfall und das gewünschte Schutzniveau
 anzupassen. Sein fester Kopfbereich oberhalb der scrollbaren Aufrufdetails kennzeichnet den
 angezeigten xucRun-Clientpfad als erfolgreich vom Broker geprüft und zeigt aufrufendes Konto,
-Zielkonto und geschützte Herkunft des Freigabeassistenten vor dem erläuternden UAC-Hinweis. Der
+Zielkonto und geschützte Herkunft des xucRun-Freigabehelpers vor dem erläuternden UAC-Hinweis. Der
 Scrollbereich zeigt ausführliche Authenticode-Informationen für das Zielprogramm. Bei einer
 vertrauenswürdigen Zielsignatur umfassen sie Signierer, vollständigen
 SHA-256-Zertifikatfingerabdruck, Aussteller, Zertifikatsgültigkeit, Signaturart sowie einen
@@ -1042,7 +1073,7 @@ xucRun enthält:
 - den Brokerdienst `xucRunBroker`, der bei Bedarf automatisch gestartet wird, im Hintergrund die
   von xucRun gespeicherten Anmeldedaten verwaltet und Programmstarts unter dem gewählten
   Benutzerkonto ausführt,
-- den Approval-Helper,
+- den xucRun-Freigabehelper `xucRunApproval.exe`,
 - gemeinsame Protokoll-, Serialisierungs- und Sicherheitskomponenten,
 - deutsche und englische Sprachressourcen.
 
@@ -1179,12 +1210,12 @@ Windows-Fehlerberichterstattung sind für den Broker deaktiviert, damit ein Abst
 sensible Speicherinhalte in einer solchen Diagnosedatei hinterlässt.
 
 Bei der erstmaligen Eingabe eines Kennworts muss dieses zwangsläufig kurzzeitig im Speicher des
-Windows-Anmeldedialogs und des geprüften xucRun-Hilfsprogramms vorliegen. Das Hilfsprogramm läuft
-dabei getrennt vom normalen Client mit erhöhten Rechten auf einem eigenen Windows-Desktop. Im
-vorgesehenen Ablauf trennt Windows diesen Desktop von gewöhnlichen, nicht erhöhten Programmen. Das
-Hilfsprogramm sendet das Kennwort über die authentisierte lokale Verbindung unmittelbar an den
-Broker und überschreibt anschließend seine eigenen Speicherbereiche mit dem Kennwort. Der normale
-xucRun-Client erhält das Kennwort auch in diesem Ablauf nicht.
+Windows-Anmeldedialogs und des geprüften xucRun-Freigabehelpers vorliegen. Der Freigabehelper
+läuft dabei getrennt vom normalen Client mit erhöhten Rechten auf einem eigenen Windows-Desktop.
+Im vorgesehenen Ablauf trennt Windows diesen Desktop von gewöhnlichen, nicht erhöhten Programmen.
+Der Freigabehelper sendet das Kennwort über die authentisierte lokale Verbindung unmittelbar an
+den Broker und überschreibt anschließend seine eigenen Speicherbereiche mit dem Kennwort. Der
+normale xucRun-Client erhält das Kennwort auch in diesem Ablauf nicht.
 
 Der Broker ist als bedarfsgestarteter Windows-Dienst konfiguriert und wird nicht allein für
 Statusabfragen gestartet. Nach einer tatsächlichen Verwendung bleibt er bis zu einem
@@ -1248,7 +1279,7 @@ deshalb beim ersten Start einen unbekannten Herausgeber melden.
 
 Der einfachste Installationsweg ist
 `xucRun-Installer-<Version>-x64.exe`, beispielsweise
-`xucRun-Installer-0.9.1.4-x64.exe`. Vor dem Start sollte die Datei nur aus den
+`xucRun-Installer-0.9.1.5-x64.exe`. Vor dem Start sollte die Datei nur aus den
 [offiziellen xucRun-Veröffentlichungen](https://github.com/HT64/xucRun/releases) bezogen, ihre
 SHA-256-Prüfsumme mit der dort veröffentlichten Prüfsumme verglichen und eine vorhandene
 Authenticode-Signatur geprüft werden.
@@ -1262,7 +1293,7 @@ Gültigkeitszeitraum und Fingerabdruck an.
 
 Der Installer prüft die Microsoft Visual C++ Runtime x64. Fehlt eine passende Version, bietet er
 den geprüften Microsoft-Download oder eine vorhandene `vc_redist.x64.exe` an und lehnt zu alte
-Versionen ab. Anschließend installiert er Client, Broker, Approval-Helper und Sprachdateien unter
+Versionen ab. Anschließend installiert er Client, Broker, Freigabehelper und Sprachdateien unter
 `%ProgramFiles%\xucRun` und richtet Brokerdienst und Deinstallationseintrag ein. Der manuelle
 Installationsweg verwendet dasselbe mitgelieferte PowerShell-Skript.
 

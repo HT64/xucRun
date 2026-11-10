@@ -545,9 +545,12 @@
 		std::size_t characterCount = 0;
 		for (const TrackedProcessListEntry& entry : result.entries)
 		{
-			if (HasEmbeddedNull(entry.processBaseName))
+			if (HasEmbeddedNull(entry.processBaseName) ||
+				HasEmbeddedNull(entry.accountSid) ||
+				HasEmbeddedNull(entry.canonicalAccountName))
 				return {};
-			characterCount += entry.processBaseName.size();
+			characterCount += entry.processBaseName.size() +
+				entry.accountSid.size() + entry.canonicalAccountName.size();
 		}
 		std::vector<std::uint8_t> frame;
 		frame.reserve(TrackedProcessListResultHeaderSize +
@@ -567,7 +570,16 @@
 			frame.insert(frame.end(), entry.trackingId.begin(), entry.trackingId.end());
 			WriteUint32(frame, entry.processId);
 			WriteUint32(frame, static_cast<std::uint32_t>(entry.processBaseName.size()));
+			frame.push_back(entry.trustedInstaller ? 1 : 0);
+			frame.push_back(0);
+			frame.push_back(0);
+			frame.push_back(0);
+			WriteUint32(frame, static_cast<std::uint32_t>(entry.accountSid.size()));
+			WriteUint32(frame,
+				static_cast<std::uint32_t>(entry.canonicalAccountName.size()));
 			WriteString(frame, entry.processBaseName);
+			WriteString(frame, entry.accountSid);
+			WriteString(frame, entry.canonicalAccountName);
 		}
 		return frame;
 	}
@@ -602,10 +614,26 @@
 			std::copy_n(frame.begin() + offset, entry.trackingId.size(), entry.trackingId.begin());
 			entry.processId = ReadUint32(frame, offset + 16);
 			const std::size_t nameLength = ReadUint32(frame, offset + 20);
+			if (frame[offset + 24] > 1 || frame[offset + 25] != 0 ||
+				frame[offset + 26] != 0 || frame[offset + 27] != 0)
+			{
+				return false;
+			}
+			entry.trustedInstaller = frame[offset + 24] == 1;
+			const std::size_t accountSidLength = ReadUint32(frame, offset + 28);
+			const std::size_t accountNameLength = ReadUint32(frame, offset + 32);
 			offset += TrackedProcessListEntryHeaderSize;
 			if (nameLength == 0 || nameLength > MaximumProcessBaseNameLength ||
-				nameLength > (frame.size() - offset) / 2 ||
-				!ReadString(frame, offset, nameLength, entry.processBaseName))
+				accountSidLength == 0 ||
+				accountSidLength > MaximumAccountSidLength ||
+				accountNameLength == 0 ||
+				accountNameLength > MaximumCanonicalAccountNameLength ||
+				nameLength + accountSidLength + accountNameLength >
+					(frame.size() - offset) / 2 ||
+				!ReadString(frame, offset, nameLength, entry.processBaseName) ||
+				!ReadString(frame, offset, accountSidLength, entry.accountSid) ||
+				!ReadString(frame, offset, accountNameLength,
+					entry.canonicalAccountName))
 			{
 				return false;
 			}

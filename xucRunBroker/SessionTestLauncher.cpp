@@ -6,6 +6,7 @@
 #include "BrokerTemporaryBatch.h"
 #include "BrokerContracts.h"
 #include "CredentialValidator.h"
+#include "TrustedInstallerToken.h"
 
 #include <aclapi.h>
 #include <sddl.h>

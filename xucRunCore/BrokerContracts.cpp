@@ -745,6 +745,11 @@ namespace xucrun::broker
 			{
 				if (entry.processId == 0 || entry.processBaseName.empty() ||
 					entry.processBaseName.size() > MaximumProcessBaseNameLength ||
+					entry.accountSid.empty() ||
+					entry.accountSid.size() > MaximumAccountSidLength ||
+					entry.canonicalAccountName.empty() ||
+					entry.canonicalAccountName.size() >
+						MaximumCanonicalAccountNameLength ||
 					std::all_of(entry.trackingId.begin(), entry.trackingId.end(),
 						[](std::uint8_t byte) { return byte == 0; }))
 				{
@@ -974,6 +979,8 @@ namespace xucrun::broker
 			return launchError;
 		if (request.approvalAccountSid.size() > MaximumAccountSidLength)
 			return ContractValidationError::AccountSidTooLong;
+		if (request.systemLaunch && request.trustedInstallerLaunch)
+			return ContractValidationError::InvalidArguments;
 		return request.visibility == LaunchVisibility::Normal ||
 			request.visibility == LaunchVisibility::Hidden ||
 			request.visibility == LaunchVisibility::HiddenMonitor
@@ -1101,6 +1108,8 @@ namespace xucrun::broker
 				 (result.elevationMode != ElevationMode::RequireElevated ||
 				  (!result.userConfirmationRequired && !result.approvalHelperView))) ||
 				!helperStateValid || !presenceConfirmationStateValid ||
+				(result.systemLaunchConfirmation &&
+				 result.trustedInstallerLaunchConfirmation) ||
 				!relatedApprovalsValid ||
 				!authenticityMarkerValid ||
 				(result.programUpdateAvailable !=

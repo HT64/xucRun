@@ -51,8 +51,10 @@ treats that encoding as binary.
 | `docs/de/images/runtime-information.png` | Documentation image | German documentation screenshot showing runtime information. |
 | `docs/de/images/security-audit.png` | Documentation image | German documentation screenshot showing security audit. |
 | `docs/de/images/stored-target-account-selection.png` | Documentation image | German documentation screenshot showing selection among target accounts with stored credentials. |
+| `docs/de/images/system-confirmation.png` | Documentation image | German documentation screenshot showing the LocalSystem launch confirmation on the private desktop. |
 | `docs/de/images/target-account-selection.png` | Documentation image | German documentation screenshot showing local account selection for credential capture. |
 | `docs/de/images/target-user-selection.png` | Documentation image | German documentation screenshot showing target user selection. |
+| `docs/de/images/trustedinstaller-confirmation.png` | Documentation image | German documentation screenshot showing the TrustedInstaller launch confirmation with its specific warning. |
 | `docs/de/images/uninstallation-success.png` | Documentation image | German documentation screenshot showing uninstallation success. |
 | `docs/de/images/uninstall-blocked-by-tray.png` | Documentation image | German documentation screenshot showing uninstall blocked by tray. |
 | `docs/de/images/uninstall-confirmation.png` | Documentation image | German documentation screenshot showing uninstall confirmation. |
@@ -79,8 +81,10 @@ treats that encoding as binary.
 | `docs/en/images/runtime-information.png` | Documentation image | English documentation screenshot showing runtime information. |
 | `docs/en/images/security-audit.png` | Documentation image | English documentation screenshot showing security audit. |
 | `docs/en/images/stored-target-account-selection.png` | Documentation image | English documentation screenshot showing selection among target accounts with stored credentials. |
+| `docs/en/images/system-confirmation.png` | Documentation image | English documentation screenshot showing the LocalSystem launch confirmation on the private desktop. |
 | `docs/en/images/target-account-selection.png` | Documentation image | English documentation screenshot showing local account selection for credential capture. |
 | `docs/en/images/target-user-selection.png` | Documentation image | English documentation screenshot showing target user selection. |
+| `docs/en/images/trustedinstaller-confirmation.png` | Documentation image | English documentation screenshot showing the TrustedInstaller launch confirmation with its specific warning. |
 | `docs/en/images/uninstallation-success.png` | Documentation image | English documentation screenshot showing uninstallation success. |
 | `docs/en/images/uninstall-blocked-by-tray.png` | Documentation image | English documentation screenshot showing uninstall blocked by tray. |
 | `docs/en/images/uninstall-confirmation.png` | Documentation image | English documentation screenshot showing uninstall confirmation. |
@@ -202,6 +206,8 @@ treats that encoding as binary.
 | `xucRunBroker/SessionTestLauncher.h` | C++ header | Declares controlled process launches and secure-desktop hosts in the client session. |
 | `xucRunBroker/TargetImageIdentity.cpp` | C++ source | Determines the immutable identity of a requested launch file. |
 | `xucRunBroker/TargetImageIdentity.h` | C++ header | Defines the handle-based verified identity of a requested launch file. |
+| `xucRunBroker/TrustedInstallerToken.cpp` | C++ source | Acquires and validates an SCM-bound TrustedInstaller service token and runs deterministic and live diagnostics. |
+| `xucRunBroker/TrustedInstallerToken.h` | C++ header | Declares TrustedInstaller token acquisition, validation rules, and internal diagnostics. |
 | `xucRunBroker/xucRunBroker.ico` | Application icon | Windows icon used by the xucRunBroker target. |
 | `xucRunBroker/xucRunBroker.rc` | Windows resource script | Defines icon and version resources for the xucRun broker service executable. |
 | `xucRunBroker/xucRunBroker.vcxproj` | MSBuild project | Builds the LocalSystem broker service executable. |

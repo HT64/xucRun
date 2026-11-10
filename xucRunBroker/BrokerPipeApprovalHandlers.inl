@@ -181,9 +181,11 @@
 					result.userConfirmationRequired = false;
 					result.challengeId = pending->challengeId;
 					result.canonicalClientName = clientAccount.canonicalName;
-					result.canonicalAccountName = pending->systemLaunch
-						? L"NT AUTHORITY\\SYSTEM"
-						: account.canonicalName;
+					result.canonicalAccountName = pending->trustedInstallerLaunch
+						? L"NT SERVICE\\TrustedInstaller"
+						: pending->systemLaunch
+							? L"NT AUTHORITY\\SYSTEM"
+							: account.canonicalName;
 					result.clientPath = pending->clientPath;
 					std::copy_n(pending->clientSha256.begin(), result.clientSha256.size(),
 						result.clientSha256.begin());
@@ -203,6 +205,8 @@
 					result.helperStartMode = pending->helperStartMode;
 					result.approvalHelperView = true;
 					result.systemLaunchConfirmation = pending->systemLaunch;
+					result.trustedInstallerLaunchConfirmation =
+						pending->trustedInstallerLaunch;
 					result.storedApprovalPresenceConfirmation =
 						pending->storedApprovalPresenceConfirmation;
 					result.writableElevatedTargetReason =
@@ -298,7 +302,8 @@
 			(pending.writableElevatedTargetReason ==
 				xucrun::broker::ApprovalFailureReason::None ||
 				IsSingleUseApprovalDecision(request)) &&
-			(!pending.systemLaunch || IsSingleUseApprovalDecision(request)) &&
+			(!(pending.systemLaunch || pending.trustedInstallerLaunch) ||
+				IsSingleUseApprovalDecision(request)) &&
 			(request.updateScope == xucrun::broker::ApprovalUpdateScope::None ||
 				pending.programUpdate.available) &&
 			request.broadInterpreterApprovalConfirmed ==
@@ -485,7 +490,7 @@
 				}
 				else
 				{
-					if (pending.systemLaunch)
+					if (pending.systemLaunch || pending.trustedInstallerLaunch)
 					{
 						TargetImageIdentity targetIdentity;
 						targetIdentity.path = pending.executablePath;
@@ -511,17 +516,26 @@
 								confirmationError == NO_ERROR
 									? ERROR_FILE_INVALID : confirmationError;
 						}
-						else if (LaunchSystemProcess(clientSessionId,
-							targetIdentity.path, pending.argumentTail,
-							pending.workingDirectory, launchedProcessId,
-							effectiveWorkingDirectory, confirmationError, failedStage))
+						else if ((pending.trustedInstallerLaunch
+							? LaunchTrustedInstallerProcess(clientSessionId,
+								targetIdentity.path, pending.argumentTail,
+								pending.workingDirectory, launchedProcessId,
+								effectiveWorkingDirectory, confirmationError, failedStage)
+							: LaunchSystemProcess(clientSessionId,
+								targetIdentity.path, pending.argumentTail,
+								pending.workingDirectory, launchedProcessId,
+								effectiveWorkingDirectory, confirmationError, failedStage)))
 						{
 							confirmationResult.status =
 								xucrun::broker::ApprovalConfirmationStatus::Confirmed;
 							confirmationResult.processId = launchedProcessId;
 							if (log)
 								log(EVENTLOG_INFORMATION_TYPE,
-									L"Protected SYSTEM launch challenge confirmed and "
+									std::wstring(L"Protected ") +
+									(pending.trustedInstallerLaunch
+										? L"TrustedInstaller"
+										: L"SYSTEM") +
+									L" launch challenge confirmed and "
 									L"consumed; process started. PID " +
 									std::to_wstring(launchedProcessId) + L", target " +
 									SanitizeLogValue(targetIdentity.path) + L".");
@@ -535,7 +549,11 @@
 									? ERROR_GEN_FAILURE : confirmationError;
 							if (log)
 								log(EVENTLOG_ERROR_TYPE,
-									L"Confirmed SYSTEM launch failed at stage " +
+									std::wstring(L"Confirmed ") +
+									(pending.trustedInstallerLaunch
+										? L"TrustedInstaller"
+										: L"SYSTEM") +
+									L" launch failed at stage " +
 									SanitizeLogValue(failedStage) + L". Error " +
 									std::to_wstring(
 										confirmationResult.windowsError));
@@ -678,7 +696,9 @@
 											}
 											trackedElevatedProcesses.push_back({ trackedProcess,
 												launchedProcessId, clientSessionId, trackingId,
-												GetProcessBaseName(pending.executablePath) });
+												GetProcessBaseName(pending.executablePath), false,
+												accountIdentity.sid,
+												accountIdentity.canonicalName });
 										}
 										else
 										{
@@ -769,14 +789,16 @@
 		std::deque<PendingCredentialCaptureChallenge>& pendingCredentialChallenges,
 		BrokerLogCallback log, DWORD& transferred)
 	{
-		if (!request.systemLaunch)
+		if (!request.systemLaunch && !request.trustedInstallerLaunch)
 			return false;
 
 		xucrun::broker::ApprovalChallengeResult result;
 		result.requestId = request.requestId;
 		result.elevationMode = xucrun::broker::ElevationMode::RequireElevated;
 		result.visibility = request.visibility;
-		result.systemLaunchConfirmation = true;
+		result.systemLaunchConfirmation = request.systemLaunch;
+		result.trustedInstallerLaunchConfirmation =
+			request.trustedInstallerLaunch;
 		DWORD error = NO_ERROR;
 		AccountIdentity clientAccount;
 		TargetImageIdentity targetIdentity;
@@ -791,7 +813,8 @@
 			result.status = xucrun::broker::ApprovalChallengeStatus::Denied;
 			result.windowsError = error == NO_ERROR ? ERROR_ACCESS_DENIED : error;
 		}
-		else if (_wcsicmp(request.requestedAccountSid.c_str(), clientSid.c_str()) != 0 ||
+		else if ((request.systemLaunch && request.trustedInstallerLaunch) ||
+			_wcsicmp(request.requestedAccountSid.c_str(), clientSid.c_str()) != 0 ||
 			!request.approvalAccountSid.empty() ||
 			request.elevationMode != xucrun::broker::ElevationMode::RequireElevated ||
 			request.visibility != xucrun::broker::LaunchVisibility::Normal)
@@ -832,7 +855,9 @@
 		{
 			result.status = xucrun::broker::ApprovalChallengeStatus::Issued;
 			result.canonicalClientName = clientAccount.canonicalName;
-			result.canonicalAccountName = L"NT AUTHORITY\\SYSTEM";
+			result.canonicalAccountName = request.trustedInstallerLaunch
+				? L"NT SERVICE\\TrustedInstaller"
+				: L"NT AUTHORITY\\SYSTEM";
 			result.clientPath = imageIdentity.path;
 			std::copy_n(imageIdentity.sha256.begin(), result.clientSha256.size(),
 				result.clientSha256.begin());
@@ -874,7 +899,8 @@
 			pending.elevationMode =
 				xucrun::broker::ElevationMode::RequireElevated;
 			pending.visibility = xucrun::broker::LaunchVisibility::Normal;
-			pending.systemLaunch = true;
+			pending.systemLaunch = request.systemLaunch;
+			pending.trustedInstallerLaunch = request.trustedInstallerLaunch;
 			pending.userConfirmationRequired = true;
 			if (!ComputeUtf16Sha256(pending.argumentTail, pending.argumentHash))
 			{

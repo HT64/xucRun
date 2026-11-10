@@ -33,6 +33,7 @@ Approach: Configures the target inputs and x64 Debug and Release settings throug
     <ClCompile Include="SessionTestLauncher.cpp" />
     <ClCompile Include="SensitiveClientAuthorization.cpp" />
     <ClCompile Include="TargetImageIdentity.cpp" />
+    <ClCompile Include="TrustedInstallerToken.cpp" />
   </ItemGroup>
   <ItemGroup>
   <ClInclude Include="BrokerDirectoryOperations.h" />
@@ -63,6 +64,7 @@ Approach: Configures the target inputs and x64 Debug and Release settings throug
     <ClInclude Include="SecurityAclAudit.h" />
     <ClInclude Include="SensitiveClientAuthorization.h" />
     <ClInclude Include="TargetImageIdentity.h" />
+    <ClInclude Include="TrustedInstallerToken.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="xucRunBroker.ico" />

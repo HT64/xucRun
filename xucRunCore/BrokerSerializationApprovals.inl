@@ -33,7 +33,9 @@
 		frame.push_back(ApprovalChallengeRequestMessageType);
 		frame.push_back(static_cast<std::uint8_t>(request.elevationMode));
 		frame.push_back(static_cast<std::uint8_t>(request.visibility));
-		frame.push_back(request.systemLaunch ? 1 : 0);
+		frame.push_back(request.trustedInstallerLaunch
+			? 2
+			: request.systemLaunch ? 1 : 0);
 		WriteUint32(frame, request.protocolVersion);
 		WriteUint64(frame, request.requestId);
 		WriteUint32(frame, static_cast<std::uint32_t>(request.requestedAccountSid.size()));
@@ -57,7 +59,7 @@
 		if (frame.size() < ApprovalChallengeRequestHeaderSize ||
 			!std::equal(std::begin(ApprovalChallengeRequestMagic),
 				std::end(ApprovalChallengeRequestMagic), frame.begin()) ||
-			frame[4] != ApprovalChallengeRequestMessageType || frame[7] > 1 ||
+			frame[4] != ApprovalChallengeRequestMessageType || frame[7] > 2 ||
 			(frame[5] != static_cast<std::uint8_t>(ElevationMode::PreserveToken) &&
 			 frame[5] != static_cast<std::uint8_t>(ElevationMode::RequireElevated)) ||
 			(frame[6] != static_cast<std::uint8_t>(LaunchVisibility::Normal) &&
@@ -88,7 +90,8 @@
 		parsed.requestId = ReadUint64(frame, 12);
 		parsed.elevationMode = static_cast<ElevationMode>(frame[5]);
 		parsed.visibility = static_cast<LaunchVisibility>(frame[6]);
-		parsed.systemLaunch = frame[7] != 0;
+		parsed.trustedInstallerLaunch = frame[7] == 2;
+		parsed.systemLaunch = frame[7] == 1;
 		std::size_t offset = ApprovalChallengeRequestHeaderSize;
 		if (!ReadString(frame, offset, sidLength, parsed.requestedAccountSid) ||
 			!ReadString(frame, offset, approvalSidLength, parsed.approvalAccountSid) ||
@@ -172,7 +175,8 @@
 		WriteUint32(frame, static_cast<std::uint32_t>(result.changedProgramPath.size()));
 		frame.push_back(static_cast<std::uint8_t>(result.helperStartMode));
 		frame.push_back((result.approvalHelperView ? 1 : 0) |
-			(result.systemLaunchConfirmation ? 2 : 0));
+			(result.systemLaunchConfirmation ? 2 : 0) |
+			(result.trustedInstallerLaunchConfirmation ? 4 : 0));
 		frame.push_back(result.storedApprovalPresenceConfirmation ? 1 : 0);
 		frame.push_back(static_cast<std::uint8_t>(
 			result.writableElevatedTargetReason));
@@ -265,7 +269,7 @@
 			 frame[6] != static_cast<std::uint8_t>(ElevationMode::RequireElevated)) ||
 			frame[220] > static_cast<std::uint8_t>(
 				ApprovalHelperStartMode::ClientRunAsRequired) ||
-			frame[221] > 3 || frame[222] > 1 ||
+			frame[221] > 7 || (frame[221] & 6) == 6 || frame[222] > 1 ||
 			frame[304] != static_cast<std::uint8_t>(
 				AuthenticodeSignatureKind::None) ||
 			frame[305] > static_cast<std::uint8_t>(
@@ -372,6 +376,7 @@
 		parsed.helperStartMode = static_cast<ApprovalHelperStartMode>(frame[220]);
 		parsed.approvalHelperView = (frame[221] & 1) != 0;
 		parsed.systemLaunchConfirmation = (frame[221] & 2) != 0;
+		parsed.trustedInstallerLaunchConfirmation = (frame[221] & 4) != 0;
 		parsed.storedApprovalPresenceConfirmation = frame[222] != 0;
 		parsed.writableElevatedTargetReason =
 			static_cast<ApprovalFailureReason>(frame[223]);

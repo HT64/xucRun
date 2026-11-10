@@ -721,7 +721,7 @@ namespace
 			xucrun::broker::ElevationMode::RequireElevated);
 		const std::vector<std::uint8_t> expectedFrame = {
 			'X', 'U', 'C', 'R', 1, 1, 0, 0,
-			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			48, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
 			'S', 0, 'E', 0, 'W', 0
 		};
@@ -776,7 +776,7 @@ namespace
 		expected.windowsError = 5;
 		const std::vector<std::uint8_t> expectedFrame = {
 			'X', 'U', 'C', 'S', 2, 5, 0, 0,
-			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			48, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			5, 0, 0, 0
 		};
 		if (xucrun::broker::SerializeLaunchResult(expected) != expectedFrame)
@@ -797,7 +797,7 @@ namespace
 			xucrun::broker::SerializeSystemLaunchRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'E', 'S', 58, 0, 0, 0,
-			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			48, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,
 			'E', 0, 'A', 0, 'W', 0
 		};
@@ -833,7 +833,7 @@ namespace
 			xucrun::broker::SerializeSystemLaunchResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'E', 'T', 59, 0, 0, 0,
-			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			48, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			0, 0, 0, 0, 210, 4, 0, 0
 		};
 		xucrun::broker::SystemLaunchResult parsedResult;
@@ -945,7 +945,7 @@ namespace
 		xucrun::broker::CredentialMetadataRequest parsedRequest;
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'M', 6, 0, 0, 0,
-			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			48, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			3, 0, 0, 0, 'S', 0, '-', 0, '1', 0
 		};
 		if (requestFrame != expectedRequestFrame ||
@@ -1003,7 +1003,7 @@ namespace
 			xucrun::broker::SerializeSessionTestRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'T', 8, 0, 0, 0,
-			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
+			48, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
 		};
 		xucrun::broker::SessionTestRequest parsedRequest;
 		if (requestFrame != expectedRequestFrame ||
@@ -1022,7 +1022,7 @@ namespace
 			xucrun::broker::SerializeSessionTestResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'C', 'U', 9, 0, 0, 0,
-			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			48, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			0, 0, 0, 0, 0x44, 0x33, 0x22, 0x11
 		};
 		xucrun::broker::SessionTestResult parsedResult;
@@ -1052,7 +1052,7 @@ namespace
 			xucrun::broker::SerializeCredentialStoreTestRequest(request);
 		const std::vector<std::uint8_t> expectedRequestFrame = {
 			'X', 'U', 'C', 'V', 10, 0, 0, 0,
-			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
+			48, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1
 		};
 		xucrun::broker::CredentialStoreTestRequest parsedRequest;
 		if (requestFrame != expectedRequestFrame ||
@@ -1072,7 +1072,7 @@ namespace
 			xucrun::broker::SerializeCredentialStoreTestResult(result);
 		const std::vector<std::uint8_t> expectedResultFrame = {
 			'X', 'U', 'C', 'W', 11, 1, 0, 0,
-			45, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
+			48, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1,
 			13, 0, 0, 0
 		};
 		xucrun::broker::CredentialStoreTestResult parsedResult;
@@ -1619,7 +1619,7 @@ namespace
 			failures++;
 		}
 		invalidRequest = requestFrame;
-		invalidRequest[7] = 2;
+		invalidRequest[7] = 3;
 		if (xucrun::broker::DeserializeApprovalChallengeRequest(
 			invalidRequest, parsedRequest))
 		{
@@ -1637,6 +1637,29 @@ namespace
 			!parsedRequest.systemLaunch)
 		{
 			std::cerr << "system approval challenge flag roundtrip failed\n";
+			failures++;
+		}
+		xucrun::broker::ApprovalChallengeRequest trustedInstallerRequest = request;
+		trustedInstallerRequest.approvalAccountSid.clear();
+		trustedInstallerRequest.visibility =
+			xucrun::broker::LaunchVisibility::Normal;
+		trustedInstallerRequest.trustedInstallerLaunch = true;
+		const std::vector<std::uint8_t> trustedInstallerRequestFrame =
+			xucrun::broker::SerializeApprovalChallengeRequest(
+				trustedInstallerRequest);
+		if (!xucrun::broker::DeserializeApprovalChallengeRequest(
+				trustedInstallerRequestFrame, parsedRequest) ||
+			!parsedRequest.trustedInstallerLaunch ||
+			parsedRequest.systemLaunch)
+		{
+			std::cerr << "TrustedInstaller approval challenge flag roundtrip failed\n";
+			failures++;
+		}
+		trustedInstallerRequest.systemLaunch = true;
+		if (!xucrun::broker::SerializeApprovalChallengeRequest(
+			trustedInstallerRequest).empty())
+		{
+			std::cerr << "conflicting privileged launch flags accepted\n";
 			failures++;
 		}
 
@@ -1987,6 +2010,25 @@ namespace
 			failures++;
 		}
 		result.systemLaunchConfirmation = false;
+		result.trustedInstallerLaunchConfirmation = true;
+		const std::vector<std::uint8_t> trustedInstallerHelperViewFrame =
+			xucrun::broker::SerializeApprovalChallengeResult(result);
+		if (!xucrun::broker::DeserializeApprovalChallengeResult(
+				trustedInstallerHelperViewFrame, parsedResult) ||
+			!parsedResult.trustedInstallerLaunchConfirmation ||
+			parsedResult.systemLaunchConfirmation)
+		{
+			std::cerr << "TrustedInstaller approval helper flag roundtrip failed\n";
+			failures++;
+		}
+		result.systemLaunchConfirmation = true;
+		if (!xucrun::broker::SerializeApprovalChallengeResult(result).empty())
+		{
+			std::cerr << "conflicting privileged helper flags accepted\n";
+			failures++;
+		}
+		result.systemLaunchConfirmation = false;
+		result.trustedInstallerLaunchConfirmation = false;
 		result.helperStartMode = xucrun::broker::ApprovalHelperStartMode::BrokerStarted;
 		if (xucrun::broker::SerializeApprovalChallengeResult(result).empty())
 		{
@@ -2770,6 +2812,9 @@ namespace
 		entry.trackingId[15] = 0x24;
 		entry.processId = 1234;
 		entry.processBaseName = L"notepad.exe";
+		entry.trustedInstaller = true;
+		entry.accountSid = L"S-1-5-18";
+		entry.canonicalAccountName = L"NT AUTHORITY\\SYSTEM";
 		result.entries.push_back(entry);
 		const auto resultFrame = xucrun::broker::SerializeTrackedProcessListResult(result);
 		xucrun::broker::TrackedProcessListResult parsedResult;
@@ -2777,7 +2822,11 @@ namespace
 			parsedResult.requestId != result.requestId || parsedResult.entries.size() != 1 ||
 			parsedResult.entries[0].trackingId != entry.trackingId ||
 			parsedResult.entries[0].processId != entry.processId ||
-			parsedResult.entries[0].processBaseName != entry.processBaseName)
+			parsedResult.entries[0].processBaseName != entry.processBaseName ||
+			!parsedResult.entries[0].trustedInstaller ||
+			parsedResult.entries[0].accountSid != entry.accountSid ||
+			parsedResult.entries[0].canonicalAccountName !=
+				entry.canonicalAccountName)
 		{
 			std::cerr << "tracked process list result round trip failed\n";
 			failures++;
@@ -2794,6 +2843,20 @@ namespace
 		if (xucrun::broker::DeserializeTrackedProcessListResult(invalidFrame, parsedResult))
 		{
 			std::cerr << "trailing tracked process list result data accepted\n";
+			failures++;
+		}
+		invalidFrame = resultFrame;
+		invalidFrame[xucrun::broker::TrackedProcessListResultHeaderSize + 24] = 2;
+		if (xucrun::broker::DeserializeTrackedProcessListResult(invalidFrame, parsedResult))
+		{
+			std::cerr << "invalid tracked process identity accepted\n";
+			failures++;
+		}
+		invalidFrame = resultFrame;
+		invalidFrame[xucrun::broker::TrackedProcessListResultHeaderSize + 25] = 1;
+		if (xucrun::broker::DeserializeTrackedProcessListResult(invalidFrame, parsedResult))
+		{
+			std::cerr << "tracked process reserved identity data accepted\n";
 			failures++;
 		}
 		invalidFrame = resultFrame;
@@ -2840,6 +2903,52 @@ namespace
 			std::cerr << "oversized tracked process name serialized\n";
 			failures++;
 		}
+		result.entries[0] = entry;
+		result.entries[0].accountSid.clear();
+		if (!xucrun::broker::SerializeTrackedProcessListResult(result).empty())
+		{
+			std::cerr << "empty tracked process account SID serialized\n";
+			failures++;
+		}
+		result.entries[0] = entry;
+		result.entries[0].accountSid = std::wstring(L"S-1\0-5-18", 9);
+		if (!xucrun::broker::SerializeTrackedProcessListResult(result).empty())
+		{
+			std::cerr << "embedded null tracked process account SID serialized\n";
+			failures++;
+		}
+		result.entries[0] = entry;
+		result.entries[0].accountSid.assign(
+			xucrun::broker::MaximumAccountSidLength + 1, L'1');
+		if (!xucrun::broker::SerializeTrackedProcessListResult(result).empty())
+		{
+			std::cerr << "oversized tracked process account SID serialized\n";
+			failures++;
+		}
+		result.entries[0] = entry;
+		result.entries[0].canonicalAccountName.clear();
+		if (!xucrun::broker::SerializeTrackedProcessListResult(result).empty())
+		{
+			std::cerr << "empty tracked process account name serialized\n";
+			failures++;
+		}
+		result.entries[0] = entry;
+		result.entries[0].canonicalAccountName =
+			std::wstring(L"DOMAIN\0\\User", 12);
+		if (!xucrun::broker::SerializeTrackedProcessListResult(result).empty())
+		{
+			std::cerr << "embedded null tracked process account name serialized\n";
+			failures++;
+		}
+		result.entries[0] = entry;
+		result.entries[0].canonicalAccountName.assign(
+			xucrun::broker::MaximumCanonicalAccountNameLength + 1, L'x');
+		if (!xucrun::broker::SerializeTrackedProcessListResult(result).empty())
+		{
+			std::cerr << "oversized tracked process account name serialized\n";
+			failures++;
+		}
+		result.entries[0] = entry;
 		result.entries.assign(xucrun::broker::MaximumTrackedProcessEntries, entry);
 		const auto maximumResultFrame =
 			xucrun::broker::SerializeTrackedProcessListResult(result);

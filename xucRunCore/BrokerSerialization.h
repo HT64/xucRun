@@ -50,7 +50,7 @@ namespace xucrun::broker
 	inline constexpr std::size_t BackupEntryHeaderSize = 32;
 	inline constexpr std::size_t TrackedProcessListRequestSize = 20;
 	inline constexpr std::size_t TrackedProcessListResultHeaderSize = 28;
-	inline constexpr std::size_t TrackedProcessListEntryHeaderSize = 24;
+	inline constexpr std::size_t TrackedProcessListEntryHeaderSize = 36;
 	inline constexpr std::size_t TrackedProcessRegistrationRequestSize = 32;
 	inline constexpr std::size_t TrackedProcessRegistrationResultSize = 24;
 	inline constexpr std::size_t StatusIconListRequestSize = 40;
@@ -132,7 +132,9 @@ namespace xucrun::broker
 			(BackupIdLength + xucrun::backup::MaximumDescriptionLength));
 	inline constexpr std::size_t MaximumTrackedProcessListResultSize =
 		TrackedProcessListResultHeaderSize + MaximumTrackedProcessEntries *
-		(TrackedProcessListEntryHeaderSize + 2 * MaximumProcessBaseNameLength);
+		(TrackedProcessListEntryHeaderSize + 2 *
+			(MaximumProcessBaseNameLength + MaximumAccountSidLength +
+				MaximumCanonicalAccountNameLength));
 	inline constexpr std::size_t MaximumStatusIconListResultSize =
 		StatusIconListResultHeaderSize + MaximumStatusIconEntries *
 		(StatusIconListEntryHeaderSize + 2 *

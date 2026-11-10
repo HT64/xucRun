@@ -221,7 +221,8 @@ supported shell. It should be used in a script only when closing the existing co
 interactively starting a replacement shell is explicitly intended. An invocation without
 parameters is not suitable for a normal desktop shortcut.
 
-Supported parent shells are `cmd.exe`, `powershell.exe`, `pwsh.exe`, and `tcc.exe`.
+Supported parent shells are `cmd.exe`, `powershell.exe`, `pwsh.exe`, and `tcc.exe`. (TCC is the
+console of [Take Command from JP Software](https://jpsoft.com/).)
 
 ### Relaunch a batch file with elevated privileges when needed
 
@@ -359,9 +360,7 @@ maintenance and diagnostic work.
 
 xucRun can also start Total Commander under an explicitly selected different Windows account
 without that account already being signed in interactively. This allows file operations to be
-performed in another account context from a standard user session. For elevated administrative
-file operations, the target account must have administrator privileges and the Windows UAC prompt
-must be confirmed.
+performed in another account context from a standard user session.
 
 For this example, replace `<Account>` with the configured account name and keep the Total
 Commander variables and quoting unchanged:
@@ -532,6 +531,7 @@ authorization.
 | `xucRun.exe /showapprovals` | show stored approvals |
 | `xucRun.exe /resetapprovals[:<Account>]` | reset approvals |
 | `xucRun.exe /system [<Application> [Arguments...]]` | start a local application or replacement shell as `LocalSystem` |
+| `xucRun.exe /trustedinstaller [<Application> [Arguments...]]` | start a local application or replacement shell with `LocalSystem` privileges and the TrustedInstaller service identity |
 | `xucRun.exe /info` | show version, copyright, signing certificate, broker status, and current configuration |
 | `xucRun.exe /admin-status` | show and manage data for all Windows users with elevation |
 | `xucRun.exe /backup` | manage local backups |
@@ -548,42 +548,71 @@ these options.
 fails, is rejected, or is cancelled. The exit code of a launched target program is not returned as
 the exit code of `xucRun.exe`.
 
-### Starting an application or replacement shell as LocalSystem
+### Starting an application or replacement shell as LocalSystem or TrustedInstaller
 
-`xucRun.exe /system [<Application> [Arguments...]]` starts the specified local application, or a
-replacement shell when no application is specified, as the Windows `LocalSystem` account in the
-caller's interactive session. This mode is available only to members of the local Administrators
-group. An administrator who is not already elevated receives one Windows UAC consent prompt; an
-already elevated administrator performs the launch without another UAC prompt. Standard users are
-rejected before an elevation request.
+`xucRun.exe /system [<Application> [Arguments...]]` starts the specified local application as the
+Windows `LocalSystem` account in the caller's interactive session.
+`xucRun.exe /trustedinstaller [<Application> [Arguments...]]` starts it with `LocalSystem`
+privileges plus the effective `NT SERVICE\TrustedInstaller` service identity.
 
-Without an application, `xucRun.exe /system` replaces an invoking TCC, Command Prompt, Windows
-PowerShell, or PowerShell Core shell with the same shell running as `LocalSystem`. It preserves
-the current working directory, brings the new shell to the foreground, and closes the previous
-shell only after the replacement started successfully.
+Both modes are available only to members of the local Administrators group. An administrator who
+is not already elevated receives one Windows UAC consent prompt; an already elevated
+administrator performs the launch without another UAC prompt. Standard users are rejected before
+an elevation request. The elevated account that is a member of the local Administrators group may
+differ from the account signed in to the interactive session, so both modes can also be invoked
+from an elevated replacement shell in another user's session.
 
-The elevated account that is a member of the local Administrators group may differ from the
-account signed in to the interactive session. This allows `/system` to be invoked from an elevated
-replacement shell in another user's session.
+Without an application, both modes replace an invoking TCC, Command Prompt, Windows PowerShell,
+or PowerShell Core shell with the same shell type running under the selected identity. The
+current working directory is preserved, the new shell is brought to the foreground, and the
+previous shell is closed only after the confirmed replacement started successfully. Unknown
+parent shells are rejected.
 
-`/system` does not use stored credentials or approvals. Every launch must be confirmed separately
-in the signed xucRun Approval Helper, the component that presents protected confirmation dialogs.
+Neither mode uses stored credentials or approvals: `LocalSystem` and `TrustedInstaller` are not
+user accounts with a password, and a stored approval would silently grant full system control to
+every later launch of the same executable. Every invocation must therefore be confirmed
+separately in the signed xucRun Approval Helper, the component that presents protected
+confirmation dialogs.
 The dialog appears on xucRun's protected private desktop and shows the exact executable, all
-arguments, and the working directory. The confirmation applies only to that invocation and cannot
-be stored. xucRun revalidates the executable immediately before starting it.
+arguments, and the working directory; for `/trustedinstaller` it adds a specific warning about
+changes to protected Windows files and registry entries. The confirmation applies only to that
+invocation and cannot be stored, and it authorizes the selected program for its entire lifetime,
+including operations performed through its user interface and child processes that inherit or
+otherwise use its privileged context. A file manager, Registry Editor, shell, or script
+interpreter therefore provides very broad system control. xucRun revalidates the executable
+immediately before starting it.
+
+| `/system` confirmation | `/trustedinstaller` confirmation with its specific warning |
+|:---:|:---:|
+| ![Confirming a LocalSystem launch on the private desktop](docs/en/images/system-confirmation.png) | ![Confirming a TrustedInstaller launch with its specific warning](docs/en/images/trustedinstaller-confirmation.png) |
 
 The private desktop protects the confirmation from ordinary applications on the normal desktop.
 It cannot protect against malicious software that is already running with elevated administrator
-rights in the same logon session. Use `/system` only from a trusted elevated administrator
+rights in the same logon session. Use both modes only from a trusted elevated administrator
 session.
-
-```cmd
-xucRun.exe /system "%SystemRoot%\regedit.exe" /m
-```
 
 Applications running as `LocalSystem` have extensive control over the computer. In particular,
 `HKEY_CURRENT_USER` refers to the `LocalSystem` profile rather than the signed-in user's profile.
-Use this mode only for deliberate maintenance and diagnostic work.
+
+TrustedInstaller is not a general privilege level above `LocalSystem`. This mode combines
+`LocalSystem` rights with the TrustedInstaller service identity and therefore adds access only to
+objects for which Windows grants that identity additional rights. If the required Windows service
+is stopped, xucRun may start it but does not change its startup configuration or stop it
+afterward. A service started this way therefore keeps running at first and usually stops itself
+once Windows no longer needs it; a program that has already started keeps its rights regardless.
+If xucRun cannot establish the required TrustedInstaller identity, the launch fails; there is no
+fallback to a normal `/system` launch.
+
+```cmd
+xucRun.exe /system "%SystemRoot%\regedit.exe" /m
+xucRun.exe /trustedinstaller "%SystemRoot%\regedit.exe"
+```
+
+Use both modes only for deliberate maintenance and diagnostic work. The TrustedInstaller identity
+does not turn manual changes into supported Windows component servicing. Editing protected files
+or registry data can make the component store inconsistent or damage Windows Update, component
+repair, or system startup. Use Windows Update or another documented Windows servicing mechanism
+whenever one exists.
 
 ## Managing credentials and approvals
 
@@ -666,6 +695,10 @@ controlled approvals for stored credentials. This convenience introduces additio
 Users who do not want to store and reuse credentials should use native alternatives such as Fast
 User Switching instead.
 
+Beyond this core workflow, the additional launch modes for `LocalSystem` and the TrustedInstaller
+service identity are intended for specific maintenance and diagnostic tasks. They extend xucRun's
+capabilities but are neither its starting point nor its ordinary use case.
+
 How this approach differs from Windows UAC, `runas`, Windows Sudo, and other solutions is
 described in the following section.
 
@@ -682,16 +715,15 @@ session. The user can then return to the previous session. This approach is also
 complete interactive working environment of the other user is required.
 
 In contrast to Fast User Switching, xucRun keeps the user in the current session and starts only
-the required program under the selected other account, with or without elevated privileges. Users
-who prefer not to store credentials for this purpose can use Fast User Switching instead.
+the required program under the selected other account, with or without elevated privileges.
 
 ### Windows UAC and Sudo for Windows
 
 Windows User Account Control (UAC) is the Windows security feature through which a user explicitly
 confirms a start with administrator privileges. Depending on the specific launch path and Windows
-configuration, an account switch with xucRun can require UAC confirmation. For a launch without
-elevation, UAC can confirm the user's presence through the xucRun helper; with elevation, it can
-instead confirm the target program start and grant the requested administrator privileges.
+configuration, an account switch with xucRun can also require UAC confirmation; the interaction is
+described under
+[Relationship between xucRun approvals and Windows UAC](#relationship-between-xucrun-approvals-and-windows-uac).
 
 [Sudo for Windows](https://learn.microsoft.com/windows/advanced-settings/sudo/) starts a single
 process with administrator privileges from an unelevated console through Windows UAC. Its current
@@ -754,8 +786,7 @@ runas.exe /savecred /user:Administrator "elevate.exe %windir%\System32\mmc.exe %
 The exact syntax depends on the selected elevation tool. In this tool chain, the account name must
 appear in the invocation, and the complete downstream command line must be passed to `runas.exe`
 as one argument. In its main use case, xucRun does not require an account name and keeps the
-program and its arguments separate within one invocation. UAC confirmation remains interactive in
-both variants.
+program and its arguments separate within one invocation.
 
 A more complex example creates a firewall rule for a program whose path contains spaces:
 
@@ -771,8 +802,7 @@ depend on the specific elevation tool and its quoting rules.
 After the password is entered once, `runas.exe /savecred /user:Administrator` can use the same
 account whose credentials were stored for other programs without requesting the password or a
 mandatory confirmation again. xucRun instead requires a suitable explicit approval before stored
-credentials are used. Any Windows UAC confirmation required for the specific launch remains
-interactive.
+credentials are used.
 
 `runas.exe /savecred` and xucRun use separate, incompatible credential storage. An xucRun approval
 can be bound closely to the calling user account, the target account, the participating programs
@@ -812,7 +842,7 @@ and consent is handled exclusively by Windows UAC.
 xucRun program approvals apply to starts using another account's stored credentials. In the
 intended workflow from a non-elevated standard user account, a required account switch or
 elevation remains interactive. For a launch without elevation, UAC can confirm the user's presence
-through the xucRun helper, after which the target program runs with the target account's
+through the xucRun Approval Helper, after which the target program runs with the target account's
 non-elevated privileges. With elevation, UAC can instead confirm the target program start and
 grant it the requested administrator privileges. The UAC prompt that Windows actually displays
 depends on the specific launch path and Windows configuration.
@@ -829,10 +859,10 @@ approval management view.
 
 ![Windows UAC presence confirmation for the xucRun Approval Helper](docs/en/images/approval-helper-uac.png)
 
-Starting a program under another standard account can also require UAC presence confirmation. If
-xucRun uses an account that is a member of the local Administrators group for this purpose, that
-account is used for this launch only to open the xucRun dialog on the separate Windows desktop.
-The target program continues to run under the selected standard account.
+Starting a program under another standard account can also require such a UAC presence
+confirmation; the local Administrators group member used for it then serves only to open the
+dialog, as described under
+[Account selection and privilege mode](#account-selection-and-privilege-mode).
 
 If no suitable approval is active, the xucRun approval dialog appears on a separate Windows
 desktop. In the intended workflow, Windows separates this desktop from normal, non-elevated
@@ -853,7 +883,7 @@ For the first such dialog, xucRun creates a random xucRun dialog security identi
 `XXXX-XXXX`. This is not a Windows account security identifier (SID). Password, approval, and risk
 dialogs then display it unchanged. After verifying the installation, the user should remember or
 securely record it during the first deliberately initiated dialog and confirm later dialogs only
-when it matches. The identifier indicates an xucRun helper dialog but does not prove that an
+when it matches. The identifier indicates an xucRun Approval Helper dialog but does not prove that an
 operation is safe or user-initiated. It does not provide complete protection on a compromised
 system and helps only when the user actually compares it.
 
@@ -871,7 +901,7 @@ The differentiated approval dialog allows the approval duration, program and inv
 and included target accounts to be adapted to the specific use case and desired level of
 protection. Its fixed header above the scrollable launch details identifies the xucRun client path
 as successfully verified by the broker and shows the calling account, target account, and
-protected approval-helper origin before the explanatory UAC note. The scrollable area shows
+protected Approval Helper origin before the explanatory UAC note. The scrollable area shows
 detailed Authenticode information for the target program. For a trusted target signature, these
 details include the signer, full SHA-256 certificate fingerprint, issuer, certificate validity
 period, signature type, and any available timestamp and timestamp authority. If trust verification
@@ -986,7 +1016,7 @@ xucRun contains:
 - the `xucRun.exe` client,
 - the `xucRunBroker` service, which starts automatically when needed, manages credentials stored by
   xucRun in the background, and starts programs under the selected user account,
-- the Approval Helper,
+- the xucRun Approval Helper `xucRunApproval.exe`,
 - shared protocol, serialization, and security components,
 - German and English language resources.
 
@@ -1111,12 +1141,12 @@ memory dumps are disabled for the broker so that a crash does not unnecessarily 
 memory contents in such a diagnostic file.
 
 When a password is entered for the first time, it must necessarily be present briefly in the
-memory of the Windows credential dialog and the verified xucRun helper. The helper runs separately
-from the normal client with elevated privileges on its own Windows desktop. In the intended
-workflow, Windows separates this desktop from ordinary, non-elevated programs. The helper sends
-the password directly to the broker over the authenticated local connection and then overwrites
-its own memory areas containing the password. The normal xucRun client does not receive the
-password in this workflow either.
+memory of the Windows credential dialog and the verified xucRun Approval Helper. The Approval
+Helper runs separately from the normal client with elevated privileges on its own Windows desktop.
+In the intended workflow, Windows separates this desktop from ordinary, non-elevated programs. The
+Approval Helper sends the password directly to the broker over the authenticated local connection
+and then overwrites its own memory areas containing the password. The normal xucRun client does
+not receive the password in this workflow either.
 
 The broker is configured as a demand-start Windows service and is not started for status queries
 alone. After actual use, it remains active until it is explicitly stopped, Windows shuts down, or
@@ -1172,7 +1202,7 @@ it is first started.
 
 The easiest installation method is
 `xucRun-Installer-<Version>-x64.exe`, for example
-`xucRun-Installer-0.9.1.4-x64.exe`. Before starting it, obtain the file only from the
+`xucRun-Installer-0.9.1.5-x64.exe`. Before starting it, obtain the file only from the
 [official xucRun releases](https://github.com/HT64/xucRun/releases), compare its SHA-256 checksum
 with the checksum published there, and verify any available Authenticode signature.
 
@@ -1185,7 +1215,7 @@ validity period and fingerprint.
 
 The installer checks the Microsoft Visual C++ Runtime x64. If no compatible version is present,
 it offers a verified Microsoft download or an existing `vc_redist.x64.exe` and rejects versions
-that are too old. It then installs the client, broker, approval helper, and language files under
+that are too old. It then installs the client, broker, Approval Helper, and language files under
 `%ProgramFiles%\xucRun` and configures the broker service and uninstall entry. The manual
 installation method uses the same included PowerShell script.
 

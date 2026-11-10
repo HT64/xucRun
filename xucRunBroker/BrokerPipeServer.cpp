@@ -26,6 +26,7 @@
 #include "SecurityAclAudit.h"
 #include "TargetNaming.h"
 #include "TargetImageIdentity.h"
+#include "TrustedInstallerToken.h"
 #include "../xucRunCore/ClientProcessContext.h"
 
 #include <aclapi.h>
@@ -349,6 +350,7 @@ namespace
 		bool diagnosticProfile = false;
 		bool trustedAdministrativeClientLaunch = false;
 		bool systemLaunch = false;
+		bool trustedInstallerLaunch = false;
 		bool userConfirmationRequired = true;
 		bool storedApprovalPresenceConfirmation = false;
 		bool clientAccountPresenceConfirmation = false;
@@ -537,6 +539,9 @@ namespace
 		DWORD sessionId = 0;
 		xucrun::broker::RequestNonce trackingId = {};
 		std::wstring processBaseName;
+		bool trustedInstaller = false;
+		std::wstring accountSid;
+		std::wstring canonicalAccountName;
 	};
 
 	struct TrackedProcessListCandidate
@@ -923,7 +928,7 @@ namespace
 			error = NO_ERROR;
 			return true;
 		}
-		if (pending.systemLaunch ||
+		if (pending.systemLaunch || pending.trustedInstallerLaunch ||
 			ShouldUseClientTokenForApprovalHelper(pending.elevationMode,
 				targetMembershipResolved, targetIsAdministrator, clientIsHighIntegrity))
 		{
@@ -1318,12 +1323,76 @@ namespace
 		return success;
 	}
 
+	bool ReadTokenUserAccount(HANDLE token, std::wstring& accountSid,
+		std::wstring& canonicalAccountName, DWORD& error)
+	{
+		accountSid.clear();
+		canonicalAccountName.clear();
+		DWORD size = 0;
+		GetTokenInformation(token, TokenUser, nullptr, 0, &size);
+		if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || size == 0)
+		{
+			error = GetLastError();
+			if (error == NO_ERROR)
+				error = ERROR_INVALID_DATA;
+			return false;
+		}
+		std::vector<std::uint8_t> buffer(size);
+		if (!GetTokenInformation(token, TokenUser, buffer.data(), size, &size))
+		{
+			error = GetLastError();
+			return false;
+		}
+		const auto* user = reinterpret_cast<const TOKEN_USER*>(buffer.data());
+		if (!IsValidSid(user->User.Sid))
+		{
+			error = ERROR_INVALID_SID;
+			return false;
+		}
+		wchar_t* sidText = nullptr;
+		if (!ConvertSidToStringSidW(user->User.Sid, &sidText))
+		{
+			error = GetLastError();
+			return false;
+		}
+		accountSid = sidText;
+		LocalFree(sidText);
+
+		DWORD nameLength = 0;
+		DWORD domainLength = 0;
+		SID_NAME_USE use = SidTypeUnknown;
+		LookupAccountSidW(nullptr, user->User.Sid, nullptr, &nameLength,
+			nullptr, &domainLength, &use);
+		if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || nameLength == 0)
+		{
+			canonicalAccountName = accountSid;
+			return true;
+		}
+		std::vector<wchar_t> name(nameLength);
+		std::vector<wchar_t> domain(domainLength);
+		if (!LookupAccountSidW(nullptr, user->User.Sid, name.data(), &nameLength,
+			domain.empty() ? nullptr : domain.data(), &domainLength, &use))
+		{
+			canonicalAccountName = accountSid;
+			return true;
+		}
+		canonicalAccountName = domainLength > 1
+			? std::wstring(domain.data()) + L"\\" + name.data()
+			: std::wstring(name.data());
+		return true;
+	}
+
 	// Accepts a tracked process only with a matching PID, session, logon SID, and elevated token.
 	bool ValidateRegisteredProcess(HANDLE process, DWORD expectedProcessId,
 		DWORD expectedSessionId, const std::wstring& expectedLogonSid,
-		std::wstring& processBaseName, DWORD& error)
+		std::wstring& processBaseName, bool& trustedInstaller,
+		std::wstring& accountSid, std::wstring& canonicalAccountName,
+		DWORD& error)
 	{
 		error = NO_ERROR;
+		trustedInstaller = false;
+		accountSid.clear();
+		canonicalAccountName.clear();
 		if (GetProcessId(process) != expectedProcessId ||
 			WaitForSingleObject(process, 0) != WAIT_TIMEOUT)
 		{
@@ -1362,6 +1431,19 @@ namespace
 			error = GetLastError();
 		else if (!elevated)
 			error = ERROR_ELEVATION_REQUIRED;
+		if (elevated &&
+			!ReadTokenUserAccount(token, accountSid, canonicalAccountName, error))
+		{
+			CloseHandle(token);
+			return false;
+		}
+		if (elevated)
+		{
+			DWORD identityError = NO_ERROR;
+			std::wstring identityStage;
+			trustedInstaller = InspectTrustedInstallerToken(token,
+				&expectedSessionId, nullptr, identityError, identityStage);
+		}
 		CloseHandle(token);
 		if (!elevated)
 			return false;
@@ -1442,11 +1524,16 @@ namespace
 						PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, processId);
 					ULONGLONG creationTime = 0;
 					std::wstring processBaseName;
+					bool trustedInstaller = false;
+					std::wstring accountSid;
+					std::wstring canonicalAccountName;
 					DWORD validationError = NO_ERROR;
 					if (!process || !GetProcessCreationTimeValue(process, creationTime) ||
 						creationTime < job.rootCreationTime ||
 						!ValidateRegisteredProcess(process, processId, job.sessionId,
-							job.logonSid, processBaseName, validationError) ||
+							job.logonSid, processBaseName, trustedInstaller,
+							accountSid, canonicalAccountName,
+							validationError) ||
 						IsInfrastructureProcess(processBaseName))
 					{
 						if (process)
@@ -1457,7 +1544,8 @@ namespace
 					if (GenerateTrackingId(processes, trackingId))
 					{
 						processes.push_back({ process, processId, job.sessionId,
-							trackingId, std::move(processBaseName) });
+							trackingId, std::move(processBaseName), trustedInstaller,
+							std::move(accountSid), std::move(canonicalAccountName) });
 					}
 					else
 						CloseHandle(process);
@@ -1499,11 +1587,16 @@ namespace
 					PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, FALSE, processId);
 				std::wstring processLogonSid;
 				std::wstring processBaseName;
+				bool trustedInstaller = false;
+				std::wstring accountSid;
+				std::wstring canonicalAccountName;
 				DWORD validationError = NO_ERROR;
 				if (!process ||
 					!GetProcessLogonSid(process, processLogonSid, validationError) ||
 					!ValidateRegisteredProcess(process, processId, sessionId,
-						processLogonSid, processBaseName, validationError) ||
+						processLogonSid, processBaseName, trustedInstaller,
+						accountSid, canonicalAccountName,
+						validationError) ||
 					IsInfrastructureProcess(processBaseName))
 				{
 					if (process)
@@ -1515,7 +1608,8 @@ namespace
 				if (GenerateTrackingId(processes, trackingId))
 				{
 					processes.push_back({ process, processId, sessionId,
-						trackingId, std::move(processBaseName) });
+						trackingId, std::move(processBaseName), trustedInstaller,
+						std::move(accountSid), std::move(canonicalAccountName) });
 				}
 				else
 				{
@@ -1565,9 +1659,14 @@ namespace
 				if (!process)
 					continue;
 				std::wstring processBaseName;
+				bool trustedInstaller = false;
+				std::wstring accountSid;
+				std::wstring canonicalAccountName;
 				DWORD validationError = NO_ERROR;
 				if (!ValidateRegisteredProcess(process, processId, job->sessionId,
-					job->logonSid, processBaseName, validationError) ||
+					job->logonSid, processBaseName, trustedInstaller,
+					accountSid, canonicalAccountName,
+					validationError) ||
 					IsInfrastructureProcess(processBaseName))
 				{
 					CloseHandle(process);
@@ -1580,7 +1679,8 @@ namespace
 					continue;
 				}
 				processes.push_back({ process, processId, job->sessionId,
-					trackingId, std::move(processBaseName) });
+					trackingId, std::move(processBaseName), trustedInstaller,
+					std::move(accountSid), std::move(canonicalAccountName) });
 			}
 			++job;
 		}
@@ -3160,6 +3260,45 @@ namespace
 		{
 			return false;
 		}
+		PendingApprovalChallenge trustedInstallerPending = pending;
+		trustedInstallerPending.challengeId[0] = 0x5C;
+		trustedInstallerPending.systemLaunch = false;
+		trustedInstallerPending.trustedInstallerLaunch = true;
+		xucrun::broker::ApprovalHelperDecisionRequest trustedInstallerDecision =
+			decision;
+		trustedInstallerDecision.challengeId =
+			trustedInstallerPending.challengeId;
+		if (!MatchesApprovalHelperDecisionBinding(trustedInstallerPending,
+				trustedInstallerPending.helperProcessId,
+				trustedInstallerPending.clientSessionId,
+				trustedInstallerDecision))
+		{
+			return false;
+		}
+		xucrun::broker::ApprovalHelperDecisionRequest
+			reusableTrustedInstallerDecision = trustedInstallerDecision;
+		reusableTrustedInstallerDecision.persistence =
+			xucrun::broker::ApprovalPersistence::TenMinutes;
+		if (MatchesApprovalHelperDecisionBinding(trustedInstallerPending,
+			trustedInstallerPending.helperProcessId,
+			trustedInstallerPending.clientSessionId,
+			reusableTrustedInstallerDecision))
+		{
+			return false;
+		}
+		std::deque<PendingApprovalChallenge> trustedInstallerChallenges = {
+			trustedInstallerPending
+		};
+		PendingApprovalChallenge consumedTrustedInstaller;
+		if (!ConsumePendingApprovalChallenge(trustedInstallerChallenges,
+				trustedInstallerPending.challengeId,
+				consumedTrustedInstaller) ||
+			!trustedInstallerChallenges.empty() ||
+			consumedTrustedInstaller.systemLaunch ||
+			!consumedTrustedInstaller.trustedInstallerLaunch)
+		{
+			return false;
+		}
 
 		std::deque<PendingApprovalChallenge> approvalChallenges = { pending };
 		PendingApprovalChallenge consumed;
@@ -3658,10 +3797,14 @@ bool RunTrackedProcessListSelectionSelfTest()
 	const xucrun::broker::RequestNonce tiedHigherId = { 3 };
 	const xucrun::broker::RequestNonce foreignId = { 4 };
 	const std::vector<TrackedProcessListCandidate> mixed = {
-		{ 7, 10, { olderId, 10, L"older.exe" } },
-		{ 7, 20, { tiedLowerId, 20, L"tied-lower.exe" } },
-		{ 8, 30, { foreignId, 30, L"foreign.exe" } },
-		{ 7, 20, { tiedHigherId, 21, L"tied-higher.exe" } }
+		{ 7, 10, { olderId, 10, L"older.exe", false,
+			L"S-1-5-21-1", L"TEST\\Older" } },
+		{ 7, 20, { tiedLowerId, 20, L"tied-lower.exe", true,
+			L"S-1-5-18", L"NT AUTHORITY\\SYSTEM" } },
+		{ 8, 30, { foreignId, 30, L"foreign.exe", false,
+			L"S-1-5-21-2", L"TEST\\Foreign" } },
+		{ 7, 20, { tiedHigherId, 21, L"tied-higher.exe", false,
+			L"S-1-5-21-3", L"TEST\\Higher" } }
 	};
 	const auto selected = BuildTrackedProcessListEntries(mixed, 7);
 	if (selected.size() != 3 ||
@@ -3669,6 +3812,9 @@ bool RunTrackedProcessListSelectionSelfTest()
 		selected[0].processBaseName != L"tied-higher.exe" ||
 		selected[1].processId != 20 || selected[1].trackingId != tiedLowerId ||
 		selected[1].processBaseName != L"tied-lower.exe" ||
+		!selected[1].trustedInstaller ||
+		selected[1].accountSid != L"S-1-5-18" ||
+		selected[1].canonicalAccountName != L"NT AUTHORITY\\SYSTEM" ||
 		selected[2].processId != 10 || selected[2].trackingId != olderId ||
 		selected[2].processBaseName != L"older.exe")
 	{
@@ -3682,7 +3828,8 @@ bool RunTrackedProcessListSelectionSelfTest()
 		xucrun::broker::RequestNonce trackingId = {};
 		trackingId[0] = static_cast<std::uint8_t>(index);
 		many.push_back({ 7, index, { trackingId, 1000 + index,
-			L"process-" + std::to_wstring(index) } });
+			L"process-" + std::to_wstring(index), false,
+			L"S-1-5-21-4", L"TEST\\Process" } });
 	}
 	const auto limited = BuildTrackedProcessListEntries(many, 7);
 	return limited.size() == xucrun::broker::MaximumTrackedProcessEntries &&

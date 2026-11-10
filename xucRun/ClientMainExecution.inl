@@ -7,17 +7,29 @@
 // - Explicit /user-elevated requests reject standard accounts before any credential prompt.
 // - Account selection, broker routing, launch visibility, and completion logging stay in this phase.
 
-int RunSystemProgramLaunch(int argc, LPWSTR* argv)
+int RunPrivilegedProgramLaunch(int argc, LPWSTR* argv,
+	xucrun::broker::PrivilegedLaunchIdentity identity)
 {
+	const bool trustedInstaller =
+		identity == xucrun::broker::PrivilegedLaunchIdentity::TrustedInstaller;
+	const wchar_t* modeSwitch =
+		trustedInstaller ? L"/trustedinstaller" : L"/system";
+	const wchar_t* modeName =
+		trustedInstaller ? L"TrustedInstaller" : L"LocalSystem";
+	const auto administratorRequiredText = trustedInstaller
+		? xucrun::localization::TextId::TrustedInstallerAdminRequired
+		: xucrun::localization::TextId::SystemAdminRequired;
+	const auto launchFailedText = trustedInstaller
+		? xucrun::localization::TextId::TrustedInstallerLaunchFailed
+		: xucrun::localization::TextId::SystemLaunchFailed;
 	if (!IsUserInAdminGroup())
 	{
-		ReportError(xucrun::localization::GetText(
-			xucrun::localization::TextId::SystemAdminRequired),
-			L"The /system command was rejected because the caller is not a member "
+		ReportError(xucrun::localization::GetText(administratorRequiredText),
+			std::wstring(L"The ") + modeSwitch +
+			L" command was rejected because the caller is not a member "
 			L"of the Administrators group.");
 		return 1;
 	}
-
 	const bool replaceParentShell = argc == 2;
 	std::wstring executablePath;
 	std::wstring replacementArguments;
@@ -30,7 +42,8 @@ int RunSystemProgramLaunch(int argc, LPWSTR* argv)
 		{
 			ReportError(xucrun::localization::GetText(
 				xucrun::localization::TextId::ConsolePathFailed),
-				L"The /system shell replacement could not identify the parent shell.");
+				std::wstring(L"The ") + modeSwitch +
+				L" shell replacement could not identify the parent shell.");
 			return 1;
 		}
 		executablePath =
@@ -39,7 +52,8 @@ int RunSystemProgramLaunch(int argc, LPWSTR* argv)
 		{
 			ReportError(xucrun::localization::GetText(
 				xucrun::localization::TextId::ConsolePathFailed),
-				L"The /system shell replacement could not resolve the shell path.");
+				std::wstring(L"The ") + modeSwitch +
+				L" shell replacement could not resolve the shell path.");
 			return 1;
 		}
 		const DWORD replacementDirectoryLength =
@@ -52,10 +66,11 @@ int RunSystemProgramLaunch(int argc, LPWSTR* argv)
 		{
 			const DWORD error = GetLastError();
 			ReportError(xucrun::localization::Format(
-				xucrun::localization::TextId::SystemLaunchFailed,
+				launchFailedText,
 				{ FormatWindowsError(error) }),
-				L"Determining the working directory for /system shell replacement "
-				L"failed. Windows error: " + std::to_wstring(error));
+				std::wstring(L"Determining the working directory for ") +
+				modeSwitch + L" shell replacement failed. Windows error: " +
+				std::to_wstring(error));
 			return 1;
 		}
 		replacementArguments =
@@ -77,22 +92,25 @@ int RunSystemProgramLaunch(int argc, LPWSTR* argv)
 			const DWORD error = moduleLength == 0
 				? GetLastError() : ERROR_INSUFFICIENT_BUFFER;
 			ReportError(xucrun::localization::Format(
-				xucrun::localization::TextId::SystemLaunchFailed,
+				launchFailedText,
 				{ FormatWindowsError(error) }),
-				L"Resolving the installed xucRun path for /system elevation failed. "
+				std::wstring(L"Resolving the installed xucRun path for ") +
+				modeSwitch + L" elevation failed. "
 				L"Windows error: " + std::to_wstring(error));
 			return 1;
 		}
 		std::wstring parameters;
 		if (replaceParentShell)
 		{
-			parameters = L"/system " + EscapeArgument(executablePath);
+			parameters = std::wstring(modeSwitch) + L" " +
+				EscapeArgument(executablePath);
 			if (!replacementArguments.empty())
 				parameters += L" " + replacementArguments;
 		}
 		else
 		{
-			parameters = L"/system " + BuildCommandLine(argc, argv, 2);
+			parameters = std::wstring(modeSwitch) + L" " +
+				BuildCommandLine(argc, argv, 2);
 		}
 		HANDLE elevatedProcess = nullptr;
 		const bool elevated = LaunchDirectly(modulePath.data(), parameters,
@@ -121,7 +139,8 @@ int RunSystemProgramLaunch(int argc, LPWSTR* argv)
 		ReportError(xucrun::localization::Format(
 			xucrun::localization::TextId::ProgramPathQuotesInvalid,
 			{ executablePath }),
-			L"The /system target path contains an invalid quotation mark: " +
+			std::wstring(L"The ") + modeSwitch +
+			L" target path contains an invalid quotation mark: " +
 			executablePath);
 		return 1;
 	}
@@ -145,9 +164,10 @@ int RunSystemProgramLaunch(int argc, LPWSTR* argv)
 	{
 		const DWORD error = GetLastError();
 		ReportError(xucrun::localization::Format(
-			xucrun::localization::TextId::SystemLaunchFailed,
+			launchFailedText,
 			{ FormatWindowsError(error) }),
-			L"Determining the working directory for /system failed. Windows error: " +
+			std::wstring(L"Determining the working directory for ") +
+			modeSwitch + L" failed. Windows error: " +
 			std::to_wstring(error));
 		return 1;
 	}
@@ -156,9 +176,10 @@ int RunSystemProgramLaunch(int argc, LPWSTR* argv)
 	if (!xucrun::broker::StartBrokerService(5000, &serviceError))
 	{
 		ReportError(xucrun::localization::Format(
-			xucrun::localization::TextId::SystemLaunchFailed,
+			launchFailedText,
 			{ FormatWindowsError(serviceError) }),
-			L"Starting the broker for /system failed. Windows error: " +
+			std::wstring(L"Starting the broker for ") + modeSwitch +
+			L" failed. Windows error: " +
 			std::to_wstring(serviceError));
 		return 1;
 	}
@@ -166,24 +187,26 @@ int RunSystemProgramLaunch(int argc, LPWSTR* argv)
 	DWORD processId = 0;
 	DWORD launchError = NO_ERROR;
 	const auto outcome =
-		xucrun::broker_launch::LaunchSystemWithProtectedConfirmation(
+		xucrun::broker_launch::LaunchPrivilegedWithProtectedConfirmation(
 			executablePath, argumentTail, directoryBuffer.data(),
-			processId, launchError);
+			identity, processId, launchError);
 	if (outcome == xucrun::broker_launch::BrokerLaunchOutcome::Cancelled)
 	{
-		WriteLog(L"Info", L"The LocalSystem launch was not confirmed.");
+		WriteLog(L"Info", std::wstring(L"The ") + modeName +
+			L" launch was not confirmed.");
 		return 1;
 	}
 	if (outcome != xucrun::broker_launch::BrokerLaunchOutcome::Succeeded)
 	{
 		ReportError(xucrun::localization::Format(
-			xucrun::localization::TextId::SystemLaunchFailed,
+			launchFailedText,
 			{ FormatWindowsError(launchError) }),
-			L"The broker /system launch failed. Windows error: " +
+			std::wstring(L"The broker ") + modeSwitch +
+			L" launch failed. Windows error: " +
 			std::to_wstring(launchError));
 		return 1;
 	}
-	WriteLog(L"Info", L"LocalSystem process started. PID " +
+	WriteLog(L"Info", std::wstring(modeName) + L" process started. PID " +
 		std::to_wstring(processId));
 	xucrun::window_activation::ActivateBrokerProcessWindow(
 		processId);

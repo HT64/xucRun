@@ -233,7 +233,9 @@
 				ULONGLONG creationTime = 0;
 				if (GetProcessCreationTimeValue(process.process, creationTime))
 					candidates.push_back({ process.sessionId, creationTime,
-						{ process.trackingId, process.processId, process.processBaseName } });
+						{ process.trackingId, process.processId, process.processBaseName,
+							process.trustedInstaller, process.accountSid,
+							process.canonicalAccountName } });
 			}
 			result.entries = BuildTrackedProcessListEntries(candidates, clientSessionId);
 		}
@@ -271,8 +273,13 @@
 		else
 		{
 			std::wstring processBaseName;
+			bool trustedInstaller = false;
+			std::wstring accountSid;
+			std::wstring canonicalAccountName;
 			if (!ValidateRegisteredProcess(trackedProcess, request.processId,
-				clientSessionId, clientLogonSid, processBaseName, registrationError))
+				clientSessionId, clientLogonSid, processBaseName,
+				trustedInstaller, accountSid, canonicalAccountName,
+				registrationError))
 			{
 				result.status = xucrun::broker::TrackedProcessRegistrationStatus::InvalidRequest;
 				CloseHandle(trackedProcess);
@@ -311,7 +318,9 @@
 				else
 				{
 					trackedProcesses.push_back({ trackedProcess, request.processId,
-						clientSessionId, trackingId, std::move(processBaseName) });
+						clientSessionId, trackingId, std::move(processBaseName),
+						trustedInstaller, std::move(accountSid),
+						std::move(canonicalAccountName) });
 					if (log)
 						log(EVENTLOG_INFORMATION_TYPE,
 							L"Descendant monitoring enabled for registered elevated process. PID " +

@@ -134,6 +134,8 @@ namespace xucrun::localization
 			IDS_APPROVAL_CROSS_ACCOUNT_UAC_UNAVAILABLE,
 		SystemAdminRequired = IDS_SYSTEM_ADMIN_REQUIRED,
 		SystemLaunchFailed = IDS_SYSTEM_LAUNCH_FAILED,
+		TrustedInstallerAdminRequired = IDS_TRUSTEDINSTALLER_ADMIN_REQUIRED,
+		TrustedInstallerLaunchFailed = IDS_TRUSTEDINSTALLER_LAUNCH_FAILED,
 		ResetTitle = IDS_RESET_TITLE,
 		ResetHeader = IDS_RESET_HEADER,
 		ResetSelectionHint = IDS_RESET_SELECTION_HINT,

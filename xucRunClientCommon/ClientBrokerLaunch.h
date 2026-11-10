@@ -24,10 +24,11 @@ namespace xucrun::broker_launch
 	bool LaunchWithUac(const std::wstring& executablePath,
 		const std::wstring& argumentTail, broker::LaunchVisibility visibility,
 		DWORD& error);
-	BrokerLaunchOutcome LaunchSystemWithProtectedConfirmation(
+	BrokerLaunchOutcome LaunchPrivilegedWithProtectedConfirmation(
 		const std::wstring& executablePath,
 		const std::wstring& argumentTail,
 		const std::wstring& workingDirectory,
+		broker::PrivilegedLaunchIdentity identity,
 		DWORD& processId, DWORD& error);
 	BrokerLaunchOutcome LaunchWithBrokerCredential(
 		const CredentialInfo& credential,
