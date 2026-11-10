@@ -55,7 +55,27 @@ Löschung den vollständigen Fingerabdruck.
 
 ## Verfahren zur manuellen Entfernung
 
-Führen Sie die folgenden Befehle in einem als Administrator gestarteten Windows PowerShell 5.1 aus.
+Führen Sie die folgenden Befehle in einem als Administrator gestarteten 64-Bit-Windows-PowerShell
+5.1 aus.
+Ermitteln Sie in diesem Fenster zuerst die vertrauenswürdigen Windows-Verzeichnisse über die
+Windows-APIs statt über geerbte Umgebungsvariablen:
+
+```powershell
+if (-not [Environment]::Is64BitProcess) {
+    throw 'Die manuelle Entfernung erfordert eine 64-Bit-PowerShell.'
+}
+$programFilesDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::ProgramFiles)
+$programDataDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::CommonApplicationData)
+$systemDirectory = [Environment]::SystemDirectory
+
+if ([string]::IsNullOrWhiteSpace($programFilesDirectory) -or
+    [string]::IsNullOrWhiteSpace($programDataDirectory) -or
+    [string]::IsNullOrWhiteSpace($systemDirectory)) {
+    throw 'Die erforderlichen Windows-Verzeichnisse konnten nicht ermittelt werden.'
+}
+```
 
 ### 1. Zuerst xucRun Tray entfernen
 
@@ -70,7 +90,7 @@ im gemeinsamen Programmverzeichnis verweisen.
 Führen Sie diesen Schritt vor dem Löschen von `xucRun.ini` oder `xucRunBroker.exe` aus.
 
 ```powershell
-$installDirectory = Join-Path $env:ProgramFiles 'xucRun'
+$installDirectory = Join-Path $programFilesDirectory 'xucRun'
 $configurationPath = Join-Path $installDirectory 'xucRun.ini'
 $brokerPath = Join-Path $installDirectory 'xucRunBroker.exe'
 
@@ -105,7 +125,7 @@ Dieser Schritt ist für die vollständige Entfernung der rechnergebundenen
 xucRun-Anmeldeinformationen und -Freigaben erforderlich:
 
 ```powershell
-& (Join-Path $env:ProgramFiles 'xucRun\xucRun.exe') /clear-all
+& (Join-Path $programFilesDirectory 'xucRun\xucRun.exe') /clear-all
 if ($LASTEXITCODE -ne 0) {
     throw "xucRun /clear-all ist mit Exitcode $LASTEXITCODE fehlgeschlagen."
 }
@@ -126,7 +146,7 @@ ausgeschlossen werden.
 ### 4. xucRun-Prozesse beenden und Dienst löschen
 
 ```powershell
-$installDirectory = Join-Path $env:ProgramFiles 'xucRun'
+$installDirectory = Join-Path $programFilesDirectory 'xucRun'
 $processNames = 'xucRun.exe', 'xucRunBroker.exe', 'xucRunApproval.exe'
 
 Get-CimInstance Win32_Process |
@@ -140,7 +160,7 @@ Get-CimInstance Win32_Process |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
 
 Stop-Service -Name 'xucRunBroker' -Force -ErrorAction SilentlyContinue
-& "$env:SystemRoot\System32\sc.exe" delete 'xucRunBroker'
+& (Join-Path $systemDirectory 'sc.exe') delete 'xucRunBroker'
 ```
 
 `sc.exe` kann melden, dass der Dienst zum Löschen markiert ist, solange ein anderer Prozess noch
@@ -152,7 +172,7 @@ Sie den Dienst-Registry-Schlüssel nicht manuell, solange der Dienst noch regist
 Dieser Befehl entfernt nur das exakte xucRun-Verzeichnis und erhält alle anderen Einträge:
 
 ```powershell
-$xucRunPath = (Join-Path $env:ProgramFiles 'xucRun').TrimEnd('\')
+$xucRunPath = (Join-Path $programFilesDirectory 'xucRun').TrimEnd('\')
 $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
 $remaining = @(
     $machinePath -split ';' |
@@ -186,9 +206,9 @@ Ist er nach einem Neustart noch vorhanden, prüfen Sie zuerst, dass der Dienst n
 ### 7. Dateien und Produktdaten entfernen
 
 ```powershell
-Remove-Item -LiteralPath (Join-Path $env:ProgramFiles 'xucRun') `
+Remove-Item -LiteralPath (Join-Path $programFilesDirectory 'xucRun') `
     -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item -LiteralPath (Join-Path $env:ProgramData 'xucRun') `
+Remove-Item -LiteralPath (Join-Path $programDataDirectory 'xucRun') `
     -Recurse -Force -ErrorAction SilentlyContinue
 ```
 
@@ -250,12 +270,12 @@ ein Benutzerprofil.
 
 ```powershell
 Get-Service -Name 'xucRunBroker' -ErrorAction SilentlyContinue
-Test-Path -LiteralPath (Join-Path $env:ProgramFiles 'xucRun')
-Test-Path -LiteralPath (Join-Path $env:ProgramData 'xucRun')
+Test-Path -LiteralPath (Join-Path $programFilesDirectory 'xucRun')
+Test-Path -LiteralPath (Join-Path $programDataDirectory 'xucRun')
 Test-Path -LiteralPath `
     'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun'
 
-$xucRunPath = (Join-Path $env:ProgramFiles 'xucRun').TrimEnd('\')
+$xucRunPath = (Join-Path $programFilesDirectory 'xucRun').TrimEnd('\')
 ([Environment]::GetEnvironmentVariable('Path', 'Machine') -split ';') |
     Where-Object { $_.Trim().TrimEnd('\') -ieq $xucRunPath }
 

@@ -52,7 +52,26 @@ by a partial name. Record and verify its exact thumbprint before removing it.
 
 ## Manual removal procedure
 
-Run the commands below in an elevated Windows PowerShell 5.1 window.
+Run the commands below in an elevated 64-bit Windows PowerShell 5.1 window.
+First resolve the trusted Windows directories in that window through Windows APIs rather than
+inherited environment variables:
+
+```powershell
+if (-not [Environment]::Is64BitProcess) {
+    throw 'Manual removal requires 64-bit PowerShell.'
+}
+$programFilesDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::ProgramFiles)
+$programDataDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::CommonApplicationData)
+$systemDirectory = [Environment]::SystemDirectory
+
+if ([string]::IsNullOrWhiteSpace($programFilesDirectory) -or
+    [string]::IsNullOrWhiteSpace($programDataDirectory) -or
+    [string]::IsNullOrWhiteSpace($systemDirectory)) {
+    throw 'The required Windows directories could not be resolved.'
+}
+```
 
 ### 1. Remove xucRun Tray first
 
@@ -66,7 +85,7 @@ processes and scheduled tasks that refer to files in the shared program director
 Do this before deleting `xucRun.ini` or `xucRunBroker.exe`.
 
 ```powershell
-$installDirectory = Join-Path $env:ProgramFiles 'xucRun'
+$installDirectory = Join-Path $programFilesDirectory 'xucRun'
 $configurationPath = Join-Path $installDirectory 'xucRun.ini'
 $brokerPath = Join-Path $installDirectory 'xucRunBroker.exe'
 
@@ -100,7 +119,7 @@ shared log directory.
 This step is required for complete removal of xucRun's machine-bound credentials and approvals:
 
 ```powershell
-& (Join-Path $env:ProgramFiles 'xucRun\xucRun.exe') /clear-all
+& (Join-Path $programFilesDirectory 'xucRun\xucRun.exe') /clear-all
 if ($LASTEXITCODE -ne 0) {
     throw "xucRun /clear-all failed with exit code $LASTEXITCODE."
 }
@@ -118,7 +137,7 @@ Manager targets cannot be ruled out.
 ### 4. Stop xucRun processes and delete the service
 
 ```powershell
-$installDirectory = Join-Path $env:ProgramFiles 'xucRun'
+$installDirectory = Join-Path $programFilesDirectory 'xucRun'
 $processNames = 'xucRun.exe', 'xucRunBroker.exe', 'xucRunApproval.exe'
 
 Get-CimInstance Win32_Process |
@@ -132,7 +151,7 @@ Get-CimInstance Win32_Process |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
 
 Stop-Service -Name 'xucRunBroker' -Force -ErrorAction SilentlyContinue
-& "$env:SystemRoot\System32\sc.exe" delete 'xucRunBroker'
+& (Join-Path $systemDirectory 'sc.exe') delete 'xucRunBroker'
 ```
 
 `sc.exe` may report that the service is marked for deletion while another process still has an
@@ -144,7 +163,7 @@ registry key while the service is still registered.
 This removes only the exact xucRun directory and preserves every other entry:
 
 ```powershell
-$xucRunPath = (Join-Path $env:ProgramFiles 'xucRun').TrimEnd('\')
+$xucRunPath = (Join-Path $programFilesDirectory 'xucRun').TrimEnd('\')
 $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
 $remaining = @(
     $machinePath -split ';' |
@@ -178,9 +197,9 @@ the leftover key.
 ### 7. Remove files and product data
 
 ```powershell
-Remove-Item -LiteralPath (Join-Path $env:ProgramFiles 'xucRun') `
+Remove-Item -LiteralPath (Join-Path $programFilesDirectory 'xucRun') `
     -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item -LiteralPath (Join-Path $env:ProgramData 'xucRun') `
+Remove-Item -LiteralPath (Join-Path $programDataDirectory 'xucRun') `
     -Recurse -Force -ErrorAction SilentlyContinue
 ```
 
@@ -238,12 +257,12 @@ recursive wildcard deletion against `%ProgramData%`, `%TEMP%`, a `RamDisk`, or a
 
 ```powershell
 Get-Service -Name 'xucRunBroker' -ErrorAction SilentlyContinue
-Test-Path -LiteralPath (Join-Path $env:ProgramFiles 'xucRun')
-Test-Path -LiteralPath (Join-Path $env:ProgramData 'xucRun')
+Test-Path -LiteralPath (Join-Path $programFilesDirectory 'xucRun')
+Test-Path -LiteralPath (Join-Path $programDataDirectory 'xucRun')
 Test-Path -LiteralPath `
     'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun'
 
-$xucRunPath = (Join-Path $env:ProgramFiles 'xucRun').TrimEnd('\')
+$xucRunPath = (Join-Path $programFilesDirectory 'xucRun').TrimEnd('\')
 ([Environment]::GetEnvironmentVariable('Path', 'Machine') -split ';') |
     Where-Object { $_.Trim().TrimEnd('\') -ieq $xucRunPath }
 

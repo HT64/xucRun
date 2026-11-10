@@ -104,6 +104,12 @@ folgenden Beispielen. Bei der manuellen Installation wird die PATH-Option mit `-
 aktiviert. Die verfügbaren Installationswege beschreibt der Abschnitt
 [Installation in Kürze](#installation-in-kürze).
 
+`xucRun.exe` wird in den folgenden interaktiven Beispielen als Kurzname verwendet. Wenn die zuvor
+genannte PATH-Option aktiviert wurde, funktioniert dieselbe Programmsuche technisch auch in
+Skripten, Verknüpfungen, Aufgaben und anderen fest konfigurierten Aufrufen. Sollen solche Aufrufe
+jedoch gegen eine Umleitung über das aktuelle Verzeichnis oder den Programmsuchpfad geschützt sein,
+sollten sie den tatsächlichen absoluten Pfad der installierten `xucRun.exe` verwenden.
+
 Nach der Installation können von xucRun verwaltete Anmeldedaten ausdrücklich für ein Zielkonto
 gespeichert werden, also für das Konto, unter dem Programme gestartet werden sollen. Zum Beispiel:
 
@@ -146,8 +152,12 @@ im laufenden Aufruf durch die erforderlichen Schritte.
 Gerätemanager aus einem Standardbenutzerkonto öffnen:
 
 ```cmd
-xucRun.exe "%windir%\System32\mmc.exe" "%windir%\System32\devmgmt.msc"
+xucRun.exe "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
 ```
+
+Die Beispiele mit `C:\Windows` nehmen den Windows-Standardpfad an. Sollen fest konfigurierte
+Aufrufe gegen eine Umleitung des Zielprogramms geschützt sein, sollten sie stattdessen dessen
+tatsächlichen absoluten Pfad auf diesem System verwenden.
 
 Eine administrative PowerShell mit einem Skript starten:
 
@@ -172,11 +182,13 @@ Eine Datei mit einem Programm unter dem gewählten Zielkonto bearbeiten:
 xucRun.exe notepad.exe "C:\Windows\System32\drivers\etc\hosts"
 ```
 
-Thunderbird unter dem Windows-Zielkonto `MailUser` mit dessen Benutzerprofil und unverändertem
-Rechtemodus starten:
+Thunderbird aus PowerShell unter dem Windows-Zielkonto `MailUser` mit dessen Benutzerprofil und
+unverändertem Rechtemodus starten:
 
 ```powershell
-xucRun.exe /user:MailUser "$env:ProgramFiles\Mozilla Thunderbird\thunderbird.exe"
+& 'C:\Program Files\xucRun\xucRun.exe' `
+    /user:MailUser `
+    'C:\Program Files\Mozilla Thunderbird\thunderbird.exe'
 ```
 
 Soll kein bestimmtes Zielkonto im Aufruf stehen, kann stattdessen `/user` ohne Kontonamen
@@ -186,7 +198,8 @@ xucRun-Anmeldedaten gespeichert, bietet xucRun die lokale Zielkontoauswahl und a
 geschützte Kennworteingabe an.
 
 xucRun wählt dabei das Windows-Konto aus, nicht ein Mailkonto innerhalb von Thunderbird. Der
-Befehl setzt den Standardinstallationspfad von Thunderbird voraus.
+Befehl setzt die Standardinstallationspfade von xucRun und Thunderbird voraus. Bei abweichenden
+Pfaden sind die tatsächlichen absoluten Installationspfade einzusetzen.
 
 Die aktuelle PowerShell durch eine PowerShell im automatisch gewählten Benutzer- und
 Berechtigungskontext ersetzen:
@@ -228,7 +241,11 @@ allgemein prüfen. Konten, die solche Dateien verändern können, müssen bereit
 gelten, den betreffenden privilegierten Aufruf zu kontrollieren. Das gilt auch für übergeordnete
 Verzeichnisse, über die diese Dateien gelöscht, ersetzt, umbenannt oder umgeleitet werden könnten.
 Solche Dateien dürfen nicht in gemeinsam oder unzureichend geschützten beschreibbaren
-Verzeichnissen liegen.
+Verzeichnissen liegen. Sollen solche fest konfigurierten Aufrufe außerdem gegen eine Umleitung
+ausführbarer Dateien geschützt sein, sollten deren Pfade beim Einrichten über Windows Known
+Folders oder eine andere vertrauenswürdige Quelle ermittelt und anschließend absolut gespeichert
+werden. Der spätere Aufruf hängt dann weder von veränderbaren Umgebungsvariablen noch von der
+Programmsuche über `PATH` ab.
 
 Die parameterlose Shell-Ersetzung ist dagegen für den interaktiven Aufruf aus einer unterstützten
 Shell bestimmt. In einem Skript sollte sie nur verwendet werden, wenn das Schließen der bisherigen
@@ -250,7 +267,7 @@ Andernfalls wählt xucRun ein Konto aus, das Mitglied dieser Gruppe ist:
 @echo off
 NET SESSION >nul 2>&1
 IF ERRORLEVEL 1 (
-  "%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%~dpnx0" %*
+  "C:\Program Files\xucRun\xucRun.exe" /user-elevated "%~dpnx0" %*
   GOTO :eof
 )
 
@@ -260,7 +277,8 @@ REM Ab hier folgen die Befehle, die erhöhte Rechte benötigen.
 `%~dpnx0` liefert den vollständig qualifizierten Pfad der laufenden Batchdatei; `%*` reicht alle
 ursprünglichen Argumente weiter. `GOTO :eof` verhindert, dass der nicht erhöhte Durchlauf nach dem
 erneuten Start fortgesetzt wird. Die Prüfung mit `NET SESSION` setzt voraus, dass der Windows-Dienst
-**Server** verfügbar ist.
+**Server** verfügbar ist. Das Beispiel nimmt die Windows-Standardpfade an. Beim Einrichten der
+Batchdatei muss der xucRun-Pfad durch den tatsächlichen absoluten Installationspfad ersetzt werden.
 
 ### Desktop-Verknüpfung für einen erhöhten Explorer
 
@@ -269,7 +287,7 @@ einem geeigneten Konto mit erhöhten Rechten öffnen. Soll xucRun das Konto auto
 steht im Feld **Ziel** der Verknüpfung beispielsweise:
 
 ```text
-"%ProgramFiles%\xucRun\xucRun.exe" /user-elevated "%WINDIR%\explorer.exe" "/root,"D:\Beispiel\Zielordner""
+"C:\Program Files\xucRun\xucRun.exe" /user-elevated "C:\Windows\explorer.exe" "/root,"D:\Beispiel\Zielordner""
 ```
 
 Mit `/user-elevated` verwendet xucRun das aktuelle Konto, wenn es Mitglied der lokalen
@@ -281,7 +299,7 @@ Soll die Verknüpfung immer ein bestimmtes Administratorkonto wählen, wird dess
 Schalter angehängt:
 
 ```text
-"%ProgramFiles%\xucRun\xucRun.exe" /user-elevated:Administrator "%WINDIR%\explorer.exe" "/root,"D:\Beispiel\Zielordner""
+"C:\Program Files\xucRun\xucRun.exe" /user-elevated:Administrator "C:\Windows\explorer.exe" "/root,"D:\Beispiel\Zielordner""
 ```
 
 `Administrator` ist durch das gewünschte Konto zu ersetzen, das Mitglied der lokalen
@@ -289,7 +307,9 @@ Administratorengruppe ist und für das xucRun-Anmeldedaten gespeichert sind. Sol
 zwar unter einem bestimmten anderen Konto, aber ohne durch xucRun erzwungene Erhöhung starten,
 wird stattdessen `/user:<Konto>` verwendet.
 
-Der Beispielpfad ist durch das zu öffnende Verzeichnis zu ersetzen. `/root` setzt dieses
+Die Beispiele nehmen die Windows-Standardpfade an. Beim Erstellen der Verknüpfung müssen die Pfade
+zu `xucRun.exe` und `explorer.exe` durch die auf diesem System tatsächlich installierten absoluten
+Pfade und der Beispielpfad durch das zu öffnende Verzeichnis ersetzt werden. `/root` setzt dieses
 Verzeichnis als Wurzel des neuen Explorer-Fensters. Die verschachtelten Anführungszeichen müssen
 unverändert erhalten bleiben. Die gespeicherten Anmeldedaten ersetzen nicht die interaktive
 Windows-UAC-Bestätigung.
@@ -328,6 +348,11 @@ Sie wurden mit Total Commander 11.58 (64 Bit) getestet. Sie können auch mit and
 funktionieren; deren Kompatibilität wurde jedoch nicht geprüft. Allgemeine Informationen zu Total
 Commander bietet die
 [offizielle Total-Commander-Webseite](https://www.ghisler.com/deutsch.htm).
+Die Beispiele nehmen die Windows-Standardpfade und eine Total-Commander-Installation unter
+`C:\totalcmd` an. Bei einer manuellen Übernahme müssen alle ausführbaren Pfade durch die
+tatsächlichen absoluten Pfade ersetzt werden. Soll die Konfiguration gegen eine Umleitung dieser
+Programme geschützt sein, muss ein Einrichtungswerkzeug die Pfade aus vertrauenswürdigen Quellen
+ermitteln und ohne Umgebungsvariablen speichern.
 
 xucRun kann eine neue erhöhte Total-Commander-Instanz nach seiner automatischen Kontostrategie
 starten. Mitglieder der Administratorengruppe behalten ihr Konto und werden bei Bedarf über UAC
@@ -338,8 +363,8 @@ den linken Pfad, den rechten Pfad und das aktive Dateipanel:
 ```ini
 [em_TCStart_Elevated]
 button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
-cmd=%comspec% /v:on /c
-param=SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" "%|COMMANDER_PATH|\TOTALCMD64.EXE" /L="!L!" /R="!R!" /P=!Active!
+cmd="C:\Windows\System32\cmd.exe" /v:on /c
+param=SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "C:\Program Files\xucRun\xucRun.exe" "C:\totalcmd\TOTALCMD64.EXE" /L="!L!" /R="!R!" /P=!Active!
 menu=Start TC über xucRun mit erhöhten Rechten; Mitglieder der Administratorengruppe behalten ihr Konto, Standardbenutzer wechseln das Konto
 iconic=1
 
@@ -364,8 +389,8 @@ der rechte Pfad und das aktive Dateipanel erhalten:
 ```ini
 [em_TCStart_System]
 button=%COMMANDER_PATH%\icons\Tcmadm64000.ico
-cmd="%ProgramFiles%\xucRun\xucRun.exe"
-param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /system "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
+cmd="C:\Program Files\xucRun\xucRun.exe"
+param="/hidden-monitor "C:\Windows\System32\cmd.exe" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "C:\Program Files\xucRun\xucRun.exe" /system "C:\totalcmd\TOTALCMD64.EXE" "/L=!L!" "/R=!R!" "/P=!Active!""
 menu=Total Commander über xucRun als LocalSystem starten
 iconic=1
 ```
@@ -395,9 +420,9 @@ Total-Commander-Variablen und das Quoting müssen unverändert übernommen werde
 
 ```ini
 [em_TCStart_Konto]
-button=%COMMANDER_EXE%
-cmd="%ProgramFiles%\xucRun\xucRun.exe"
-param="/hidden-monitor "%|ComSpec|" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "%|ProgramFiles|\xucRun\xucRun.exe" /user:<Konto> "%|COMMANDER_EXE|" "/L=!L!" "/R=!R!" "/P=!Active!""
+button=C:\totalcmd\TOTALCMD64.EXE
+cmd="C:\Program Files\xucRun\xucRun.exe"
+param="/hidden-monitor "C:\Windows\System32\cmd.exe" /v:on /c SET "P=%P." & SET "L=%X%P." & SET "R=%X%T." & SET Active=L & (IF "!P!" == "!R!" SET Active=R) & "C:\Program Files\xucRun\xucRun.exe" /user:<Konto> "C:\totalcmd\TOTALCMD64.EXE" "/L=!L!" "/R=!R!" "/P=!Active!""
 menu=Total Commander als <Konto> starten
 iconic=1
 ```
@@ -644,8 +669,8 @@ erforderliche TrustedInstaller-Identität nicht herstellen, schlägt der Start f
 Rückfall auf einen normalen `/system`-Start.
 
 ```cmd
-xucRun.exe /system "%SystemRoot%\regedit.exe" /m
-xucRun.exe /trustedinstaller "%SystemRoot%\regedit.exe"
+xucRun.exe /system "C:\Windows\regedit.exe" /m
+xucRun.exe /trustedinstaller "C:\Windows\regedit.exe"
 ```
 
 Verwenden Sie beide Modi nur bewusst für Wartung und Diagnose. Die TrustedInstaller-Identität
@@ -832,7 +857,7 @@ beispielsweise so aussehen, wenn dieses Werkzeug die Syntax
 `elevate.exe <Programm> [Argumente ...]` unterstützt:
 
 ```cmd
-runas.exe /savecred /user:Administrator "elevate.exe %windir%\System32\mmc.exe %windir%\System32\devmgmt.msc"
+runas.exe /savecred /user:Administrator "elevate.exe C:\Windows\System32\mmc.exe C:\Windows\System32\devmgmt.msc"
 ```
 
 Die genaue Syntax hängt vom gewählten Elevationswerkzeug ab. In der Werkzeugkette muss der
@@ -844,7 +869,7 @@ Ein Beispiel mit komplexeren Argumenten ist das Anlegen einer Firewallregel für
 dessen Pfad Leerzeichen enthält:
 
 ```cmd
-xucRun.exe "%windir%\System32\netsh.exe" advfirewall firewall add rule name="Lokaler Beispielserver" dir=in action=allow program="C:\Program Files\Beispielserver\server.exe" enable=yes profile=private
+xucRun.exe "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Lokaler Beispielserver" dir=in action=allow program="C:\Program Files\Beispielserver\server.exe" enable=yes profile=private
 ```
 
 Dabei erhält `netsh.exe` mehrere Schlüssel-Wert-Argumente sowie einen Regelnamen und einen
@@ -1334,8 +1359,16 @@ Deinstallationsskript benötigt, sondern das bei der Installation nach
 `%ProgramFiles%\xucRun` kopierte `Install-xucRun.ps1` mit `-Uninstall` aufgerufen:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File "$env:ProgramFiles\xucRun\Install-xucRun.ps1" `
+if (-not [Environment]::Is64BitProcess) {
+    throw 'Die Deinstallation erfordert eine 64-Bit-PowerShell.'
+}
+$programFilesDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::ProgramFiles)
+$windowsPowerShell = Join-Path `
+    ([Environment]::SystemDirectory) `
+    'WindowsPowerShell\v1.0\powershell.exe'
+& $windowsPowerShell -NoProfile -ExecutionPolicy Bypass `
+  -File (Join-Path $programFilesDirectory 'xucRun\Install-xucRun.ps1') `
   -Uninstall
 ```
 
