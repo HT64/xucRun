@@ -18,4 +18,7 @@ namespace xucrun::files
 	bool ComputeFileSHA256FromHandle(HANDLE file, std::vector<std::uint8_t>& hash);
 	bool IsFileSystemObjectProtectedForPrivilegedWriters(
 		HANDLE object, DWORD unexpectedWriteMask, DWORD& error);
+	// Resolves Program Files through the Windows known folder. The process
+	// environment is inherited from the caller and must not locate product files.
+	bool GetProgramFilesDirectory(std::wstring& directory, DWORD& error);
 }

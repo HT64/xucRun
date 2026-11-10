@@ -4,6 +4,7 @@
 #include "FileIdentity.h"
 
 #include <Windows.h>
+#include <ShlObj.h>
 #include <aclapi.h>
 #include <bcrypt.h>
 #include <sddl.h>
@@ -167,6 +168,28 @@ namespace xucrun::files
 			resolvedPath = L"\\\\" + resolvedPath.substr(8);
 		else if (resolvedPath.rfind(L"\\\\?\\", 0) == 0)
 			resolvedPath.erase(0, 4);
+		return true;
+	}
+
+	// Resolves Program Files independently of the inherited process environment.
+	bool GetProgramFilesDirectory(std::wstring& directory, DWORD& error)
+	{
+		directory.clear();
+		wchar_t* path = nullptr;
+		const HRESULT result = SHGetKnownFolderPath(
+			FOLDERID_ProgramFiles, KF_FLAG_DEFAULT, nullptr, &path);
+		if (SUCCEEDED(result) && path && path[0] != L'\0')
+			directory.assign(path);
+		if (path)
+			CoTaskMemFree(path);
+		if (directory.empty())
+		{
+			error = FAILED(result) && HRESULT_FACILITY(result) == FACILITY_WIN32
+				? HRESULT_CODE(result)
+				: ERROR_PATH_NOT_FOUND;
+			return false;
+		}
+		error = ERROR_SUCCESS;
 		return true;
 	}
 

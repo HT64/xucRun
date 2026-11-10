@@ -99,8 +99,11 @@ bool DecodeBrokerRequest(std::span<const std::uint8_t> frame,
 		decoded.kind = BrokerRequestKind::CredentialList;
 		return true;
 	}
-	if (xucrun::broker::DeserializeCredentialUseTestRequest(
-		frame, decoded.credentialUseTest))
+	// Launches a console under the stored account without an approval. No release
+	// client sends this request, so it must stay a diagnostic contract.
+	if (DiagnosticPipeContractsEnabled &&
+		xucrun::broker::DeserializeCredentialUseTestRequest(
+			frame, decoded.credentialUseTest))
 	{
 		decoded.kind = BrokerRequestKind::CredentialUseTest;
 		return true;

@@ -10,6 +10,7 @@
 #include "ClientImageTrust.h"
 #include "ClientUiCommon.h"
 #include "ClientResourceIds.h"
+#include "FileIdentity.h"
 
 namespace
 {
@@ -42,16 +43,15 @@ namespace
 		ConfiguredLanguage& configured, std::wstring& errorMessage)
 	{
 		errorMessage.clear();
-		wchar_t programFiles[MAX_PATH] = {};
-		const DWORD pathLength = GetEnvironmentVariableW(
-			L"ProgramFiles", programFiles, ARRAYSIZE(programFiles));
-		if (pathLength == 0 || pathLength >= ARRAYSIZE(programFiles))
+		std::wstring programFiles;
+		DWORD programFilesError = ERROR_SUCCESS;
+		if (!xucrun::files::GetProgramFilesDirectory(programFiles, programFilesError))
 		{
 			errorMessage = L"The ProgramFiles directory could not be determined.";
 			return false;
 		}
 
-		const std::wstring configPath = std::wstring(programFiles) +
+		const std::wstring configPath = programFiles +
 			L"\\xucRun\\xucRun.ini";
 		const DWORD configAttributes = GetFileAttributesW(configPath.c_str());
 		if (configAttributes == INVALID_FILE_ATTRIBUTES ||
@@ -132,21 +132,13 @@ namespace
 
 	std::wstring GetLanguagePath(bool useGermanResources, DWORD& windowsError)
 	{
-		wchar_t programFiles[MAX_PATH] = {};
-		const DWORD pathLength = GetEnvironmentVariableW(
-			L"ProgramFiles", programFiles, ARRAYSIZE(programFiles));
-		if (pathLength == 0 || pathLength >= ARRAYSIZE(programFiles))
-		{
-			windowsError = pathLength == 0 ? GetLastError() : ERROR_INSUFFICIENT_BUFFER;
-			if (windowsError == ERROR_SUCCESS)
-				windowsError = ERROR_PATH_NOT_FOUND;
+		std::wstring programFiles;
+		if (!xucrun::files::GetProgramFilesDirectory(programFiles, windowsError))
 			return {};
-		}
-		windowsError = ERROR_SUCCESS;
 		const wchar_t* resourceName =
 			g_component == xucrun::localization::Component::Tray
 			? L"xucRunTray." : L"xucRun.";
-		return std::wstring(programFiles) + L"\\xucRun\\Languages\\" +
+		return programFiles + L"\\xucRun\\Languages\\" +
 			resourceName +
 			(useGermanResources ? L"de-DE.dll" : L"en-US.dll");
 	}

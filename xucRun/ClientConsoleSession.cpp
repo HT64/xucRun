@@ -10,6 +10,7 @@
 #include "ClientLogging.h"
 #include "ClientUiCommon.h"
 #include "ClientWindowsError.h"
+#include "FileIdentity.h"
 #include "Localization.h"
 
 namespace xucrun::console_session
@@ -89,11 +90,12 @@ namespace xucrun::console_session
 		}
 		case process_context::ParentShellType::PowerShellCore:
 		{
-			wchar_t programFilesPath[MAX_PATH] = {};
-			if (GetEnvironmentVariableW(
-				L"ProgramFiles", programFilesPath, MAX_PATH) > 0)
+			std::wstring programFilesPath;
+			DWORD programFilesError = ERROR_SUCCESS;
+			if (xucrun::files::GetProgramFilesDirectory(
+				programFilesPath, programFilesError))
 			{
-				const std::wstring pwshPath = std::wstring(programFilesPath) +
+				const std::wstring pwshPath = programFilesPath +
 					L"\\PowerShell\\7\\pwsh.exe";
 				const DWORD attributes = GetFileAttributesW(pwshPath.c_str());
 				if (attributes != INVALID_FILE_ATTRIBUTES &&

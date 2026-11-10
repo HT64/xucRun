@@ -10,13 +10,19 @@ explicitly path-bound changelog exceptions. For PowerShell it preserves the
 stronger comment-based-help contract and checks that documented parameters
 match declared parameters. It then parses Installer-Gui.ps1 and checks that a
 user-selected Visual C++ redistributable is copied into protected staging,
-validated there, and only then executed.
+validated there, and only then executed. Finally it checks that the machine
+installer and the package signer create their staging directories together
+with the restricting access control list, avoid environment-derived and
+temporary staging paths, and keep their verification steps in order, that
+neither the graphical installer nor the C++ sources locate product or system
+directories through environment variables, and that the broker decodes its
+diagnostic pipe contracts only in Debug builds.
 
 .EXAMPLE
 .\Test-InstallerGuiSecurity.ps1
 
-Runs the repository file-documentation and graphical-installer staging
-contract checks.
+Runs the repository file-documentation and installer staging contract
+checks.
 
 .NOTES
 Requires PowerShell and Git in a working tree of this repository. Commentable
@@ -303,6 +309,118 @@ $validationIndex =
 $executionIndex = $text.IndexOf('Start-Process -FilePath $redistributablePath')
 if ($copyIndex -ge $validationIndex -or $validationIndex -ge $executionIndex) {
     throw 'The staged VC runtime must be copied, validated, then executed in order.'
+}
+
+function Assert-StagingContract {
+    param(
+        [Parameter(Mandatory)][string]$RelativePath,
+        [Parameter(Mandatory)][string[]]$Required,
+        [Parameter(Mandatory)][string[]]$Forbidden,
+        [Parameter(Mandatory)][string[]]$Ordered
+    )
+
+    $source = [IO.File]::ReadAllText((Join-Path $PSScriptRoot $RelativePath))
+    foreach ($contract in $Required + $Ordered) {
+        if (-not $source.Contains($contract)) {
+            throw "Staging contract is missing in ${RelativePath}: $contract"
+        }
+    }
+    foreach ($contract in $Forbidden) {
+        if ($source.Contains($contract)) {
+            throw "Unprotected staging pattern found in ${RelativePath}: $contract"
+        }
+    }
+    $previousIndex = -1
+    foreach ($contract in $Ordered) {
+        $index = $source.LastIndexOf($contract, [StringComparison]::Ordinal)
+        if ($index -le $previousIndex) {
+            throw "Staging steps are out of order in ${RelativePath}: $contract"
+        }
+        $previousIndex = $index
+    }
+}
+
+# A staging directory must receive its access control list in the creation
+# call. Creating it first and restricting it afterwards lets other accounts
+# plant entries they continue to own.
+$createdProtected = '[void][IO.Directory]::CreateDirectory($Path, $acl)'
+$unprotectedPatterns = @(
+    '$env:ProgramData',
+    '$env:SystemRoot',
+    '$env:TEMP',
+    'GetTempPath',
+    'New-Item -ItemType Directory -Path $stagingDirectory',
+    'New-Item -ItemType Directory -Path $stagedParent',
+    'New-Item -ItemType Directory -Path $installerLogDirectory'
+)
+Assert-StagingContract -RelativePath 'Install-xucRun.ps1' `
+    -Required @(
+        $createdProtected,
+        'Assert-ProtectedDirectory -Path $Path',
+        'New-ProtectedDirectory -Path $stagedParent',
+        '$verifiedHashes[$file.RelativePath]') `
+    -Forbidden $unprotectedPatterns `
+    -Ordered @(
+        'New-ProtectedDirectory -Path $stagingDirectory',
+        'The staged package is not signed by the package signer.',
+        'Copy-Item -LiteralPath $file.Path -Destination $destination -Force',
+        'The installed files are not signed by the package signer.',
+        "'start=', `$startMode")
+Assert-StagingContract -RelativePath 'UserCodeSigning\Sign-xucRunPackage.ps1' `
+    -Required @(
+        $createdProtected,
+        'Assert-ProtectedDirectory -Path $Path',
+        'New-ProtectedDirectory -Path $stagedParent') `
+    -Forbidden $unprotectedPatterns `
+    -Ordered @(
+        'New-ProtectedDirectory -Path $stagingDirectory',
+        'Staged package file does not match its source',
+        'Set-AuthenticodeSignature @signatureArguments')
+
+# An elevated process inherits its environment from the caller. Product and
+# system paths must therefore come from Windows known folders.
+$guiSource = [IO.File]::ReadAllText($path)
+foreach ($variable in @('$env:SystemRoot', '$env:ProgramFiles', '$env:ProgramData')) {
+    if ($guiSource.Contains($variable)) {
+        throw "Installer-Gui.ps1 locates a path through the environment: $variable"
+    }
+}
+$environmentPathPattern =
+    'GetEnvironmentVariableW\(\s*L"(ProgramFiles|ProgramData|SystemRoot|windir)"'
+foreach ($relativePath in $repositoryFiles) {
+    if ([IO.Path]::GetExtension($relativePath) -notin @('.cpp', '.h', '.inl')) {
+        continue
+    }
+    $source = [IO.File]::ReadAllText((Join-Path $PSScriptRoot (
+        $relativePath.Replace('/', [IO.Path]::DirectorySeparatorChar))))
+    if ($source -match $environmentPathPattern) {
+        throw "Source locates a product or system path through the environment: " +
+            $relativePath
+    }
+}
+
+# Diagnostic broker contracts act without the approval flow and must not be
+# decoded by a release broker.
+$decoderSource = [IO.File]::ReadAllText((Join-Path $PSScriptRoot `
+    'xucRunBroker\BrokerPipeRequestDecoder.inl'))
+foreach ($contract in @(
+    'Launch', 'CredentialMetadata', 'SessionTest', 'CredentialStoreTest',
+    'CredentialSave', 'CredentialUseTest'
+)) {
+    $gated = 'DiagnosticPipeContractsEnabled\s*&&\s*xucrun::broker::Deserialize' +
+        $contract + 'Request\('
+    $occurrences = [regex]::Matches($decoderSource,
+        'Deserialize' + $contract + 'Request\(').Count
+    if ($occurrences -ne 1 -or $decoderSource -notmatch $gated) {
+        throw "Diagnostic broker contract is decoded in release builds: $contract"
+    }
+}
+$serverSource = [IO.File]::ReadAllText((Join-Path $PSScriptRoot `
+    'xucRunBroker\BrokerPipeServer.cpp'))
+if ($serverSource -notmatch
+    '#ifdef _DEBUG\s+constexpr bool DiagnosticPipeContractsEnabled = true;\s+' +
+    '#else\s+constexpr bool DiagnosticPipeContractsEnabled = false;\s+#endif') {
+    throw 'Diagnostic broker contracts must be disabled outside Debug builds.'
 }
 
 Write-Host 'Repository file documentation and installer staging contracts passed'

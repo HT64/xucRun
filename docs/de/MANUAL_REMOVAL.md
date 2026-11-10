@@ -45,7 +45,7 @@ xucRun-Ereignisse zu entfernen.
 | Client-Protokolle | `xucRun_YYYYMMDD.log` | Nur bei konfiguriertem `[Logging] ClientLogDirectory`; das Verzeichnis kann beliebig liegen, Umgebungsvariablen werden je Benutzerkontext aufgelöst |
 | Temporäre Wrapper | `xucRun_wrapper_<32 hexadezimale Zeichen>.bat` | Nur für bestimmte Batch-Dateinamen; normalerweise von einem geeigneten Laufwerk namens `RamDisk` oder aus `%TEMP%` des Zielkontos gelöscht |
 | Reste fehlgeschlagener Installationen | `%ProgramData%\xucRun-Installer-<32 hexadezimale Zeichen>` | Geschützte Bereitstellungsverzeichnisse, die normalerweise automatisch gelöscht werden |
-| Reste fehlgeschlagener Signierung | `%TEMP%\xucRun-Signing-<32 hexadezimale Zeichen>` | Nur beim Signieren eines Pakets angelegt und normalerweise automatisch gelöscht |
+| Reste fehlgeschlagener Signierung | `%ProgramData%\xucRun-Signing-<32 hexadezimale Zeichen>` | Geschützte Bereitstellungsverzeichnisse, die nur beim Signieren eines Pakets angelegt und normalerweise automatisch gelöscht werden |
 | Reste der Installerausgabe | `%TEMP%\xucRun-Installer-<32 hexadezimale Zeichen>.stdout.log` und `.stderr.log` | Werden normalerweise automatisch gelöscht |
 
 Der genannte Zertifikatsname gilt für ein mit dem Standardnamen erzeugtes Zertifikat. Wurde bei der
@@ -236,8 +236,7 @@ Prüfen Sie nach dem Ende aller xucRun-Prozesse folgende Orte:
 - `%TEMP%` jedes Kontos und geeignete Laufwerke namens `RamDisk` auf einen exakten Namen
   `xucRun_wrapper_<32 hexadezimale Zeichen>.bat`;
 - `%ProgramData%` auf Verzeichnisse namens
-  `xucRun-Installer-<32 hexadezimale Zeichen>`;
-- beim zum Signieren von Paketen verwendeten Konto `%TEMP%` auf
+  `xucRun-Installer-<32 hexadezimale Zeichen>` und
   `xucRun-Signing-<32 hexadezimale Zeichen>`;
 - beim Konto, das einen Installer gestartet hat, auf die im Inventar aufgeführten passenden
   `.stdout.log`- und `.stderr.log`-Dateien.

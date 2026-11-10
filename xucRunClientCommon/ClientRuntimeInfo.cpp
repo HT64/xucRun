@@ -11,6 +11,7 @@
 #include "ClientAccountIdentity.h"
 #include "ClientImageTrust.h"
 #include "DocumentationNameMapping.h"
+#include "FileIdentity.h"
 #include "Localization.h"
 
 namespace
@@ -81,12 +82,11 @@ namespace
 
 	std::wstring GetConfigurationPath()
 	{
-		wchar_t programFiles[MAX_PATH] = {};
-		const DWORD length = GetEnvironmentVariableW(
-			L"ProgramFiles", programFiles, ARRAYSIZE(programFiles));
-		if (length == 0 || length >= ARRAYSIZE(programFiles))
+		std::wstring programFiles;
+		DWORD error = ERROR_SUCCESS;
+		if (!xucrun::files::GetProgramFilesDirectory(programFiles, error))
 			return {};
-		return std::wstring(programFiles) + L"\\xucRun\\xucRun.ini";
+		return programFiles + L"\\xucRun\\xucRun.ini";
 	}
 
 	std::wstring GetAccount()

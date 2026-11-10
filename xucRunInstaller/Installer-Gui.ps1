@@ -577,8 +577,13 @@ function Confirm-VcRuntime {
 
 function Invoke-HiddenPowerShell {
     param([Parameter(Mandatory)][string[]]$Arguments)
+    $systemDirectory = [Environment]::GetFolderPath(
+        [Environment+SpecialFolder]::System)
+    if ([string]::IsNullOrWhiteSpace($systemDirectory)) {
+        throw 'The Windows system directory could not be resolved.'
+    }
     $powerShellPath =
-        Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        Join-Path $systemDirectory 'WindowsPowerShell\v1.0\powershell.exe'
     $id = [Guid]::NewGuid().ToString('N')
     $logDirectory = [IO.Path]::GetTempPath()
     $standardOutputPath =

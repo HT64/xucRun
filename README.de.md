@@ -15,11 +15,11 @@ Approach: Combines conceptual guidance, security boundaries, examples, and links
 
 **xucRun** steht für **eXecute Under User Context**.
 
-> **Status:** xucRun wird aktiv weiterentwickelt und ist für den vorgesehenen Einsatz auf den
-> bislang getesteten Systemen bereits praktisch erprobt. Weitere Änderungen sind möglich, und
-> Fehler können nicht ausgeschlossen werden. Die Versionskennzeichnung 0.x.x.x dient nicht als
-> Qualitätsbewertung, sondern wird beibehalten, bis mehr praktische Erfahrungen und Rückmeldungen
-> aus anderen Benutzerumgebungen vorliegen.
+> **Status:** xucRun wird aktiv weiterentwickelt und ist auf Windows-10- und Windows-11-Systemen
+> des Autors praktisch erprobt. Weitere Änderungen sind möglich, und Fehler können nicht
+> ausgeschlossen werden. Die Versionskennzeichnung 0.x.x.x dient nicht als Qualitätsbewertung,
+> sondern wird beibehalten, bis mehr praktische Erfahrungen und Rückmeldungen aus anderen
+> Benutzerumgebungen vorliegen.
 
 ## Überblick
 
@@ -1065,6 +1065,12 @@ müssen deshalb weiterhin entsprechend geschützt sein. Eine vorhandene xucRun-F
 Ersatz für diesen Schutz. Die übrigen Brokerprüfungen, insbesondere zu Konto, angeforderten
 Rechten, Sichtbarkeit, Zielpfad und Zielprogrammhash, bleiben wirksam.
 
+Rechte enden nicht mit dem Schließen eines Fensters. Prozesse, die ein über xucRun gestartetes
+Programm selbst startet, behalten dessen Konto und Rechte und können im Hintergrund weiterlaufen,
+auch wenn das ursprüngliche Fenster geschlossen wurde oder eine zeitlich begrenzte Freigabe
+abgelaufen ist. Das optionale [xucRun Tray](#optionales-tray) listet die über xucRun gestarteten
+Prozesse und ihre erkannten Folgeprozesse auf, auch solche ohne sichtbares Fenster.
+
 ## Umfang von xucRun
 
 xucRun enthält:
@@ -1279,7 +1285,7 @@ deshalb beim ersten Start einen unbekannten Herausgeber melden.
 
 Der einfachste Installationsweg ist
 `xucRun-Installer-<Version>-x64.exe`, beispielsweise
-`xucRun-Installer-0.9.1.5-x64.exe`. Vor dem Start sollte die Datei nur aus den
+`xucRun-Installer-0.9.1.6-x64.exe`. Vor dem Start sollte die Datei nur aus den
 [offiziellen xucRun-Veröffentlichungen](https://github.com/HT64/xucRun/releases) bezogen, ihre
 SHA-256-Prüfsumme mit der dort veröffentlichten Prüfsumme verglichen und eine vorhandene
 Authenticode-Signatur geprüft werden.

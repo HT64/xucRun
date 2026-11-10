@@ -4,11 +4,16 @@ Installs, updates, or uninstalls xucRun on the local Windows computer.
 
 .DESCRIPTION
 In install mode, validates that every required package file has a valid,
-trusted Authenticode signature from one common signer, stages and rechecks the
-package, installs it under Program Files, configures the broker service and
-authorization policy, writes the selected language, and registers uninstall
-metadata including the contract version required by local development
-refreshes. Existing service state is preserved during an update. In uninstall
+trusted Authenticode signature from one common signer. It then copies the
+package into a staging directory that is created together with an access
+control list for administrators and SYSTEM only, rechecks the staged copies
+against the package signer, and records their SHA-256 hashes. The staged files
+are installed under Program Files, compared with the recorded hashes, and
+verified once more against the package signer before the broker service and
+authorization policy are configured. Finally the script writes the selected
+language and registers uninstall metadata including the contract version
+required by local development refreshes. Existing service state is preserved
+during an update. In uninstall
 mode, the script verifies the installed broker and managed signer, optionally
 asks for confirmation, purges broker data through the service, removes files,
 registration and any installer-added PATH entry, and removes the managed local
@@ -55,12 +60,21 @@ Verifies the installed product, asks for confirmation, and uninstalls xucRun.
 Requires Windows PowerShell 5.1, elevation, Windows service and registry
 facilities, and a complete package whose required files are validly signed by
 the same trusted certificate. Installation changes Program Files, HKLM,
-machine PATH when requested, service configuration, and protected ProgramData
-staging. Uninstallation deletes installed files, broker credentials and
+machine PATH when requested, service configuration, and a temporary
+ProgramData staging directory named xucRun-Installer-<32 hexadecimal
+characters>. That directory is resolved through the Windows known folder, is
+created together with an access control list for administrators and SYSTEM
+only, and is removed on success and failure; an existing or differently
+protected staging path aborts the installation. Program Files, ProgramData,
+and the Windows system directory that provides sc.exe are resolved through
+Windows known folders, never through environment variables inherited from the
+caller. Uninstallation deletes installed files, broker credentials and
 approvals, registration data, and the managed local signing certificate; it
 refuses unsafe reparse-point paths, signer mismatches, and incompatible
 installed add-ons. Uninstall failures may write a diagnostic log under
-ProgramData\xucRun\InstallerLogs. Cancellation is not an error. Unhandled
+ProgramData\xucRun\InstallerLogs; a missing log directory is created already
+restricted, and an existing one that is not owned by administrators or SYSTEM
+is not used. Cancellation is not an error. Unhandled
 validation, service, registry, or file-system errors terminate the script and
 produce a nonzero host exit code; success produces exit code 0.
 #>
@@ -103,7 +117,17 @@ $parametersPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$serviceName\Paramete
 $eventSourcePath = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$serviceName"
 $uninstallRegistryPath =
     'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun'
-$brokerStoreDirectory = Join-Path $env:ProgramData 'xucRun'
+$programDataDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::CommonApplicationData)
+if ([string]::IsNullOrWhiteSpace($programDataDirectory)) {
+    throw 'The Windows ProgramData directory could not be resolved.'
+}
+$brokerStoreDirectory = Join-Path $programDataDirectory 'xucRun'
+$systemDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::System)
+if ([string]::IsNullOrWhiteSpace($systemDirectory)) {
+    throw 'The Windows system directory could not be resolved.'
+}
 $installerLogDirectory = Join-Path $brokerStoreDirectory 'InstallerLogs'
 $machineEnvironmentPath =
     'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
@@ -327,11 +351,32 @@ function Show-UninstallSuccess {
         $message, $title, 'OK', 'Information') | Out-Null
 }
 
+function Initialize-InstallerLogDirectory {
+    # The log directory and its parent may be missing or may have been created
+    # by another account before xucRun was installed. Missing directories are
+    # created already restricted; existing ones must belong to administrators
+    # or SYSTEM before a diagnostic file is written into them.
+    Assert-NotReparsePoint -Path $installerLogDirectory
+    $sidType = [Security.Principal.SecurityIdentifier]
+    foreach ($directory in @($brokerStoreDirectory, $installerLogDirectory)) {
+        if (-not (Test-Path -LiteralPath $directory)) {
+            New-ProtectedDirectory -Path $directory
+            continue
+        }
+        $owner = [IO.Directory]::GetAccessControl($directory,
+            [Security.AccessControl.AccessControlSections]::Owner).GetOwner($sidType)
+        if (-not (Test-Path -LiteralPath $directory -PathType Container) -or
+            $owner.Value -notin @('S-1-5-18', 'S-1-5-32-544')) {
+            throw "Log directory is not owned by administrators or SYSTEM: $directory"
+        }
+    }
+    Set-InstallDirectoryAcl -Path $installerLogDirectory
+}
+
 function Write-UninstallDiagnostic {
     param([Parameter(Mandatory)][Management.Automation.ErrorRecord]$ErrorRecord)
 
-    New-Item -ItemType Directory -Path $installerLogDirectory -Force | Out-Null
-    Set-InstallDirectoryAcl -Path $installerLogDirectory
+    Initialize-InstallerLogDirectory
     $logPath = Join-Path $installerLogDirectory (
         'xucRun-Uninstall-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff') + '.log')
     $lines = @(
@@ -509,7 +554,7 @@ function Assert-ConsistentPackageSignatures {
 function Invoke-ServiceControl {
     param([Parameter(Mandatory)][string[]]$Arguments)
 
-    $output = & "$env:SystemRoot\System32\sc.exe" @Arguments 2>&1
+    $output = & (Join-Path $systemDirectory 'sc.exe') @Arguments 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "sc.exe failed with exit code $LASTEXITCODE`: $($output -join ' ')"
     }
@@ -552,6 +597,59 @@ function Set-InstallDirectoryAcl {
     $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
         $usersSid, 'ReadAndExecute', $inheritance, $propagation, $allow))
     Set-Acl -LiteralPath $Path -AclObject $acl
+}
+
+function Assert-ProtectedDirectory {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $directory = [IO.DirectoryInfo]::new($Path)
+    if (-not $directory.Exists -or
+        ($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Staging directory is missing or is a reparse point: $Path"
+    }
+    $trustedSids = @('S-1-5-18', 'S-1-5-32-544')
+    $sidType = [Security.Principal.SecurityIdentifier]
+    $acl = [IO.Directory]::GetAccessControl($Path,
+        [Security.AccessControl.AccessControlSections]'Owner, Access')
+    $rules = @($acl.GetAccessRules($true, $true, $sidType))
+    $unexpectedRules = @($rules | Where-Object {
+        $_.AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow -or
+        $_.IdentityReference.Value -notin $trustedSids
+    })
+    if ($acl.GetOwner($sidType).Value -ne 'S-1-5-32-544' -or
+        -not $acl.AreAccessRulesProtected -or
+        $rules.Count -eq 0 -or $unexpectedRules.Count -ne 0) {
+        throw "Staging directory is not restricted to administrators and SYSTEM: $Path"
+    }
+    if (@([IO.Directory]::GetFileSystemEntries($Path)).Count -ne 0) {
+        throw "Staging directory was not created empty: $Path"
+    }
+}
+
+function New-ProtectedDirectory {
+    param([Parameter(Mandatory)][string]$Path)
+
+    if (Test-Path -LiteralPath $Path) {
+        throw "Staging path already exists: $Path"
+    }
+    $inheritance = [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
+    $propagation = [Security.AccessControl.PropagationFlags]::None
+    $allow = [Security.AccessControl.AccessControlType]::Allow
+    $systemSid = [Security.Principal.SecurityIdentifier]::new('S-1-5-18')
+    $administratorsSid =
+        [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
+    $acl = [Security.AccessControl.DirectorySecurity]::new()
+    $acl.SetAccessRuleProtection($true, $false)
+    $acl.SetOwner($administratorsSid)
+    $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
+        $systemSid, 'FullControl', $inheritance, $propagation, $allow))
+    $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
+        $administratorsSid, 'FullControl', $inheritance, $propagation, $allow))
+    # The descriptor must be part of the creation call. A directory that is
+    # restricted only afterwards briefly inherits the ProgramData rights that
+    # let any account add entries it continues to own.
+    [void][IO.Directory]::CreateDirectory($Path, $acl)
+    Assert-ProtectedDirectory -Path $Path
 }
 
 function Set-ConfigurationLanguage {
@@ -929,17 +1027,18 @@ else {
     'en'
 }
 
-$stagingDirectory = Join-Path $env:ProgramData (
+$stagingDirectory = Join-Path $programDataDirectory (
     'xucRun-Installer-' + [Guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Path $stagingDirectory | Out-Null
-Set-InstallDirectoryAcl -Path $stagingDirectory
+New-ProtectedDirectory -Path $stagingDirectory
 try {
     foreach ($file in $packageFiles) {
         $stagedPath = Join-Path $stagingDirectory $file.RelativePath
         $stagedParent = Split-Path -Parent $stagedPath
         if (-not (Test-Path -LiteralPath $stagedParent)) {
-            New-Item -ItemType Directory -Path $stagedParent -Force | Out-Null
-            Set-InstallDirectoryAcl -Path $stagedParent
+            New-ProtectedDirectory -Path $stagedParent
+        }
+        if (Test-Path -LiteralPath $stagedPath) {
+            throw "Staged package file already exists: $($file.RelativePath)"
         }
         Copy-Item -LiteralPath $file.Path -Destination $stagedPath
         if ((Get-FileHash -LiteralPath $file.Path -Algorithm SHA256).Hash -ne
@@ -948,7 +1047,16 @@ try {
         }
     }
     $stagedFiles = @(Get-PackageFiles -Root $stagingDirectory)
-    [void](Assert-ConsistentPackageSignatures -Files $stagedFiles)
+    $stagedSignerSha256 = Assert-ConsistentPackageSignatures -Files $stagedFiles
+    if ([Convert]::ToBase64String($stagedSignerSha256) -ne
+        [Convert]::ToBase64String($signerSha256)) {
+        throw 'The staged package is not signed by the package signer.'
+    }
+    $verifiedHashes = @{}
+    foreach ($file in $stagedFiles) {
+        $verifiedHashes[$file.RelativePath] =
+            (Get-FileHash -LiteralPath $file.Path -Algorithm SHA256).Hash
+    }
 
     $existingService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
     $existingServiceWasDisabled = $false
@@ -971,11 +1079,23 @@ try {
 
     foreach ($file in $stagedFiles) {
         $destination = Join-Path $installDirectory $file.RelativePath
-        Copy-Item -LiteralPath $file.Path -Destination $destination -Force
+        $verifiedHash = $verifiedHashes[$file.RelativePath]
         if ((Get-FileHash -LiteralPath $file.Path -Algorithm SHA256).Hash -ne
-            (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash) {
+            $verifiedHash) {
+            throw "Staged package file changed after verification: $($file.RelativePath)"
+        }
+        Copy-Item -LiteralPath $file.Path -Destination $destination -Force
+        if ((Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash -ne
+            $verifiedHash) {
+            Remove-Item -LiteralPath $destination -Force
             throw "Installed package file does not match: $($file.RelativePath)"
         }
+    }
+    $installedSignerSha256 = Assert-ConsistentPackageSignatures `
+        -Files @(Get-PackageFiles -Root $installDirectory)
+    if ([Convert]::ToBase64String($installedSignerSha256) -ne
+        [Convert]::ToBase64String($signerSha256)) {
+        throw 'The installed files are not signed by the package signer.'
     }
     Set-ConfigurationLanguage -SelectedLanguage $selectedLanguage
 
@@ -1003,7 +1123,7 @@ try {
         -PropertyType DWord -Value 7 -Force | Out-Null
     New-ItemProperty -Path $eventSourcePath -Name EventMessageFile `
         -PropertyType ExpandString `
-        -Value (Join-Path $env:SystemRoot 'System32\EventCreate.exe') -Force |
+        -Value (Join-Path $systemDirectory 'EventCreate.exe') -Force |
         Out-Null
 
     New-Item -Path $parametersPath -Force | Out-Null

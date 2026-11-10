@@ -5,10 +5,12 @@ Signs an xucRun package with a trusted machine-local certificate.
 .DESCRIPTION
 Finds one current machine code-signing certificate with the requested subject
 and private key or creates a nonexportable 3072-bit RSA certificate. It adds
-that certificate to the LocalMachine Root and TrustedPublisher stores, stages
-all required package payloads, signs and verifies each staged file, replaces
-the package payloads only after all staged signatures succeed, and regenerates
-SHA256SUMS.json.
+that certificate to the LocalMachine Root and TrustedPublisher stores and
+copies all required package payloads into a ProgramData staging directory that
+is created together with an access control list for administrators and SYSTEM
+only. Each staged copy must match its source hash before it is signed and
+verified. The package payloads are replaced only after all staged signatures
+succeed, and SHA256SUMS.json is regenerated.
 
 .PARAMETER PackageDirectory
 Specifies the package to sign. If omitted or blank, the default is the parent
@@ -41,7 +43,11 @@ and signs the Release package.
 Requires elevated Windows PowerShell 5.1 and the LocalMachine certificate
 providers. Creating or reusing the certificate changes the machine My, Root,
 and TrustedPublisher stores; the private key of a new certificate is
-nonexportable. Package payloads are replaced with signed copies and the hash
+nonexportable. Signing uses a temporary directory named
+xucRun-Signing-<32 hexadecimal characters> under the ProgramData known folder;
+it is accessible to administrators and SYSTEM only from the moment it is
+created and is removed on success and failure. Package payloads are replaced
+with signed copies and the hash
 manifest is rewritten. Trust is local to this computer and is not equivalent
 to a publicly trusted publisher. Missing or ambiguous certificates, invalid
 names, package errors, signature or timestamp validation failures, and
@@ -222,6 +228,59 @@ function Assert-LocalSignature {
     }
 }
 
+function Assert-ProtectedDirectory {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $directory = [IO.DirectoryInfo]::new($Path)
+    if (-not $directory.Exists -or
+        ($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Staging directory is missing or is a reparse point: $Path"
+    }
+    $trustedSids = @('S-1-5-18', 'S-1-5-32-544')
+    $sidType = [Security.Principal.SecurityIdentifier]
+    $acl = [IO.Directory]::GetAccessControl($Path,
+        [Security.AccessControl.AccessControlSections]'Owner, Access')
+    $rules = @($acl.GetAccessRules($true, $true, $sidType))
+    $unexpectedRules = @($rules | Where-Object {
+        $_.AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow -or
+        $_.IdentityReference.Value -notin $trustedSids
+    })
+    if ($acl.GetOwner($sidType).Value -ne 'S-1-5-32-544' -or
+        -not $acl.AreAccessRulesProtected -or
+        $rules.Count -eq 0 -or $unexpectedRules.Count -ne 0) {
+        throw "Staging directory is not restricted to administrators and SYSTEM: $Path"
+    }
+    if (@([IO.Directory]::GetFileSystemEntries($Path)).Count -ne 0) {
+        throw "Staging directory was not created empty: $Path"
+    }
+}
+
+function New-ProtectedDirectory {
+    param([Parameter(Mandatory)][string]$Path)
+
+    if (Test-Path -LiteralPath $Path) {
+        throw "Staging path already exists: $Path"
+    }
+    $inheritance = [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
+    $propagation = [Security.AccessControl.PropagationFlags]::None
+    $allow = [Security.AccessControl.AccessControlType]::Allow
+    $systemSid = [Security.Principal.SecurityIdentifier]::new('S-1-5-18')
+    $administratorsSid =
+        [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
+    $acl = [Security.AccessControl.DirectorySecurity]::new()
+    $acl.SetAccessRuleProtection($true, $false)
+    $acl.SetOwner($administratorsSid)
+    $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
+        $systemSid, 'FullControl', $inheritance, $propagation, $allow))
+    $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
+        $administratorsSid, 'FullControl', $inheritance, $propagation, $allow))
+    # The descriptor must be part of the creation call. A directory that is
+    # restricted only afterwards briefly inherits the ProgramData rights that
+    # let any account add entries it continues to own.
+    [void][IO.Directory]::CreateDirectory($Path, $acl)
+    Assert-ProtectedDirectory -Path $Path
+}
+
 Assert-WindowsPowerShell
 Assert-Administrator
 if ([string]::IsNullOrWhiteSpace($PackageDirectory)) {
@@ -234,17 +293,29 @@ $certificate = Get-OrCreateLocalCertificate `
     -ValidityYears $CertificateValidityYears
 Add-LocalCertificateTrust -Certificate $certificate
 
-$stagingDirectory = Join-Path ([IO.Path]::GetTempPath()) (
+$programDataDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::CommonApplicationData)
+if ([string]::IsNullOrWhiteSpace($programDataDirectory)) {
+    throw 'The Windows ProgramData directory could not be resolved.'
+}
+$stagingDirectory = Join-Path $programDataDirectory (
     'xucRun-Signing-' + [Guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Path $stagingDirectory | Out-Null
+New-ProtectedDirectory -Path $stagingDirectory
 try {
     foreach ($file in $packageFiles) {
         $stagedPath = Join-Path $stagingDirectory $file.RelativePath
         $stagedParent = Split-Path -Parent $stagedPath
         if (-not (Test-Path -LiteralPath $stagedParent)) {
-            New-Item -ItemType Directory -Path $stagedParent -Force | Out-Null
+            New-ProtectedDirectory -Path $stagedParent
+        }
+        if (Test-Path -LiteralPath $stagedPath) {
+            throw "Staged package file already exists: $($file.RelativePath)"
         }
         Copy-Item -LiteralPath $file.Path -Destination $stagedPath
+        if ((Get-FileHash -LiteralPath $file.Path -Algorithm SHA256).Hash -ne
+            (Get-FileHash -LiteralPath $stagedPath -Algorithm SHA256).Hash) {
+            throw "Staged package file does not match its source: $($file.RelativePath)"
+        }
         $signatureArguments = @{
             FilePath = $stagedPath
             Certificate = $certificate

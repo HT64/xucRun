@@ -15,8 +15,8 @@ Approach: Combines conceptual guidance, security boundaries, examples, and links
 
 **xucRun** stands for **eXecute Under User Context**.
 
-> **Status:** xucRun is actively maintained and continues to evolve. For its intended use, it has
-> already been proven in practical use on the systems tested so far. Further changes are possible,
+> **Status:** xucRun is actively maintained and continues to evolve. It has been proven in
+> practical use on the author's Windows 10 and Windows 11 systems. Further changes are possible,
 > and defects cannot be ruled out. The 0.x.x.x version designation is not intended as a quality
 > rating; it will be retained until more practical experience and feedback from other user
 > environments are available.
@@ -1009,6 +1009,12 @@ be replaced, must therefore remain appropriately protected. An existing xucRun a
 substitute for this protection. The other broker checks, particularly those for the account,
 requested privileges, visibility, target path, and target-program hash, remain effective.
 
+Privileges do not end when a window is closed. Processes started by a program that was launched
+through xucRun keep its account and privileges and can continue to run in the background after
+the original window has been closed or a time-limited approval has expired. The optional
+[xucRun Tray](#optional-tray) lists the processes started through xucRun and their recognized
+follow-up processes, including those without a visible window.
+
 ## xucRun scope
 
 xucRun contains:
@@ -1202,7 +1208,7 @@ it is first started.
 
 The easiest installation method is
 `xucRun-Installer-<Version>-x64.exe`, for example
-`xucRun-Installer-0.9.1.5-x64.exe`. Before starting it, obtain the file only from the
+`xucRun-Installer-0.9.1.6-x64.exe`. Before starting it, obtain the file only from the
 [official xucRun releases](https://github.com/HT64/xucRun/releases), compare its SHA-256 checksum
 with the checksum published there, and verify any available Authenticode signature.
 

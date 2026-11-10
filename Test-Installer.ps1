@@ -3,10 +3,15 @@
 Runs the destructive xucRun installer smoke test on a clean Windows runner.
 
 .DESCRIPTION
-Checks that the elevated machine is clean, creates and reuses a short-lived
+Checks that the elevated machine is clean and that the staging directories of
+the installer and the package signer are restricted to administrators and
+SYSTEM from the moment they are created, reject an existing path, a planted
+entry, and a directory that merely inherited the ProgramData rights. It then
+creates and reuses a short-lived
 local signing certificate, signs the supplied package, installs xucRun, and
 verifies files, metadata, signatures, broker authorization, registry entries,
-language, system PATH, and the client information command. It repeats the
+language, system PATH, the absence of staging remnants, and the client
+information command. It repeats the
 installation to test update behavior, verifies that an installed Tray add-on
 blocks removal, then uninstalls and confirms that product data and the test
 certificate are gone. Best-effort cleanup runs after success or failure.
@@ -60,6 +65,8 @@ $uninstallRegistryPath =
 $trayUninstallRegistryPath =
     'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun Tray'
 $brokerStoreDirectory = Join-Path $env:ProgramData 'xucRun'
+$programDataDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::CommonApplicationData)
 $machineEnvironmentPath =
     'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
 $certificateName = "xucRun Local Signing ($env:COMPUTERNAME)"
@@ -84,6 +91,83 @@ function Assert-Administrator {
     Assert-Condition $principal.IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator) `
         'The Windows runner process is not elevated.'
+}
+
+function Assert-Rejected {
+    param(
+        [Parameter(Mandatory)][scriptblock]$Action,
+        [Parameter(Mandatory)][string]$Message
+    )
+
+    $rejected = $false
+    try {
+        & $Action
+    }
+    catch {
+        $rejected = $true
+    }
+    Assert-Condition $rejected $Message
+}
+
+function Assert-StagingProtection {
+    param([Parameter(Mandatory)][string]$ScriptPath)
+
+    $tokens = $null
+    $errors = $null
+    $ast = [Management.Automation.Language.Parser]::ParseFile(
+        $ScriptPath, [ref]$tokens, [ref]$errors)
+    Assert-Condition ($errors.Count -eq 0) `
+        "Staging script cannot be parsed: $ScriptPath"
+    $definitions = @($ast.FindAll({
+        param($node)
+        $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+        $node.Name -in @('Assert-ProtectedDirectory', 'New-ProtectedDirectory')
+    }, $false))
+    Assert-Condition ($definitions.Count -eq 2) `
+        "Staging protection functions are missing: $ScriptPath"
+    . ([scriptblock]::Create(($definitions.Extent.Text -join "`n")))
+
+    $protected = Join-Path $programDataDirectory (
+        'xucRun-StagingTest-' + [Guid]::NewGuid().ToString('N'))
+    $inherited = Join-Path $programDataDirectory (
+        'xucRun-StagingTest-' + [Guid]::NewGuid().ToString('N'))
+    try {
+        New-ProtectedDirectory -Path $protected
+        $sidType = [Security.Principal.SecurityIdentifier]
+        $acl = [IO.Directory]::GetAccessControl($protected,
+            [Security.AccessControl.AccessControlSections]'Owner, Access')
+        $identities = @($acl.GetAccessRules($true, $true, $sidType) |
+            ForEach-Object { $_.IdentityReference.Value } |
+            Sort-Object -Unique)
+        Assert-Condition (
+            $acl.AreAccessRulesProtected -and
+            $acl.GetOwner($sidType).Value -eq 'S-1-5-32-544' -and
+            ($identities -join ',') -eq 'S-1-5-18,S-1-5-32-544') `
+            "A new staging directory is accessible beyond administrators and SYSTEM: $ScriptPath"
+
+        Assert-Rejected { New-ProtectedDirectory -Path $protected } `
+            "An existing staging path was accepted: $ScriptPath"
+        [IO.File]::WriteAllText((Join-Path $protected 'planted.bin'), 'planted')
+        Assert-Rejected { Assert-ProtectedDirectory -Path $protected } `
+            "A staging directory with a planted entry was accepted: $ScriptPath"
+        New-Item -ItemType Directory -Path $inherited | Out-Null
+        Assert-Rejected { Assert-ProtectedDirectory -Path $inherited } `
+            "A staging directory with inherited ProgramData rights was accepted: $ScriptPath"
+    }
+    finally {
+        foreach ($path in @($protected, $inherited)) {
+            if (Test-Path -LiteralPath $path) {
+                Remove-Item -LiteralPath $path -Recurse -Force
+            }
+        }
+    }
+}
+
+function Assert-NoStagingRemnants {
+    $remnants = @(Get-ChildItem -LiteralPath $programDataDirectory -Directory -Force |
+        Where-Object { $_.Name -match '^xucRun-(Installer|Signing)-[0-9a-f]{32}$' })
+    Assert-Condition ($remnants.Count -eq 0) `
+        "Staging directories were left behind: $($remnants.Name -join ', ')"
 }
 
 function Get-CertificateSha256 {
@@ -190,8 +274,8 @@ function Assert-InstalledState {
         Assert-Condition (
             $versionInfo.CompanyName -eq 'HT64' -and
             $versionInfo.LegalCopyright -eq $expectedCopyright -and
-            $versionInfo.FileVersion -eq '0.9.1.5' -and
-            $versionInfo.ProductVersion -eq '0.9.1.5' -and
+            $versionInfo.FileVersion -eq '0.9.1.6' -and
+            $versionInfo.ProductVersion -eq '0.9.1.6' -and
             -not [string]::IsNullOrWhiteSpace($versionInfo.FileDescription) -and
             $versionInfo.OriginalFilename -eq $entry.OriginalFilename) `
             "Installed file metadata is incomplete: $($entry.Path)"
@@ -239,8 +323,8 @@ function Assert-InstalledState {
         [string]$uninstallKey.GetValue('DisplayName', '') -eq 'xucRun') `
         'The uninstall DisplayName is not xucRun.'
     Assert-Condition (
-        [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.1.5') `
-        'The uninstall DisplayVersion is not 0.9.1.5.'
+        [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.1.6') `
+        'The uninstall DisplayVersion is not 0.9.1.6.'
     Assert-Condition (
         [int]$uninstallKey.GetValue('InstallationContractVersion', 0) -eq 1) `
         'The installation contract version is missing or invalid.'
@@ -372,6 +456,9 @@ foreach ($requiredContract in @(
     Assert-Condition $installerSource.Contains($requiredContract) `
         "Installer uninstall confirmation contract is missing '$requiredContract'."
 }
+Assert-StagingProtection -ScriptPath $installer
+Assert-StagingProtection -ScriptPath $signer
+Assert-NoStagingRemnants
 
 Assert-Condition (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) `
     'The runner already has an xucRunBroker service.'
@@ -412,12 +499,14 @@ try {
         $reusedCertificates.Count -eq 1 -and
         $reusedCertificates[0].Thumbprint -eq $createdCertificateThumbprint) `
         'The local signing workflow did not reuse its existing valid certificate.'
+    Assert-NoStagingRemnants
 
     & $installer `
         -PackageDirectory $packageRoot `
         -Language en `
         -AddToSystemPath
     Assert-InstalledState
+    Assert-NoStagingRemnants
     Invoke-InfoCheck
 
     Start-Service -Name $serviceName

@@ -280,11 +280,73 @@ bool IsApprovalHelperAuthorized(const ClientImageIdentity& identity,
 	return true;
 }
 
+// Compares only directories; the full path, hash, and signer checks follow later.
+bool IsImagePathInAuthorizedDirectory(const std::wstring& processImagePath,
+	const std::wstring& configuredClientPath, const std::wstring& brokerImagePath)
+{
+	const auto directoryOf = [](const std::wstring& path) {
+		const std::size_t separator = path.find_last_of(L"\\/");
+		return separator == std::wstring::npos || separator == 0
+			? std::wstring()
+			: path.substr(0, separator);
+	};
+	const std::wstring processDirectory = directoryOf(processImagePath);
+	if (processDirectory.empty())
+		return false;
+	for (const std::wstring* authorizedPath : { &configuredClientPath, &brokerImagePath })
+	{
+		const std::wstring authorizedDirectory = directoryOf(*authorizedPath);
+		if (!authorizedDirectory.empty() &&
+			_wcsicmp(processDirectory.c_str(), authorizedDirectory.c_str()) == 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+// Reads the process path and applies the directory pre-check against the policy.
+bool IsClientProcessPathCandidate(HANDLE process, const std::wstring& brokerImagePath)
+{
+	std::vector<wchar_t> buffer(32768);
+	DWORD length = static_cast<DWORD>(buffer.size());
+	if (!process || process == INVALID_HANDLE_VALUE ||
+		!QueryFullProcessImageNameW(process, 0, buffer.data(), &length) || length == 0)
+	{
+		return false;
+	}
+	SensitiveClientPolicy policy;
+	DWORD policyError = NO_ERROR;
+	if (!LoadSensitiveClientPolicy(policy, policyError))
+		policy = {};
+	return IsImagePathInAuthorizedDirectory(
+		std::wstring(buffer.data(), length), policy.imagePath, brokerImagePath);
+}
+
 // Tests positive and negative cases of path, trust, and signer binding.
 bool RunSensitiveClientPolicySelfTest()
 {
 	if (!RunUnprotectedImageBindingSelfTest())
 		return false;
+	const std::wstring installedClient = L"C:\\Program Files\\cmdTools\\xucRun.exe";
+	const std::wstring installedBroker = L"C:\\Program Files\\cmdTools\\xucRunBroker.exe";
+	if (!IsImagePathInAuthorizedDirectory(
+			L"c:\\program files\\CMDTOOLS\\xucRunTray.exe", installedClient, installedBroker) ||
+		!IsImagePathInAuthorizedDirectory(
+			L"C:\\Program Files\\cmdTools\\xucRunBroker.exe", L"", installedBroker) ||
+		IsImagePathInAuthorizedDirectory(
+			L"C:\\Temp\\xucRun.exe", installedClient, installedBroker) ||
+		IsImagePathInAuthorizedDirectory(
+			L"C:\\Program Files\\cmdTools\\Languages\\xucRun.exe",
+			installedClient, installedBroker) ||
+		IsImagePathInAuthorizedDirectory(
+			L"C:\\Program Files\\cmdTools2\\xucRun.exe", installedClient, installedBroker) ||
+		IsImagePathInAuthorizedDirectory(L"xucRun.exe", installedClient, installedBroker) ||
+		IsImagePathInAuthorizedDirectory(
+			L"C:\\Program Files\\cmdTools\\xucRun.exe", L"", L""))
+	{
+		return false;
+	}
 	SensitiveClientPolicy policy;
 	policy.imagePath = L"C:\\Program Files\\cmdTools\\xucRun.exe";
 	policy.signerCertificateSha256.assign(32, 0xA5);

@@ -43,7 +43,7 @@ to remove xucRun events.
 | Client logs | `xucRun_YYYYMMDD.log` | Only when `[Logging] ClientLogDirectory` is configured; the directory may be anywhere and environment variables are expanded in each user's context |
 | Temporary wrappers | `xucRun_wrapper_<32 hexadecimal characters>.bat` | Created only for certain batch-file names; normally deleted from a suitable volume named `RamDisk` or the target account's `%TEMP%` |
 | Failed-install remnants | `%ProgramData%\xucRun-Installer-<32 hexadecimal characters>` | Protected staging directories normally removed automatically |
-| Failed-signing remnants | `%TEMP%\xucRun-Signing-<32 hexadecimal characters>` | Created only while signing a package and normally removed automatically |
+| Failed-signing remnants | `%ProgramData%\xucRun-Signing-<32 hexadecimal characters>` | Protected staging directories created only while signing a package and normally removed automatically |
 | Installer output remnants | `%TEMP%\xucRun-Installer-<32 hexadecimal characters>.stdout.log` and `.stderr.log` | Normally removed automatically |
 
 The certificate subject above applies to the certificate generated with the standard name. If
@@ -225,8 +225,8 @@ After all xucRun processes have ended, inspect the following locations:
 
 - each account's `%TEMP%` and any suitable volume named `RamDisk` for an exact
   `xucRun_wrapper_<32 hexadecimal characters>.bat` name;
-- `%ProgramData%` for `xucRun-Installer-<32 hexadecimal characters>` directories;
-- the account used for package signing for `%TEMP%\xucRun-Signing-<32 hexadecimal characters>`;
+- `%ProgramData%` for `xucRun-Installer-<32 hexadecimal characters>` and
+  `xucRun-Signing-<32 hexadecimal characters>` directories;
 - the account that started an installer for matching `.stdout.log` and `.stderr.log` files listed
   in the inventory.
 

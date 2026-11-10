@@ -7,6 +7,22 @@ and publication processes are not listed.
 
 ## [Unreleased]
 
+## [0.9.1.6] - 2026-11-10
+
+This version contains security-relevant fixes that affect all earlier versions. The corrected
+weaknesses were found during an internal security review; no attacks are known. They can only
+be exploited by malicious code that is already running on the same computer. Updating is
+recommended; installers of earlier versions should no longer be used.
+
+### Security
+
+- The temporary working copies of the installer and the package signing script are now
+  accessible only to administrators and SYSTEM.
+- Closed a way for malicious code running in the user's account to open a console under a
+  stored target account without an approval.
+- Additionally hardened the broker, the client, and the installer against manipulated local
+  environments.
+
 ## [0.9.1.5] - 2026-11-09
 
 ### Added
@@ -165,7 +181,8 @@ and publication processes are not listed.
   The graphical installer checks this requirement and offers the official Microsoft download if
   necessary.
 
-[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.5...HEAD
+[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.6...HEAD
+[0.9.1.6]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.6
 [0.9.1.5]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.5
 [0.9.1.4]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.4
 [0.9.1.3]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.3

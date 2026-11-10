@@ -17,6 +17,7 @@
 #include "ClientSecurityAudit.h"
 #include "ClientUiCommon.h"
 #include "ClientWindowsError.h"
+#include "FileIdentity.h"
 #include "Localization.h"
 
 namespace
@@ -36,16 +37,14 @@ namespace
 		if (elevationKnown && !elevation.TokenIsElevated)
 			error = ERROR_ELEVATION_REQUIRED;
 
-		wchar_t programFiles[MAX_PATH] = {};
+		std::wstring programFiles;
 		if (error == ERROR_SUCCESS)
 		{
-			const DWORD pathLength = GetEnvironmentVariableW(
-				L"ProgramFiles", programFiles, ARRAYSIZE(programFiles));
-			if (pathLength == 0 || pathLength >= ARRAYSIZE(programFiles))
+			DWORD programFilesError = ERROR_SUCCESS;
+			if (!xucrun::files::GetProgramFilesDirectory(
+				programFiles, programFilesError))
 			{
-				error = pathLength == 0 ? GetLastError() : ERROR_INSUFFICIENT_BUFFER;
-				if (error == ERROR_SUCCESS)
-					error = ERROR_PATH_NOT_FOUND;
+				error = programFilesError;
 			}
 		}
 
@@ -62,7 +61,7 @@ namespace
 		if (error == ERROR_SUCCESS)
 		{
 			const std::wstring configurationPath =
-				std::wstring(programFiles) + L"\\xucRun\\xucRun.ini";
+				programFiles + L"\\xucRun\\xucRun.ini";
 			SetLastError(ERROR_SUCCESS);
 			if (!WritePrivateProfileStringW(
 				L"xucRun", L"Language", language, configurationPath.c_str()))

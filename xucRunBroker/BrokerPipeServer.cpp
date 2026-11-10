@@ -3861,9 +3861,11 @@ DWORD RunBrokerPipeServer(HANDLE stopEvent,
 	std::vector<TrackedElevatedProcessJob> trackedElevatedProcessJobs;
 	std::vector<RegisteredStatusIcon> registeredStatusIcons;
 	DWORD result = NO_ERROR;
+	// FILE_FLAG_FIRST_PIPE_INSTANCE: the broker serves exactly one instance. Joining a
+	// pipe that another process created under this name would adopt its access rules.
 	HANDLE pipe = CreateNamedPipeW(
 		xucrun::broker::BrokerPipeName,
-		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED | FILE_FLAG_FIRST_PIPE_INSTANCE,
 		PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
 		4, static_cast<DWORD>((std::max)(xucrun::broker::MaximumLaunchResultSize,
 			(std::max)(xucrun::broker::MaximumApprovalChallengeResultSize,
@@ -3880,6 +3882,10 @@ DWORD RunBrokerPipeServer(HANDLE stopEvent,
 	if (pipe == INVALID_HANDLE_VALUE)
 	{
 		result = GetLastError();
+		if (log)
+			log(EVENTLOG_ERROR_TYPE,
+				L"Broker pipe could not be created as its first instance. Error " +
+				std::to_wstring(result));
 		LocalFree(descriptor);
 		return result;
 	}
@@ -3918,6 +3924,22 @@ DWORD RunBrokerPipeServer(HANDLE stopEvent,
 		ClientImageIdentity imageIdentity;
 		DWORD imageIdentityError = NO_ERROR;
 		DWORD authorizationError = NO_ERROR;
+#ifndef _DEBUG
+		// Every Release client image resides beside the configured client or the
+		// broker. Discarding other paths first keeps arbitrary files from being
+		// hashed and parsed by the serial LocalSystem server.
+		if (!IsClientProcessPathCandidate(clientProcess, brokerImageIdentity.path))
+		{
+			if (log)
+				log(EVENTLOG_WARNING_TYPE,
+					L"Unauthorized pipe client discarded before reading request. PID " +
+					std::to_wstring(clientProcessId) + L", error " +
+					std::to_wstring(ERROR_ACCESS_DENIED));
+			CloseHandle(clientProcess);
+			DisconnectNamedPipe(pipe);
+			continue;
+		}
+#endif
 		const bool imageIdentityRead = ReadClientImageIdentity(
 			clientProcess, imageIdentity, imageIdentityError);
 #ifndef _DEBUG

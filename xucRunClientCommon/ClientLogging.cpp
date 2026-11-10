@@ -4,6 +4,7 @@
 #include "ClientLogging.h"
 
 #include "BrokerPipeClient.h"
+#include "FileIdentity.h"
 
 #include <Windows.h>
 #include <ShlObj.h>
@@ -59,13 +60,12 @@ namespace xucrun::client_logging
 		configurationPath.clear();
 		error = NO_ERROR;
 
-		wchar_t programFiles[MAX_PATH] = {};
-		const DWORD programFilesLength = GetEnvironmentVariableW(
-			L"ProgramFiles", programFiles, ARRAYSIZE(programFiles));
-		if (programFilesLength == 0 || programFilesLength >= ARRAYSIZE(programFiles))
+		std::wstring programFiles;
+		DWORD programFilesError = ERROR_SUCCESS;
+		if (!xucrun::files::GetProgramFilesDirectory(programFiles, programFilesError))
 			return true;
 
-		configurationPath = std::wstring(programFiles) + L"\\xucRun\\xucRun.ini";
+		configurationPath = programFiles + L"\\xucRun\\xucRun.ini";
 		std::vector<wchar_t> configuredDirectory(32768);
 		const DWORD configuredLength = GetPrivateProfileStringW(
 			L"Logging", L"ClientLogDirectory", L"", configuredDirectory.data(),

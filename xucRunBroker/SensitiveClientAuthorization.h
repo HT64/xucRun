@@ -27,6 +27,11 @@ bool IsTrayCompanionAuthorized(const ClientImageIdentity& identity, DWORD& error
 bool IsSensitiveClientAuthorized(const ClientImageIdentity& identity, DWORD& error);
 bool IsApprovalHelperAuthorized(const ClientImageIdentity& identity,
 	DWORD integrityRid, DWORD& error);
+// Cheap necessary conditions checked before a client image is hashed or its
+// signature is parsed. They never authorize a client by themselves.
+bool IsImagePathInAuthorizedDirectory(const std::wstring& processImagePath,
+	const std::wstring& configuredClientPath, const std::wstring& brokerImagePath);
+bool IsClientProcessPathCandidate(HANDLE process, const std::wstring& brokerImagePath);
 bool RunSensitiveClientPolicySelfTest();
 bool RunSensitiveClientPolicyConfigurationTest(
 	DWORD& error, std::wstring* failedProtectionPath = nullptr);

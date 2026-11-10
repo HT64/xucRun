@@ -12,6 +12,7 @@
 #include "CredentialMetadataStore.h"
 #include "CredentialStore.h"
 #include "CredentialValidator.h"
+#include "FileIdentity.h"
 #include "SecureDesktopHost.h"
 #include "SessionTestLauncher.h"
 #include "SecurityAclAudit.h"
@@ -346,13 +347,12 @@ namespace
 	// Enables additional informational events through the machine-wide xucRun configuration.
 	bool IsVerboseBrokerLoggingEnabled()
 	{
-		wchar_t programFiles[MAX_PATH] = {};
-		const DWORD pathLength = GetEnvironmentVariableW(
-			L"ProgramFiles", programFiles, ARRAYSIZE(programFiles));
-		if (pathLength == 0 || pathLength >= ARRAYSIZE(programFiles))
+		std::wstring programFiles;
+		DWORD programFilesError = ERROR_SUCCESS;
+		if (!xucrun::files::GetProgramFilesDirectory(programFiles, programFilesError))
 			return false;
 
-		const std::wstring configPath = std::wstring(programFiles) +
+		const std::wstring configPath = programFiles +
 			L"\\xucRun\\xucRun.ini";
 		wchar_t enabled[16] = {};
 		GetPrivateProfileStringW(L"Logging", L"BrokerInformationEvents", L"false",
