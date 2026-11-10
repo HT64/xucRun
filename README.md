@@ -132,6 +132,12 @@ xucRun.exe powershell.exe -NoExit
 xucRun.exe cmd.exe /c "net stop MyService"
 ```
 
+The target-program short names used here are also resolved through Windows executable search.
+This is convenient for interactive invocations. To protect scripts, shortcuts, tasks, or other
+fixed invocations against target-program redirection, also use the target program's actual
+absolute path. The following examples using `C:\Windows` assume the standard Windows path; if
+Windows is installed elsewhere, use its actual absolute path.
+
 The [short demonstration video](docs/media/xucRun-simple-elevation.mp4) (58 seconds, MP4, English
 user interface) shows how xucRun replaces a non-elevated Command Prompt with one running under the
 configured administrator account and how it runs an individual administrative command from the
@@ -147,9 +153,6 @@ Open Device Manager from a standard user account:
 ```cmd
 xucRun.exe "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
 ```
-
-The examples using `C:\Windows` assume the standard Windows path. To protect fixed invocations
-against target-program redirection, use the target's actual absolute path on that system instead.
 
 Start an administrative PowerShell script:
 

@@ -139,6 +139,13 @@ xucRun.exe powershell.exe -NoExit
 xucRun.exe cmd.exe /c "net stop MyService"
 ```
 
+Auch die hier verwendeten Kurznamen der Zielprogramme werden über die Windows-Programmsuche
+aufgelöst. Für interaktive Aufrufe ist das bequem. Sollen Skripte, Verknüpfungen, Aufgaben oder
+andere fest konfigurierte Aufrufe gegen eine Umleitung des Zielprogramms geschützt sein, sollten
+sie auch für das Zielprogramm dessen tatsächlichen absoluten Pfad verwenden. Die nachfolgenden
+Beispiele mit `C:\Windows` nehmen den Windows-Standardpfad an; bei einem abweichenden Windows-Pfad
+ist der tatsächliche absolute Pfad einzusetzen.
+
 Das [kurze Demonstrationsvideo](docs/media/xucRun-simple-elevation.mp4) (58 Sekunden, MP4,
 englische Benutzeroberfläche) zeigt, wie xucRun eine nicht erhöhte Eingabeaufforderung durch eine
 unter dem konfigurierten Administratorkonto ausgeführte Eingabeaufforderung ersetzt und wie es einen
@@ -154,10 +161,6 @@ Gerätemanager aus einem Standardbenutzerkonto öffnen:
 ```cmd
 xucRun.exe "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
 ```
-
-Die Beispiele mit `C:\Windows` nehmen den Windows-Standardpfad an. Sollen fest konfigurierte
-Aufrufe gegen eine Umleitung des Zielprogramms geschützt sein, sollten sie stattdessen dessen
-tatsächlichen absoluten Pfad auf diesem System verwenden.
 
 Eine administrative PowerShell mit einem Skript starten:
 
