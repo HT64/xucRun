@@ -11,10 +11,11 @@ duplicate-free, and sorted.
 Commentable text files carry concise `Purpose` and `Approach` metadata in their file heads.
 PowerShell scripts use their existing comment-based help: `.SYNOPSIS` states what the script does,
 and `.DESCRIPTION` explains how it does it. Generated commentable files retain metadata through
-their generators. MSBuild XML files (`.vcxproj`, `.props`, and `.targets`) use one comment block
-after the optional XML declaration, with `<!--`, `Purpose: ...`, `Approach: ...`, and `-->` each
-on its own line. Formats that cannot safely carry comments--such as the Visual Studio solution,
-images, icons, videos, legal texts, and plain semantic build data--are documented only here. The
+their generators. MSBuild XML files (`.vcxproj`, `.props`, and `.targets`) and SVG graphics use
+one comment block after the optional XML declaration, with `<!--`, `Purpose: ...`,
+`Approach: ...`, and `-->` each on its own line. Formats that cannot safely carry comments--such
+as the Visual Studio solution, raster images, icons, videos, legal texts, and plain semantic build
+data--are documented only here. The
 existing UTF-16 Windows Registry export is also kept byte-stable and documented here because Git
 treats that encoding as binary.
 
@@ -49,6 +50,7 @@ treats that encoding as binary.
 | `docs/de/images/installation-success.png` | Documentation image | German documentation screenshot showing installation success. |
 | `docs/de/images/installer.png` | Documentation image | German documentation screenshot showing installer. |
 | `docs/de/images/installer-process-and-uninstallation.png` | Documentation image | German documentation screenshot showing installer process and uninstallation. |
+| `docs/de/images/overview.svg` | Documentation image | German overview graphic showing a program launched under the target account within the signed-in standard user's Windows session. |
 | `docs/de/images/program-hash-change-approval.png` | Documentation image | German documentation screenshot showing program hash change approval. |
 | `docs/de/images/reset-approvals.png` | Documentation image | German documentation screenshot showing reset approvals. |
 | `docs/de/images/runtime-information.png` | Documentation image | German documentation screenshot showing runtime information. |
@@ -79,6 +81,7 @@ treats that encoding as binary.
 | `docs/en/images/installation-success.png` | Documentation image | English documentation screenshot showing installation success. |
 | `docs/en/images/installer.png` | Documentation image | English documentation screenshot showing installer. |
 | `docs/en/images/installer-process-and-uninstallation.png` | Documentation image | English documentation screenshot showing installer process and uninstallation. |
+| `docs/en/images/overview.svg` | Documentation image | English overview graphic showing a program launched under the target account within the signed-in standard user's Windows session. |
 | `docs/en/images/program-hash-change-approval.png` | Documentation image | English documentation screenshot showing program hash change approval. |
 | `docs/en/images/reset-approvals.png` | Documentation image | English documentation screenshot showing reset approvals. |
 | `docs/en/images/runtime-information.png` | Documentation image | English documentation screenshot showing runtime information. |

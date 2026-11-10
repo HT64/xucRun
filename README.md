@@ -32,6 +32,8 @@ from a standard account and wants to perform a specific administrative action wi
 to a separate administrator session or entering the account name and password again for every
 matching invocation.
 
+![Program launched with xucRun under the target account within the signed-in standard user's Windows session](docs/en/images/overview.svg)
+
 ### Why work from a standard account?
 
 Independently of xucRun, a user can remain signed in for everyday work with either an account that

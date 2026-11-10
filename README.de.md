@@ -33,6 +33,8 @@ der normalerweise mit einem Standardkonto arbeitet und eine bestimmte administra
 ausführen möchte, ohne in eine separate Administratorsitzung zu wechseln oder bei jedem passenden
 Aufruf Kontoname und Kennwort erneut einzugeben.
 
+![Mit xucRun unter dem Zielkonto gestartetes Programm in der Windows-Sitzung des angemeldeten Standardbenutzers](docs/de/images/overview.svg)
+
 ### Warum mit einem Standardkonto arbeiten?
 
 Unabhängig von xucRun kann ein Anwender für die tägliche Arbeit dauerhaft mit einem Konto, das

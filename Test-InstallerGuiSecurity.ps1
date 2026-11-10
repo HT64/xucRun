@@ -29,9 +29,10 @@ Requires PowerShell and Git in a working tree of this repository. Commentable
 formats without a structural validator and non-PowerShell script extensions
 fail explicitly. Generated BuildVersion.h metadata is also checked in its generator. The
 existing UTF-16 registry export is treated as a byte-stable format exception
-because Git handles it as binary. Images, icons, and MPEG-4 documentation
-videos are validated through FILE_REGISTER.md because their formats cannot
-carry the structured metadata head. CHANGELOG.md and CHANGELOG.de.md are the
+because Git handles it as binary. Raster images, icons, and MPEG-4
+documentation videos are validated through FILE_REGISTER.md because their
+formats cannot carry the structured metadata head; SVG graphics carry it as an
+XML comment. CHANGELOG.md and CHANGELOG.de.md are the
 only commentable files exempt from structured metadata heads. The test reads
 source files only and performs no installation, signing, network, service,
 registry, or certificate operation. Documentation, parser, parameter, and
@@ -162,7 +163,7 @@ function Assert-StructuredFileHeaders {
                     '# Approach: (?<Approach>[^\r\n]+)'
                 break
             }
-            { $_ -in @('.props', '.targets', '.vcxproj') } {
+            { $_ -in @('.props', '.svg', '.targets', '.vcxproj') } {
                 '\A(?:<\?xml[^\r\n]+\?>\r?\n)?' +
                     '<!--\r?\n' +
                     'Purpose: (?<Purpose>[^\r\n]+)\r?\n' +
