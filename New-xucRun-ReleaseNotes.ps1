@@ -7,7 +7,11 @@ Extracts the requested version section from the English and German changelogs,
 validates that the supplied checksum file contains the matching installer and
 ZIP entries, and writes UTF-8 release notes containing the signing, pre-installation
 README, version designation, and Tray update notices, both changelog sections,
-links, and checksums.
+links, and checksums. GitHub renders every line break in a release description
+as a visible line break, so the hard-wrapped lines of each changelog paragraph
+and list item are joined into one line. Headings, list item starts, table
+rows, blank lines, fenced code blocks, and explicit Markdown line breaks are
+kept.
 
 .PARAMETER Version
 Specifies the release version. This mandatory value must contain exactly four
@@ -77,6 +81,44 @@ function Get-ChangelogVersionBody {
     return $body
 }
 
+function ConvertTo-UnwrappedMarkdown {
+    param([Parameter(Mandatory)][string]$Text)
+
+    $result = New-Object 'System.Collections.Generic.List[string]'
+    $inFence = $false
+    $canJoin = $false
+    foreach ($line in ($Text -split '\r?\n')) {
+        $trimmed = $line.Trim()
+        if ($trimmed -match '^(```|~~~)') {
+            $inFence = -not $inFence
+            $result.Add($line)
+            $canJoin = $false
+            continue
+        }
+        if ($inFence) {
+            $result.Add($line)
+            continue
+        }
+        if ($trimmed.Length -eq 0) {
+            $result.Add('')
+            $canJoin = $false
+            continue
+        }
+        $startsBlock = $trimmed -match '^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>|\|)'
+        if ($canJoin -and -not $startsBlock) {
+            $result[$result.Count - 1] += ' ' + $trimmed
+        }
+        else {
+            $result.Add($line.TrimEnd())
+        }
+        # A heading or table row ends its block; two trailing spaces or a
+        # backslash are explicit Markdown line breaks.
+        $canJoin = $trimmed -notmatch '^(#{1,6}\s|\|)' -and
+            $line -notmatch '(\s{2}|\\)$'
+    }
+    return ($result -join [Environment]::NewLine)
+}
+
 if (-not (Test-Path -LiteralPath $ChecksumPath -PathType Leaf)) {
     throw "Release checksum file is missing: $ChecksumPath"
 }
@@ -94,12 +136,12 @@ if ($checksums -notmatch $installerChecksumPattern -or
     throw 'Release checksums do not contain the expected installer and ZIP archive.'
 }
 
-$englishChanges = Get-ChangelogVersionBody `
+$englishChanges = ConvertTo-UnwrappedMarkdown -Text (Get-ChangelogVersionBody `
     -Path (Join-Path $repositoryRoot 'CHANGELOG.md') `
-    -ReleaseVersion $Version
-$germanChanges = Get-ChangelogVersionBody `
+    -ReleaseVersion $Version)
+$germanChanges = ConvertTo-UnwrappedMarkdown -Text (Get-ChangelogVersionBody `
     -Path (Join-Path $repositoryRoot 'CHANGELOG.de.md') `
-    -ReleaseVersion $Version
+    -ReleaseVersion $Version)
 
 $notes = @"
 ## Important notice / Wichtiger Hinweis
