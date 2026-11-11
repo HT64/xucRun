@@ -35,6 +35,11 @@ Aufruf Kontoname und Kennwort erneut einzugeben.
 
 ![Mit xucRun unter dem Zielkonto gestartetes Programm in der Windows-Sitzung des angemeldeten Standardbenutzers](docs/de/images/overview.svg)
 
+Eine gesonderte Ersteinrichtung ist nicht erforderlich; fehlende Angaben und Entscheidungen fragt
+xucRun bei Bedarf ab. Bei weiteren Starts greift xucRun auf bereits eingerichtete Zielkonten,
+gespeicherte Anmeldedaten und geltende Freigaben zurück und ermöglicht so eine komfortable tägliche
+Nutzung. Windows-UAC bleibt, soweit erforderlich, ein interaktiver Schritt im Startvorgang.
+
 ### Warum mit einem Standardkonto arbeiten?
 
 Unabhängig von xucRun kann ein Anwender für die tägliche Arbeit dauerhaft mit einem Konto, das

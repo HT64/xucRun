@@ -34,6 +34,11 @@ matching invocation.
 
 ![Program launched with xucRun under the target account within the signed-in standard user's Windows session](docs/en/images/overview.svg)
 
+No separate initial setup is required; xucRun asks for missing information and decisions as
+needed. For subsequent launches, it uses previously configured target accounts, stored
+credentials, and applicable approvals, enabling convenient day-to-day use. Where required,
+Windows UAC remains an interactive step in the launch process.
+
 ### Why work from a standard account?
 
 Independently of xucRun, a user can remain signed in for everyday work with either an account that
