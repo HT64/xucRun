@@ -5,8 +5,8 @@ Creates bilingual release notes for one xucRun version.
 .DESCRIPTION
 Extracts the requested version section from the English and German changelogs,
 validates that the supplied checksum file contains the matching installer and
-ZIP entries, and writes UTF-8 release notes containing the signing, pre-installation
-README, version designation, and Tray update notices, both changelog sections,
+ZIP entries, and writes UTF-8 release notes containing source availability,
+signing, pre-installation README, version designation, and Tray update notices, both changelog sections,
 links, and checksums. GitHub renders every line break in a release description
 as a visible line break, so the hard-wrapped lines of each changelog paragraph
 and list item are joined into one line. Headings, list item starts, table
@@ -146,9 +146,9 @@ $germanChanges = ConvertTo-UnwrappedMarkdown -Text (Get-ChangelogVersionBody `
 $notes = @"
 ## Important notice / Wichtiger Hinweis
 
-xucRun is a non-commercial open-source project. The provided installer is not signed by a publicly trusted publisher. Windows may therefore report an unknown publisher when it is first started. Download the files only from this GitHub Release and compare the SHA-256 checksum before starting the installer.
+xucRun is a source-available project. The provided installer is not signed by a publicly trusted publisher. Windows may therefore report an unknown publisher when it is first started. Download the files only from this GitHub Release and compare the SHA-256 checksum before starting the installer.
 
-xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
+xucRun ist ein quellverfügbares Projekt. Die bereitgestellte Installer-Datei besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
 
 ## Before installing / Vor der Installation
 

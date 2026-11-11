@@ -1614,7 +1614,10 @@ Artefakte und die erforderliche Entfernungsreihenfolge.
 
 ## Lizenz
 
-xucRun steht unter der Apache License 2.0. Maßgeblich sind `LICENSE` und `NOTICE`.
+xucRun wird unter der Apache License 2.0 mit der Commons Clause License Condition v1.0 angeboten;
+maßgeblich ist [LICENSE](LICENSE). Der Quellcode ist verfügbar, die Lizenz ist jedoch keine
+Open-Source-Lizenz. [NOTICE](NOTICE) enthält Urheberhinweise und eine informative Kopie der
+Bedingung.
 
 Externe Codebeiträge werden derzeit nicht angenommen; Einzelheiten stehen in
 [CONTRIBUTING.de.md](CONTRIBUTING.de.md).

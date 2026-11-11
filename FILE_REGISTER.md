@@ -104,7 +104,7 @@ treats that encoding as binary.
 | `ExplorerKontextMenue.reg` | Registry script | Adds xucRun commands to Windows Explorer context menus for supported files, folders, folder backgrounds, and drives. |
 | `FILE_REGISTER.md` | Documentation | Catalogs every tracked and unignored repository file and its purpose. |
 | `Install-xucRun.ps1` | PowerShell script | Installs, updates, or uninstalls xucRun on the local Windows computer. |
-| `LICENSE` | Legal text | Contains the Apache License 2.0 terms governing xucRun. |
+| `LICENSE` | Legal text | Contains the Apache License 2.0 and Commons Clause terms governing xucRun. |
 | `New-xucRun-Package.ps1` | PowerShell script | Creates an unsigned xucRun package from compiled public build outputs. |
 | `New-xucRun-Release.ps1` | PowerShell script | Creates unsigned xucRun release assets from a Release build. |
 | `New-xucRun-ReleaseNotes.ps1` | PowerShell script | Creates bilingual release notes with signing, version-designation, and Tray update notices for one xucRun version. |

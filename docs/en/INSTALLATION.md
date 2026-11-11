@@ -16,7 +16,8 @@ This document describes graphical and manual installation of xucRun.
 
 ## Graphical installation
 
-xucRun is a non-commercial open-source project. The provided installer is currently not
+xucRun is a source-available project; its [license](../../LICENSE) includes a Commons Clause
+condition. The provided installer is currently not
 signed by a publicly trusted publisher. Windows may therefore report an unknown publisher when
 it is first started. Download the installer only from the official GitHub Release and compare its
 SHA-256 checksum with the checksum published there before starting it.
