@@ -99,8 +99,8 @@ applies to launches from a console, context menu, desktop shortcut, or script.
 
 ## Quick start
 
-The graphical installer offers to add `%ProgramFiles%\xucRun` to the machine-wide PATH, the
-Windows search path for programs. If the user agrees to this option, xucRun can afterward be
+The graphical installer offers to add the xucRun installation directory to the machine-wide PATH,
+the Windows search path for programs. If the user agrees to this option, xucRun can afterward be
 invoked without specifying a path by using the short name `xucRun.exe`, as in the following
 examples. For manual installation, enable the PATH option with `-AddToSystemPath`. The available
 installation methods are described under [Installation overview](#installation-overview).
@@ -1218,11 +1218,12 @@ signed files. The broker accepts security-sensitive requests only from matching 
 components.
 
 The public package does not contain a shared private key and is not signed with a commercially
-issued, publicly trusted publisher certificate. Such a key would allow every recipient to create
-files that appear to have the same identity. Instead, the installer creates a unique self-signed
-certificate on the target computer or reuses its existing valid xucRun certificate. The private
-key is non-exportable. This establishes only local technical trust and does not prove the public
-package's origin; therefore, verify the release checksum before starting the installer.
+issued, publicly trusted publisher certificate. A private key included in the package would allow
+every recipient to create files that appear to have the same identity. For the local installation,
+the installer creates a unique self-signed certificate on the target computer or reuses its
+existing valid xucRun certificate. The private key is non-exportable. This establishes only local
+technical trust and does not prove the public package's origin; therefore, verify the release
+checksum before starting the installer.
 
 The standard certificate is named `CN=xucRun Local Signing (<COMPUTERNAME>)`. It is stored in
 `LocalMachine\My` with its private key and added to `LocalMachine\Root` and
@@ -1452,7 +1453,8 @@ project on GitHub. That decision, however, created a substantial amount of addit
 preparing xucRun for use by others and clearly explaining its intended use, internal workings, and
 limitations required systematically developing and refining its security model, the management of
 stored credentials and program approvals, configuration and diagnostic functionality, user
-interfaces and their dialogs, installers, localization, documentation, and automated tests.
+interfaces and their dialogs, installers, localization, user-oriented documentation, and automated
+tests.
 
 A significant part of this effort resulted from the aim of not achieving the additional
 convenience through a blanket, broad approval. Instead, users should be able to determine the
@@ -1460,19 +1462,23 @@ balance between convenience and narrow scope for their specific use case and und
 effect of their selection. This led, among other things, to the differentiated approval dialog
 described under [Approval dialog, duration, and scope](#approval-dialog-duration-and-scope).
 
-AI-assisted development tools helped me manage this additional workload as a sole developer. I used
-them in a supporting role across numerous interactive development steps. Throughout this process, I
-used successive development versions in my everyday computer work and continued developing xucRun
-based on that experience. Only after xucRun had reached what I considered an appropriate level of
-maturity in this way did I make the first public version available. The technical decisions and
-responsibility for the result remain mine.
+Configuring approvals requires attention and decisions during setup and subsequent changes, but
+not with every invocation. Once suitable approvals are in place, xucRun can be used simply and
+conveniently as long as they remain valid and match the invocation.
+
+AI-assisted development tools helped me manage this additional development effort as a sole
+developer. I used them in a supporting role across numerous interactive development steps.
+Throughout this process, I used successive development versions in my everyday computer work and
+continued developing xucRun based on that experience. Only after xucRun had reached what I
+considered an appropriate level of maturity in this way did I make the first public version
+available. The technical decisions and responsibility for the result remain mine.
 
 The detailed discussion of security considerations may initially appear unusually critical,
 particularly when compared with a brief product description. It is, however, a deliberate
 consequence of publication: precisely because xucRun processes stored credentials and uses a
 privileged service, I considered it my responsibility, when deciding to publish it, to describe
 the associated security considerations, the safeguards implemented, and the remaining
-limitations in detail and in a way that can be understood. This level of detail should be
+limitations as thoroughly and clearly as I can. This level of detail should be
 understood neither as a claim that xucRun is less secure than tools with less detailed
 documentation nor as an assurance that all risks have been identified or eliminated.
 
@@ -1480,8 +1486,10 @@ I do not pursue commercial interests with xucRun. Nor do I intend to turn it int
 product and make commitments regarding a particular feature set, absence of defects, continued
 availability, support, or future development.
 
-I would be glad if xucRun proved as useful to other individual users as it has been to me. I would
-also be open to maintaining and developing xucRun together with others in the future.
+I would be glad if xucRun proved as useful to other individual users as it has been to me.
+Feedback and suggestions are welcome. Reports of potential problems help me improve xucRun
+further. I would also be open to maintaining and developing xucRun together with others in the
+future.
 
 ## Support the project
 

@@ -104,9 +104,9 @@ ein Kontextmenü, eine Desktopverknüpfung oder ein Skript.
 
 ## Schnellstart
 
-Der grafische Installer bietet an, `%ProgramFiles%\xucRun` in den maschinenweiten PATH aufzunehmen,
-also in den Windows-Suchpfad für Programme. Stimmt der Benutzer dieser Option zu, kann xucRun
-anschließend ohne Pfadangabe über den Kurznamen `xucRun.exe` aufgerufen werden, wie in den
+Der grafische Installer bietet an, das xucRun-Installationsverzeichnis in den maschinenweiten PATH
+aufzunehmen, also in den Windows-Suchpfad für Programme. Stimmt der Benutzer dieser Option zu, kann
+xucRun anschließend ohne Pfadangabe über den Kurznamen `xucRun.exe` aufgerufen werden, wie in den
 folgenden Beispielen. Bei der manuellen Installation wird die PATH-Option mit `-AddToSystemPath`
 aktiviert. Die verfügbaren Installationswege beschreibt der Abschnitt
 [Installation in Kürze](#installation-in-kürze).
@@ -1294,12 +1294,12 @@ passend signierten xucRun-Komponenten.
 
 Das öffentliche Paket enthält keinen gemeinsam verwendeten privaten Schlüssel und ist nicht mit
 einem kommerziell ausgestellten, öffentlich vertrauenswürdigen Herausgeberzertifikat signiert. Ein
-solcher Schlüssel würde jedem Empfänger ermöglichen, Dateien mit derselben scheinbaren Identität
-zu erzeugen. Deshalb erstellt der Installer ein eigenes selbstsigniertes Zertifikat auf dem
-Zielrechner oder verwendet dessen vorhandenes gültiges xucRun-Zertifikat. Der private Schlüssel
-ist nicht exportierbar. Dieses Zertifikat begründet nur lokales technisches Vertrauen und belegt
-nicht die Herkunft des öffentlichen Pakets; deshalb muss vor dem Start die veröffentlichte
-Prüfsumme kontrolliert werden.
+im Paket enthaltener privater Schlüssel würde jedem Empfänger ermöglichen, Dateien mit derselben
+scheinbaren Identität zu erzeugen. Für die lokale Installation erstellt der Installer ein eigenes
+selbstsigniertes Zertifikat auf dem Zielrechner oder verwendet dessen vorhandenes gültiges
+xucRun-Zertifikat. Der private Schlüssel ist nicht exportierbar. Dieses Zertifikat begründet nur
+lokales technisches Vertrauen und belegt nicht die Herkunft des öffentlichen Pakets; deshalb muss
+vor dem Start die veröffentlichte Prüfsumme kontrolliert werden.
 
 Das Standardzertifikat heißt `CN=xucRun Local Signing (<COMPUTERNAME>)`. Es wird einschließlich
 seines privaten Schlüssels unter `LocalMachine\My` gespeichert und für das lokale Vertrauen
@@ -1545,8 +1545,8 @@ entstand jedoch ein erheblicher zusätzlicher Aufwand: Um xucRun für die Nutzun
 aufzubereiten und seinen Einsatz, seine Funktionsweise sowie seine Grenzen nachvollziehbar zu
 erklären, mussten insbesondere das Sicherheitsmodell, die Funktionen zur Verwaltung
 gespeicherter Anmeldedaten und Programmfreigaben, die Konfigurations- und Diagnosefunktionen, die
-Benutzeroberflächen und ihre Dialoge, die Installer, die Lokalisierung, die Dokumentation und die
-automatisierten Tests systematisch weiterentwickelt und ausgearbeitet werden.
+Benutzeroberflächen und ihre Dialoge, die Installer, die Lokalisierung, eine anwendergerechte
+Dokumentation und die automatisierten Tests systematisch weiterentwickelt und ausgearbeitet werden.
 
 Ein wesentlicher Teil dieses Aufwands entstand aus dem Ziel, den zusätzlichen Bedienkomfort nicht
 durch eine pauschale, weitreichende Freigabe zu erkaufen. Stattdessen sollen Anwender das
@@ -1556,12 +1556,17 @@ anderem der unter
 [Freigabedialog, Dauer und Umfang](#freigabedialog-dauer-und-umfang) beschriebene differenzierte
 Freigabedialog.
 
-KI-gestützte Entwicklungswerkzeuge haben mir dabei geholfen, diesen zusätzlichen Aufwand als
-Einzelentwickler zu bewältigen. Dabei setzte ich sie in zahlreichen interaktiven Arbeitsschritten
-unterstützend ein. Die jeweiligen Entwicklungsstände nutzte ich bei meinen alltäglichen Tätigkeiten
-am Rechner selbst und entwickelte xucRun auf Grundlage dieser Erfahrungen weiter. Erst nachdem
-xucRun auf diese Weise einen aus meiner Sicht angemessenen Reifegrad erreicht hatte, stellte ich
-die erste öffentliche Version bereit.
+Die Konfiguration von Freigaben erfordert bei der Einrichtung und bei späteren Änderungen
+Aufmerksamkeit und Entscheidungen, nicht aber bei jedem Aufruf. Sind passende Freigaben
+eingerichtet, lässt sich xucRun einfach und komfortabel nutzen, solange sie gelten und auf den
+jeweiligen Aufruf passen.
+
+KI-gestützte Entwicklungswerkzeuge haben mir dabei geholfen, diesen zusätzlichen Entwicklungsaufwand
+als Einzelentwickler zu bewältigen. Dabei setzte ich sie in zahlreichen interaktiven
+Arbeitsschritten unterstützend ein. Die jeweiligen Entwicklungsstände nutzte ich bei meinen
+alltäglichen Tätigkeiten am Rechner selbst und entwickelte xucRun auf Grundlage dieser Erfahrungen
+weiter. Erst nachdem xucRun auf diese Weise einen aus meiner Sicht angemessenen Reifegrad erreicht
+hatte, stellte ich die erste öffentliche Version bereit.
 
 Die fachlichen Entscheidungen und die Verantwortung für das Ergebnis liegen weiterhin bei mir.
 
@@ -1570,17 +1575,19 @@ kritisch wirken, insbesondere im Vergleich mit einer knappen Produktbeschreibung
 eine bewusste Folge der Veröffentlichung: Gerade weil xucRun gespeicherte Anmeldedaten verarbeitet
 und einen privilegierten Dienst verwendet, sah ich mich mit der Entscheidung zur Veröffentlichung
 in der Verantwortung, die damit verbundenen Sicherheitsfragen, die getroffenen Schutzmaßnahmen
-und die verbleibenden Grenzen ausführlich und nachvollziehbar darzustellen. Diese Ausführlichkeit
-ist weder als Aussage zu verstehen, xucRun sei unsicherer als weniger ausführlich dokumentierte
-Werkzeuge, noch als Zusage, alle Risiken erkannt oder ausgeschlossen zu haben.
+und die verbleibenden Grenzen so ausführlich und nachvollziehbar wie mir möglich darzustellen.
+Diese Ausführlichkeit ist weder als Aussage zu verstehen, xucRun sei unsicherer als weniger
+ausführlich dokumentierte Werkzeuge, noch als Zusage, alle Risiken erkannt oder ausgeschlossen zu
+haben.
 
 Kommerzielle Interessen verfolge ich mit xucRun nicht. Ebenso beabsichtige ich nicht, daraus ein
 kommerzielles Produkt zu machen und dafür einen bestimmten Funktionsumfang, Fehlerfreiheit,
 dauerhafte Verfügbarkeit, Support oder Weiterentwicklung zuzusagen.
 
-Es würde mich freuen, wenn xucRun auch anderen Privatanwendern ebenso nützlich ist wie mir. Ich
-wäre auch offen dafür, xucRun zu einem späteren Zeitpunkt gemeinsam mit anderen weiterzuentwickeln
-und zu pflegen.
+Ich würde mich freuen, wenn xucRun auch für andere Privatanwender so nützlich ist wie für mich.
+Rückmeldungen und Anregungen sind willkommen. Hinweise auf mögliche Probleme helfen mir, xucRun
+weiter zu verbessern. Ich wäre auch offen dafür, xucRun zu einem späteren Zeitpunkt gemeinsam mit
+anderen weiterzuentwickeln und zu pflegen.
 
 ## Projekt unterstützen
 
