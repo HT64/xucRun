@@ -93,12 +93,9 @@ accounts. These credentials are stored in protected form and are used only when 
 [xucRun approval](#approval-dialog-duration-and-scope) allows the requested execution. An approval
 bound to a specific target account can be used only for starts under that account.
 
-After the initial setup, specifying the program, command, or script and its arguments is
-sufficient for a typical launch. Neither the account name nor the password then needs to be stored
-in the xucRun invocation, whether it is launched from a console, a context menu, a desktop
-shortcut, or a script. xucRun reuses matching selection and approval decisions already made and
-obtains missing decisions interactively. Required
-[Windows UAC confirmation](#relationship-between-xucrun-approvals-and-windows-uac) remains interactive.
+For a typical launch, it is sufficient to invoke the program, command, or script with its
+arguments; neither the account name nor the password needs to appear in the invocation. This
+applies to launches from a console, context menu, desktop shortcut, or script.
 
 ## Quick start
 
@@ -139,7 +136,6 @@ Run programs by specifying their normal path followed by their arguments:
 xucRun.exe notepad.exe
 xucRun.exe regedit.exe
 xucRun.exe powershell.exe -NoExit
-xucRun.exe cmd.exe /c "net stop MyService"
 ```
 
 The target-program short names used here are also resolved through Windows executable search.
@@ -460,6 +456,8 @@ separate command in `usercmd.ini` and a corresponding `MENUITEM`.
 
 ## Account selection and privilege mode
 
+### Automatic account selection and switches
+
 Account selection and privilege mode are separate decisions. Without a user switch, xucRun uses
 the requested privilege mode to determine a suitable current user context or target account with
 stored xucRun credentials. If exactly one account matches, it is selected automatically; if
@@ -474,6 +472,8 @@ several match, a selection dialog is shown.
 | `xucRun.exe /user-elevated <Program> [Arguments ...]` | use the current account when it is a member of the local Administrators group and request UAC elevation if necessary; otherwise select a suitable account with stored xucRun credentials |
 | `xucRun.exe /user-elevated:* <Program> [Arguments ...]` | always select an enabled local account that is a member of the local Administrators group and start elevated |
 | `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated; abort if it is not a member of the local Administrators group |
+
+### First use and account selection
 
 The [short demonstration video about launching under another user
 account](docs/media/xucRun-other-user-profile.mp4) (38 seconds, MP4, English user interface) first
@@ -527,6 +527,8 @@ under the previously selected standard account.
 
 Stored credentials do not replace a required Windows UAC confirmation. For details, see
 [Relationship between xucRun approvals and Windows UAC](#relationship-between-xucrun-approvals-and-windows-uac).
+
+### Launching under a more restricted account
 
 In addition to starting programs with elevated privileges, xucRun also supports the opposite use
 case: a program can run without elevation under another, deliberately more restricted account.
@@ -683,9 +685,9 @@ to that account. The context menu provides the same action; it is unavailable fo
 approvals.
 
 Delete actions remain exclusively on the visible buttons below the tables. A selected row can be
-deleted from either view. The credential view can also delete all displayed credentials; their
-account-bound approvals are removed with them, while profile-wide approvals that apply to every
-target account of the current Windows user remain stored. The approval view can delete all
+deleted from either view. The credential view can also delete all displayed credentials. Deleting
+credentials also removes their account-bound approvals, while profile-wide approvals that apply to
+every target account of the current Windows user remain stored. The approval view can delete all
 displayed approvals. Each deletion requires a separate confirmation, and the selected-row action
 remains disabled until a row is selected.
 
@@ -698,8 +700,7 @@ remains disabled until a row is selected.
 ![Active program approvals](docs/en/images/approvals.png)
 
 Without an account name, `/deletecred` presents a selection and asks for confirmation before
-deletion. Deleting an account also removes approvals bound to that account. Profile-wide approvals
-for all accounts remain in place.
+deletion. The same approval deletion rules described above apply.
 
 Use `/resetapprovals` to select and remove individual or multiple approvals. `/clear-all` is the
 administrative cleanup command for active broker-managed data. It must be run elevated and, after
@@ -714,47 +715,14 @@ backups are retained and can be removed separately with `/backup-delete-all`.
 For a computer-wide overview, `/admin-status` displays the stored xucRun data of all Windows users
 and provides the available administrative cleanup actions. Double-clicking a row or choosing
 **Show details...** from its context menu opens the applicable nonempty credential or approval
-fields for selection and copying. Credential details and approvals tied to a specific target
-account show the target account SID so that the account can be identified unambiguously.
-Approval details also include the complete target hash when present.
+fields for selection and copying. The detail rules for SIDs and hashes described above also apply.
 
 ![Administrative status for all users](docs/en/images/administrative-status.png)
 
-## Motivation and purpose
-
-The preceding sections show how xucRun runs individual programs, commands, and scripts under a
-selected account and, where applicable, with elevated privileges. The motivation behind this
-workflow is the deliberate use of a standard account for everyday work while retaining practical
-access to occasional administrative tasks.
-
-xucRun is intended for experienced Windows users who administer their own computer interactively
-or through their own scripts. When an application or file manager reaches a permission boundary,
-the user should be able to continue the specific task without signing in to a separate
-administrator session and without entering an account name and password again for every matching
-operation. After the one-time setup, a single confirmation click should normally be sufficient.
-
-The first invocation should not require every prerequisite to have been configured in advance.
-The user can issue the intended program start directly; xucRun requests a missing account
-selection, credentials, or approval as part of that invocation. Matching credentials and
-approvals can then be reused for later invocations.
-
-Windows already provides the underlying operations for starting programs under another account
-and requesting administrative rights. xucRun's purpose is to combine them in one workflow and add
-controlled approvals for stored credentials. This convenience introduces additional risks.
-Users who do not want to store and reuse credentials should use native alternatives such as Fast
-User Switching instead.
-
-Beyond this core workflow, the additional launch modes for `LocalSystem` and the TrustedInstaller
-service identity are intended for specific maintenance and diagnostic tasks. They extend xucRun's
-capabilities but are neither its starting point nor its ordinary use case.
-
-How this approach differs from Windows UAC, `runas`, Windows Sudo, and other solutions is
-described in the following section.
-
 ## Comparison with Windows features and other solutions
 
-The following options overlap with individual parts of the workflow described above, but use
-different account, session, credential, and approval models.
+The following Windows features and other solutions cover individual aspects of xucRun. They
+differ in whether and how they handle account switching, sessions, credentials, and approvals.
 
 ### Fast User Switching
 
@@ -807,7 +775,8 @@ the password again. However, `runas.exe` has several limitations:
   privileges unless elevation is requested separately.
 - After `/savecred`, the account whose credentials were stored can be used for further program
   starts without another confirmation. There is no mandatory approval and no binding to
-  particular programs, file hashes, arguments, or working directories.
+  particular programs, file hashes, arguments, or working directories. xucRun instead requires a
+  suitable explicit approval before stored credentials are used.
 - `runas.exe` does not automatically select a suitable account whose credentials were stored with
   `/savecred` and provides no integrated management of approvals with different scopes or
   expiration periods.
@@ -847,11 +816,6 @@ Here, `netsh.exe` receives several key-value arguments as well as a rule name an
 containing spaces. A toolchain consisting of `runas.exe` and a separate elevation tool would
 therefore be considerably more complex; its reliable use with special characters would also
 depend on the specific elevation tool and its quoting rules.
-
-After the password is entered once, `runas.exe /savecred /user:Administrator` can use the same
-account whose credentials were stored for other programs without requesting the password or a
-mandatory confirmation again. xucRun instead requires a suitable explicit approval before stored
-credentials are used.
 
 `runas.exe /savecred` and xucRun use separate, incompatible credential storage. An xucRun approval
 can be bound closely to the calling user account, the target account, the participating programs
@@ -946,6 +910,8 @@ be reused.
 
 ![xucRun approval dialog on separate desktop](docs/en/images/approval-dialog.png)
 
+#### Dialog details and approval duration
+
 The differentiated approval dialog allows the approval duration, program and invocation binding,
 and included target accounts to be adapted to the specific use case and desired level of
 protection. Its fixed header above the scrollable launch details identifies the xucRun client path
@@ -971,6 +937,8 @@ SHA-256 identity. The available approval durations are:
 - until sign-out,
 - permanently.
 
+#### Existing approvals and program changes
+
 If the current launch differs from approvals already stored for the same target program, the
 scrollable details summarize up to four of the most relevant approvals and name the differing
 bindings, such as the program file, target account, elevation mode, arguments, working directory,
@@ -993,6 +961,8 @@ to **"Exactly this invocation"** approvals; their argument, working-directory, v
 direct-script bindings remain unchanged.
 
 ![Approval after a program hash has changed](docs/en/images/program-hash-change-approval.png)
+
+#### Invocation and script binding
 
 With **"Exactly this invocation,"** a reusable approval can additionally be bound to the exact
 arguments, the working directory, and whether the program is started visibly or hidden. Any change
@@ -1031,6 +1001,8 @@ only with such a safely bound direct script. In particular, `-Command`, interact
 and other forms not recognized as direct `-File` execution can be approved only once or
 deliberately with a broader approval scope.
 
+#### Limits of an approval
+
 For other interpreters, if no direct script with its path and SHA-256 hash is shown,
 "Exactly this invocation" still binds the program file, arguments, working directory, and the
 setting for a visible or hidden launch, but no additional program or script contents. Programs,
@@ -1054,9 +1026,9 @@ generated are still not generally hashed. The approval binds the resulting xucRu
 the script, shortcut, or configuration file from which it originated. Dynamically loaded scripts,
 modules, configuration files, plugins, program inputs, and downstream programs are likewise not
 automatically included. Such programs and files, as well as directories through which they could
-be replaced, must therefore remain appropriately protected. An existing xucRun approval is not a
-substitute for this protection. The other broker checks, particularly those for the account,
-requested privileges, visibility, target path, and target-program hash, remain effective.
+be replaced, must therefore remain appropriately protected; an xucRun approval is not a substitute
+for this [protection](#usage-examples). The other broker checks, particularly those for the
+account, requested privileges, visibility, target path, and target-program hash, remain effective.
 
 Privileges do not end when a window is closed. Processes started by a program that was launched
 through xucRun keep its account and privileges and can continue to run in the background after
@@ -1123,6 +1095,8 @@ privilege management, or systems requiring an elevated level of protection.
 
 ## Broker service security model
 
+### The broker's role and trust boundary
+
 One possible alternative to a broker service would be for the normal client alone to store the
 credentials under cryptographic protection. Without a separate privileged component, decryption
 and use would then have to take place in the process and security context of the currently signed-
@@ -1152,6 +1126,8 @@ The service used for this purpose runs under the Windows `LocalSystem` account, 
 privileges, and therefore itself increases the security-relevant attack surface. This additional
 security boundary requires systematic protection of the broker.
 
+### Caller and launch-target validation
+
 The broker does not trust identity, path, or approval information merely asserted by a client. It
 derives the calling process, user, Windows session, and privilege level from the actual local
 connection and from Windows itself. For security-sensitive requests, it checks, among other
@@ -1170,6 +1146,8 @@ elevated administrator privileges. A copied identifier or a process identity mer
 the client is not sufficient. Different xucRun components also receive only the functions they
 require. For example, the optional Tray can retrieve status and list data, but it cannot start
 programs, change credentials, or make approval decisions.
+
+### Hardening and credential protection
 
 The broker and its installed files are additionally hardened against replacement and unintended
 extension. Before entering productive operation, the broker checks, among other properties, its
@@ -1203,6 +1181,8 @@ Approval Helper sends the password directly to the broker over the authenticated
 and then overwrites its own memory areas containing the password. The normal xucRun client does
 not receive the password in this workflow either.
 
+### Service behavior and residual risks
+
 The broker is configured as a demand-start Windows service and is not started for status queries
 alone. After actual use, it remains active until it is explicitly stopped, Windows shuts down, or
 the service fails. While idle, it keeps no stored passwords in clear text and uses practically no
@@ -1220,8 +1200,8 @@ as a deliberately chosen and hardened security boundary, not as an absolute secu
 
 ## Installation overview
 
-Installation requires a complete xucRun package. The graphical installer signs all installable
-package files consistently on the target computer with a local xucRun certificate.
+The graphical installer signs all installable package files consistently on the target computer
+with a local xucRun certificate.
 
 The public binary ZIP is a complete installation package, but it is not a portable application
 package. Do not copy individual EXE or DLL files from it to an arbitrary directory and treat that
@@ -1251,9 +1231,7 @@ including its private key and trust entries, is removed when xucRun is uninstall
 
 ### Graphical installation
 
-xucRun is a non-commercial open-source project. The provided installer is currently not
-signed by a publicly trusted publisher. Windows may therefore report an unknown publisher when
-it is first started.
+Windows may report an unknown publisher when the installer is first started.
 
 The easiest installation method is
 `xucRun-Installer-<Version>-x64.exe`, for example
@@ -1263,8 +1241,7 @@ with the checksum published there, and verify any available Authenticode signatu
 
 When started, Windows User Account Control requests the required administrator rights. The
 graphical interface then offers a choice of application language and machine PATH behavior. The
-installer reuses the existing valid local xucRun certificate or creates a new one and displays its
-validity period and fingerprint.
+installer displays the validity period and fingerprint of the local xucRun certificate.
 
 ![xucRun graphical installer](docs/en/images/installer.png)
 
@@ -1340,7 +1317,7 @@ Backups are stored separately from the active credentials and approvals under
 the computer. xucRun restores them only on the same computer; they are not a portable password
 export.
 
-Uninstalling xucRun also removes locally stored xucRun backups.
+[Uninstalling xucRun](#update-and-uninstall) also removes local backups.
 
 ## Troubleshooting
 
@@ -1430,8 +1407,8 @@ than appended to a setting.
   resolved log directory, xucRun appends to one dated log file per day but does not automatically
   rotate or delete client logs. These logs can contain program paths, account names, command
   lines, and target arguments. Do not pass passwords or other secrets as command-line arguments.
-- The broker always writes warnings, errors, and service and ACL startup messages to the Windows
-  Application event log under the `xucRunBroker` source. `BrokerInformationEvents=true`
+- The broker always writes warnings, errors, and service and ACL startup messages to the event log
+  described under [Troubleshooting](#troubleshooting). `BrokerInformationEvents=true`
   additionally logs routine information about pipe request processing there. If the setting is
   missing, empty, `false`, or has any other value, only these additional information events remain
   disabled. Changes take effect after the broker service is restarted; restarting the client or
@@ -1448,8 +1425,8 @@ The separately installed optional
 interface whose icon appears in the notification area of the Windows taskbar next to the clock. It
 is a separate project that displays information from xucRun and provides access to existing xucRun
 management functions. Its menu can set the machine-wide xucRun language to Automatic, German, or
-English. Running Tray instances restart after the change, and the setting applies to newly started
-xucRun processes.
+English. See [Configuration file and language](#configuration-file-and-language) for details
+about the setting's effect.
 
 The Tray is particularly helpful during initial setup, when checking the operating state, and when
 later changing credentials, approvals, language, logging, or broker state. xucRun and its broker
