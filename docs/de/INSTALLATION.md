@@ -16,8 +16,7 @@ Dieses Dokument beschreibt die grafische und die manuelle Installation von xucRu
 
 ## Grafische Installation
 
-xucRun ist ein quellverfügbares Projekt; seine [Lizenz](../../LICENSE) enthält eine
-Commons-Clause-Bedingung. Die bereitgestellte Installer-Datei
+xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei
 besitzt derzeit keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann
 deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie den Installer
 ausschließlich aus dem offiziellen GitHub Release herunter und vergleichen Sie vor dem Start die

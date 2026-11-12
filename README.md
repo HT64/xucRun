@@ -1514,9 +1514,7 @@ covered by the procedure and the required removal sequence.
 
 ## License
 
-xucRun is offered under the Apache License 2.0 subject to the Commons Clause License Condition
-v1.0, as set out in [LICENSE](LICENSE). The source is available, but this is not an open-source
-license. [NOTICE](NOTICE) contains attribution and an informational copy of the condition.
+xucRun is licensed under the Apache License 2.0. `LICENSE` and `NOTICE` are authoritative.
 
 External code contributions are not accepted at this time. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for details.
