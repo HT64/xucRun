@@ -159,7 +159,7 @@ program and its arguments separate within one invocation.
 A more complex example creates a firewall rule for a program whose path contains spaces:
 
 ```cmd
-xucRun.exe "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Local example server" dir=in action=allow program="C:\Program Files\ExampleServer\server.exe" enable=yes profile=private
+xucRun.exe /user-elevated "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Local example server" dir=in action=allow program="C:\Program Files\ExampleServer\server.exe" enable=yes profile=private
 ```
 
 Here, `netsh.exe` receives several key-value arguments as well as a rule name and a program path

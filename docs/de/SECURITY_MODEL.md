@@ -171,7 +171,7 @@ Ein Beispiel mit komplexeren Argumenten ist das Anlegen einer Firewallregel für
 dessen Pfad Leerzeichen enthält:
 
 ```cmd
-xucRun.exe "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Lokaler Beispielserver" dir=in action=allow program="C:\Program Files\Beispielserver\server.exe" enable=yes profile=private
+xucRun.exe /user-elevated "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Lokaler Beispielserver" dir=in action=allow program="C:\Program Files\Beispielserver\server.exe" enable=yes profile=private
 ```
 
 Dabei erhält `netsh.exe` mehrere Schlüssel-Wert-Argumente sowie einen Regelnamen und einen

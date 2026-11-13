@@ -10,17 +10,23 @@ This guide explains everyday xucRun use, account selection, stored data manageme
 
 ## Usage examples
 
+The following examples show how xucRun combines account selection, optional elevation, stored
+credentials, approvals, and argument forwarding in one invocation.
 
-Open Device Manager from a standard user account:
+Open Device Manager with elevated privileges from a standard-user session:
 
 ```cmd
-xucRun.exe "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
+xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
 ```
+
+The invocation contains neither the administrator account nor its password. `/user-elevated`
+selects a suitable Administrators-group account and requests elevated privileges; xucRun treats
+`devmgmt.msc` as an argument to the explicitly identified `mmc.exe`.
 
 Start an administrative PowerShell script:
 
 ```powershell
-xucRun.exe powershell.exe -File "C:\Scripts\AdminScript.ps1"
+xucRun.exe /user-elevated powershell.exe -File "C:\Scripts\AdminScript.ps1"
 ```
 
 The [short PowerShell demonstration video](../media/xucRun-elevated-powershell.mp4) (34 seconds,
@@ -31,14 +37,24 @@ account. `whoami` confirms the target account.
 Stop a Windows service through `cmd.exe`:
 
 ```cmd
-xucRun.exe cmd.exe /c "net stop MyService"
+xucRun.exe /user-elevated cmd.exe /c "net stop MyService"
 ```
 
-Edit a file with a program running under the selected target account:
+Edit a protected file with elevated privileges:
 
 ```powershell
-xucRun.exe notepad.exe "C:\Windows\System32\drivers\etc\hosts"
+xucRun.exe /user-elevated notepad.exe "C:\Windows\System32\drivers\etc\hosts"
 ```
+
+Open PowerShell under an account selected for this launch:
+
+```cmd
+"C:\Program Files\xucRun\xucRun.exe" /user:* "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoExit
+```
+
+`/user:*` always opens the selection of enabled local accounts and starts PowerShell under the
+selected account without requesting additional elevation through xucRun. Missing credentials are
+requested before the launch.
 
 Start Thunderbird from PowerShell under the `MailUser` Windows target account with that account's
 user profile and unchanged privilege mode:
@@ -57,6 +73,17 @@ stored yet, xucRun offers local target-account selection followed by protected p
 xucRun selects the Windows account, not a mail account within Thunderbird. The command assumes
 the default installation paths of xucRun and Thunderbird. If either path differs, use the actual
 absolute installation paths.
+
+Pass several structured arguments, including values and a path with spaces, directly to
+`netsh.exe`:
+
+```cmd
+xucRun.exe /user-elevated "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Local example server" dir=in action=allow program="C:\Program Files\ExampleServer\server.exe" enable=yes profile=private
+```
+
+xucRun keeps the target program and its arguments separate across the required process boundaries;
+the invocation does not need a nested command line for a separate account-switching and elevation
+tool chain.
 
 Replace the current PowerShell with a PowerShell running in the automatically selected user and
 privilege context:

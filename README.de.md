@@ -80,28 +80,33 @@ grafische und skriptbasierte Installation, Aktualisierung, Tray-Kompatibilität 
 
 ## Erster Start
 
-Nach der Installation PowerShell oder Eingabeaufforderung öffnen. Zum Beispiel:
+Nach der Installation PowerShell oder Eingabeaufforderung öffnen. Der kürzeste typische Aufruf
+lautet:
 
 ```powershell
 xucRun.exe
+```
+
+Ohne Argumente ersetzt xucRun eine unterstützte Eltern-Shell durch denselben Shelltyp im
+automatisch gewählten Benutzer- und Berechtigungskontext und behält das Arbeitsverzeichnis bei.
+Der Aufruf enthält weder den Namen eines Zielkontos noch ein Kennwort.
+
+Programme und ihre Argumente können direkt gestartet werden:
+
+```powershell
 xucRun.exe powershell.exe -NoExit
 xucRun.exe regedit.exe
 ```
 
-Ohne Argumente ersetzt xucRun eine unterstützte Eltern-Shell durch denselben Shelltyp im
-automatisch gewählten Benutzer- und Berechtigungskontext. Mit einem Programm startet es dieses
-Programm und übergibt die nachfolgenden Argumente.
-
-Fehlen noch passende Daten, führt xucRun während dieses Aufrufs durch die erforderlichen Schritte:
+Fehlen noch erforderliche Angaben oder Bestätigungen, fordert xucRun sie bei Bedarf an:
 
 1. ein aktiviertes lokales Zielkonto auswählen;
 2. dessen Anmeldedaten auf dem getrennten geschützten xucRun-Desktop eingeben;
 3. Windows-UAC bestätigen, wenn erhöhte Rechte angefordert werden;
 4. Dauer und Umfang der xucRun-Freigabe auswählen.
 
-Eine vorherige Speicherung der Anmeldedaten ist nicht erforderlich. xucRun fragt sie automatisch
-ab, wenn erstmals ein Programm unter einem Zielkonto gestartet wird. `/addcred` bleibt verfügbar,
-wenn Anmeldedaten schon vor dem ersten Programmstart gespeichert werden sollen.
+Bei späteren passenden Aufrufen dürfen gespeicherte Anmeldedaten ohne erneute Kennworteingabe
+verwendet werden, wenn die geltende Freigabe dies erlaubt.
 
 | Zielkonto auswählen | Anmeldedaten eingeben | Speicherung bestätigen |
 |:---:|:---:|:---:|
@@ -114,18 +119,28 @@ Schalter zur Kontowahl beschreibt
 
 ## Weitere Beispiele
 
-Gerätemanager aus einer Standardbenutzersitzung öffnen:
+Die folgenden Beispiele zeigen, wie xucRun Kontowahl, optionale Rechteerhöhung, gespeicherte
+Anmeldedaten, Freigaben und Argumentübergabe in einem Aufruf verbindet.
+
+Gerätemanager aus einer Standardbenutzersitzung mit erhöhten Rechten öffnen:
 
 ```cmd
-xucRun.exe "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
+xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
 ```
 
-Eine Desktop-Verknüpfung für eine erhöhte PowerShell erstellen, indem in ihr Feld **Ziel**
-Folgendes eingetragen wird:
+Der Aufruf enthält weder das Administratorkonto noch dessen Kennwort. `/user-elevated` wählt ein
+geeignetes Konto aus der Administratorengruppe und fordert erhöhte Rechte an; xucRun behandelt
+`devmgmt.msc` als Argument der ausdrücklich angegebenen `mmc.exe`.
 
-```text
-"C:\Program Files\xucRun\xucRun.exe" /user-elevated "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoExit
+PowerShell unter einem für diesen Start ausgewählten Konto öffnen:
+
+```cmd
+"C:\Program Files\xucRun\xucRun.exe" /user:* "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoExit
 ```
+
+`/user:*` öffnet immer die Auswahl aktivierter lokaler Konten und startet PowerShell ohne
+zusätzliche Rechteerhöhung durch xucRun unter dem gewählten Konto. Fehlende Anmeldedaten werden vor
+dem Start angefordert.
 
 Thunderbird mit Profil und Identität des Windows-Kontos `MailUser` ohne angeforderte Erhöhung
 starten:
@@ -136,11 +151,28 @@ starten:
     'C:\Program Files\Mozilla Thunderbird\thunderbird.exe'
 ```
 
+Dieses Beispiel wechselt bewusst das Windows-Konto, ohne eine Rechteerhöhung anzufordern.
+Thunderbird verwendet Profil, Einstellungen und gespeicherte Anwendungsanmeldungen des Zielkontos.
+
+Mehrere strukturierte Argumente einschließlich Werten und eines Pfads mit Leerzeichen direkt an
+`netsh.exe` übergeben:
+
+```cmd
+xucRun.exe /user-elevated "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Lokaler Beispielserver" dir=in action=allow program="C:\Program Files\Beispielserver\server.exe" enable=yes profile=private
+```
+
+xucRun hält das Zielprogramm und seine Argumente über die erforderlichen Prozessgrenzen hinweg
+getrennt; der Aufruf benötigt keine verschachtelte Befehlszeile für eine Werkzeugkette aus
+Kontowechsel und Rechteerhöhung.
+
 Interaktive Befehle können Programmnamen verwenden. Skripte, Verknüpfungen, geplante Aufgaben und
 andere fest konfigurierte Aufrufe sollten die tatsächlichen absoluten Pfade von `xucRun.exe` und
 dem Zielprogramm verwenden, um Risiken durch die Windows-Programmsuche zu verringern. Weitere
 Beispiele, Shell-Ersetzung, Batchdateien, Explorer, Desktopverknüpfungen und Total Commander stehen
-unter [xucRun verwenden](docs/de/USAGE.md).
+unter [xucRun verwenden](docs/de/USAGE.md). Der
+[Vergleich mit anderen Ansätzen](docs/de/SECURITY_MODEL.md#vergleich-mit-windows-funktionen-und-anderen-lösungen)
+erklärt die Unterschiede, ohne vorauszusetzen, dass eine Lösung für jeden Anwendungsfall die beste
+ist.
 
 ## Anmeldedaten und Freigaben
 
@@ -159,7 +191,7 @@ das [Sicherheitsmodell](docs/de/SECURITY_MODEL.md#freigaben-und-windows-uac).
 | Befehl | Zweck |
 |---|---|
 | `xucRun.exe [<Programm> [Argumente...]]` | Programm starten oder eine unterstützte Eltern-Shell ersetzen |
-| `xucRun.exe /addcred [<Konto>]` | Anmeldedaten vorab speichern |
+| `xucRun.exe /addcred [<Konto>]` | Anmeldedaten optional vor dem ersten Programmstart speichern |
 | `xucRun.exe /showcred` | Konten mit gespeicherten xucRun-Anmeldedaten anzeigen |
 | `xucRun.exe /showapprovals` | aktive Freigaben anzeigen |
 | `xucRun.exe /backup` | lokale Datensicherungen verwalten |

@@ -78,28 +78,32 @@ graphical and script-based installation, updates, Tray compatibility, and uninst
 
 ## First launch
 
-After installation, open PowerShell or Command Prompt. For example:
+After installation, open PowerShell or Command Prompt. The shortest typical invocation is:
 
 ```powershell
 xucRun.exe
+```
+
+Without arguments, xucRun replaces a supported parent shell with the same shell in the
+automatically selected account and privilege context while preserving the working directory. The
+invocation contains neither a target-account name nor a password.
+
+Programs and their arguments can be started directly:
+
+```powershell
 xucRun.exe powershell.exe -NoExit
 xucRun.exe regedit.exe
 ```
 
-Without arguments, xucRun replaces a supported parent shell with the same shell in the
-automatically selected account and privilege context. With a program, it starts that program and
-passes along the remaining arguments.
-
-If no suitable data exists yet, xucRun performs the required steps during this invocation:
+When required information or confirmations are missing, xucRun requests them as needed:
 
 1. select an enabled local target account;
 2. enter that account's credentials on the separate protected xucRun desktop;
 3. confirm Windows UAC when elevated privileges are requested;
 4. choose the duration and scope of the xucRun approval.
 
-Storing credentials in advance is not required. xucRun requests them automatically when a program
-is first launched under a target account. `/addcred` remains available when credentials should be
-stored before the first program launch.
+On later matching invocations, stored credentials may be used without asking for the password
+again when the applicable approval permits it.
 
 | Select target account | Enter credentials | Confirm storage |
 |:---:|:---:|:---:|
@@ -112,18 +116,28 @@ account-selection switches are documented in
 
 ## More examples
 
-Open Device Manager from a standard-user session:
+The following examples show how xucRun combines account selection, optional elevation, stored
+credentials, approvals, and argument forwarding in one invocation.
+
+Open Device Manager with elevated privileges from a standard-user session:
 
 ```cmd
-xucRun.exe "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
+xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
 ```
 
-Create a desktop shortcut for an elevated PowerShell by entering the following in its
-**Target** field:
+The invocation contains neither the administrator account nor its password. `/user-elevated`
+selects a suitable Administrators-group account and requests elevated privileges; xucRun treats
+`devmgmt.msc` as an argument to the explicitly identified `mmc.exe`.
 
-```text
-"C:\Program Files\xucRun\xucRun.exe" /user-elevated "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoExit
+Open PowerShell under an account selected for this launch:
+
+```cmd
+"C:\Program Files\xucRun\xucRun.exe" /user:* "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoExit
 ```
+
+`/user:*` always opens the selection of enabled local accounts and starts PowerShell under the
+selected account without requesting additional elevation through xucRun. Missing credentials are
+requested before the launch.
 
 Run Thunderbird with the profile and identity of the `MailUser` Windows account without requesting
 elevation:
@@ -134,11 +148,27 @@ elevation:
     'C:\Program Files\Mozilla Thunderbird\thunderbird.exe'
 ```
 
+This example deliberately changes the Windows account without requesting elevation. Thunderbird
+uses the target account's profile, settings, and stored application sign-ins.
+
+Pass several structured arguments, including values and a path with spaces, directly to
+`netsh.exe`:
+
+```cmd
+xucRun.exe /user-elevated "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Local example server" dir=in action=allow program="C:\Program Files\ExampleServer\server.exe" enable=yes profile=private
+```
+
+xucRun keeps the target program and its arguments separate across the required process boundaries;
+the invocation does not need a nested command line for a separate account-switching and elevation
+tool chain.
+
 Interactive commands may use executable short names. Scripts, shortcuts, scheduled tasks, and
 other fixed invocations should use the actual absolute paths of both `xucRun.exe` and the target
 program to reduce executable-search redirection risks. More examples, shell replacement, batch
 files, Explorer, desktop shortcuts, and Total Commander are covered in
-[Using xucRun](docs/en/USAGE.md).
+[Using xucRun](docs/en/USAGE.md). The
+[comparison with other approaches](docs/en/SECURITY_MODEL.md#comparison-with-windows-features-and-other-solutions)
+explains the differences without assuming that one solution is best for every use case.
 
 ## Credentials and approvals
 
@@ -157,7 +187,7 @@ described in the [security model](docs/en/SECURITY_MODEL.md#approvals-and-window
 | Command | Purpose |
 |---|---|
 | `xucRun.exe [<program> [arguments...]]` | launch a program or replace a supported parent shell |
-| `xucRun.exe /addcred [<account>]` | store credentials in advance |
+| `xucRun.exe /addcred [<account>]` | optionally store credentials before the first program launch |
 | `xucRun.exe /showcred` | show accounts with stored xucRun credentials |
 | `xucRun.exe /showapprovals` | show active approvals |
 | `xucRun.exe /backup` | manage local backups |

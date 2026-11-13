@@ -10,17 +10,23 @@ Dieses Handbuch beschreibt die alltägliche Verwendung von xucRun, die Kontowahl
 
 ## Anwendungsbeispiele
 
+Die folgenden Beispiele zeigen, wie xucRun Kontowahl, optionale Rechteerhöhung, gespeicherte
+Anmeldedaten, Freigaben und Argumentübergabe in einem Aufruf verbindet.
 
-Gerätemanager aus einem Standardbenutzerkonto öffnen:
+Gerätemanager aus einer Standardbenutzersitzung mit erhöhten Rechten öffnen:
 
 ```cmd
-xucRun.exe "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
+xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
 ```
+
+Der Aufruf enthält weder das Administratorkonto noch dessen Kennwort. `/user-elevated` wählt ein
+geeignetes Konto aus der Administratorengruppe und fordert erhöhte Rechte an; xucRun behandelt
+`devmgmt.msc` als Argument der ausdrücklich angegebenen `mmc.exe`.
 
 Eine administrative PowerShell mit einem Skript starten:
 
 ```powershell
-xucRun.exe powershell.exe -File "C:\Scripts\AdminScript.ps1"
+xucRun.exe /user-elevated powershell.exe -File "C:\Scripts\AdminScript.ps1"
 ```
 
 Das [kurze PowerShell-Demonstrationsvideo](../media/xucRun-elevated-powershell.mp4) (34 Sekunden,
@@ -31,14 +37,24 @@ Rechten unter dem Administratorkonto gestartet hat. `whoami` bestätigt das Ziel
 Einen Windows-Dienst über `cmd.exe` stoppen:
 
 ```cmd
-xucRun.exe cmd.exe /c "net stop MyService"
+xucRun.exe /user-elevated cmd.exe /c "net stop MyService"
 ```
 
-Eine Datei mit einem Programm unter dem gewählten Zielkonto bearbeiten:
+Eine geschützte Datei mit erhöhten Rechten bearbeiten:
 
 ```powershell
-xucRun.exe notepad.exe "C:\Windows\System32\drivers\etc\hosts"
+xucRun.exe /user-elevated notepad.exe "C:\Windows\System32\drivers\etc\hosts"
 ```
+
+PowerShell unter einem für diesen Start ausgewählten Konto öffnen:
+
+```cmd
+"C:\Program Files\xucRun\xucRun.exe" /user:* "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoExit
+```
+
+`/user:*` öffnet immer die Auswahl aktivierter lokaler Konten und startet PowerShell ohne
+zusätzliche Rechteerhöhung durch xucRun unter dem gewählten Konto. Fehlende Anmeldedaten werden vor
+dem Start angefordert.
 
 Thunderbird aus PowerShell unter dem Windows-Zielkonto `MailUser` mit dessen Benutzerprofil und
 unverändertem Rechtemodus starten:
@@ -58,6 +74,17 @@ geschützte Kennworteingabe an.
 xucRun wählt dabei das Windows-Konto aus, nicht ein Mailkonto innerhalb von Thunderbird. Der
 Befehl setzt die Standardinstallationspfade von xucRun und Thunderbird voraus. Bei abweichenden
 Pfaden sind die tatsächlichen absoluten Installationspfade einzusetzen.
+
+Mehrere strukturierte Argumente einschließlich Werten und eines Pfads mit Leerzeichen direkt an
+`netsh.exe` übergeben:
+
+```cmd
+xucRun.exe /user-elevated "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Lokaler Beispielserver" dir=in action=allow program="C:\Program Files\Beispielserver\server.exe" enable=yes profile=private
+```
+
+xucRun hält das Zielprogramm und seine Argumente über die erforderlichen Prozessgrenzen hinweg
+getrennt; der Aufruf benötigt keine verschachtelte Befehlszeile für eine Werkzeugkette aus
+Kontowechsel und Rechteerhöhung.
 
 Die aktuelle PowerShell durch eine PowerShell im automatisch gewählten Benutzer- und
 Berechtigungskontext ersetzen:
