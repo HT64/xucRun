@@ -4,8 +4,16 @@ Displays the bilingual graphical xucRun installation workflow.
 
 .DESCRIPTION
 Builds a German or English Windows Forms installer UI for selecting language
-and system-PATH registration. It inspects the local signing certificate,
-installed product, and Microsoft Visual C++ x64 runtime. If necessary, it lets
+and system-PATH registration. Its initial language follows the Windows language
+preferences of the interactive session user, including when UAC uses a different
+administrator account. It displays the bundled license, notices, and security
+information and requires their acknowledgment for every installation or update.
+A README link is opened through the desktop shell. It displays the
+Windows-resolved installation and data paths and inspects the local signing certificate,
+installed product, optional Tray compatibility, and Microsoft Visual C++ x64 runtime.
+Known Tray conflicts disable installation before any runtime or signing action, while
+the machine installation script performs the authoritative compatibility check again.
+If necessary, it lets
 the user download the runtime from Microsoft's fixed URL or select an existing
 redistributable, stages and validates its Microsoft signature, original file
 name, and minimum version, and installs it. The workflow then invokes the
@@ -14,8 +22,8 @@ processes and reports their results.
 
 .PARAMETER PackageDirectory
 Specifies the mandatory directory containing the extracted xucRun package,
-including the signing and installation scripts and payloads. The workflow may
-also use this protected directory to stage a downloaded redistributable.
+including LICENSE, NOTICE, the signing and installation scripts, and payloads.
+The workflow may also use this protected directory to stage a downloaded redistributable.
 
 .EXAMPLE
 .\xucRunInstaller\Installer-Gui.ps1 -PackageDirectory 'C:\ProgramData\xucRun-Installer-1234'
@@ -33,7 +41,8 @@ protected staging before validation and execution; reparse-point inputs are
 rejected. Temporary process logs and runtime staging are removed. Exit code 0
 means installation completed. Closing or cancelling the UI returns 1223.
 Operational failures are shown in the UI and leave it open for retry or
-cancellation.
+cancellation. Opening the README uses the user's desktop shell and requires
+an available desktop and internet connection.
 #>
 param(
     [Parameter(Mandatory)][string]$PackageDirectory
@@ -46,25 +55,141 @@ Add-Type -AssemblyName System.Drawing
 
 $minimumVcRuntimeVersion = [Version]'14.51.36247.0'
 $vcRuntimeDownloadUri = 'https://aka.ms/vs/18/release/vc_redist.x64.exe'
-$script:language = if (
-    [Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName -eq 'de') {
-    'de'
-} else {
-    'en'
+
+function Get-WtsSessionValue {
+    param(
+        [Parameter(Mandatory)][int]$SessionId,
+        [Parameter(Mandatory)][int]$InformationClass
+    )
+
+    if (-not ('Native.WtsSession' -as [type])) {
+        Add-Type -Namespace Native -Name WtsSession -MemberDefinition @'
+[DllImport("Wtsapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+public static extern bool WTSQuerySessionInformation(
+    IntPtr server, int sessionId, int informationClass,
+    out IntPtr buffer, out int bytesReturned);
+
+[DllImport("Wtsapi32.dll")]
+public static extern void WTSFreeMemory(IntPtr buffer);
+'@
+    }
+
+    $buffer = [IntPtr]::Zero
+    $bytesReturned = 0
+    if (-not [Native.WtsSession]::WTSQuerySessionInformation(
+        [IntPtr]::Zero, $SessionId, $InformationClass,
+        [ref]$buffer, [ref]$bytesReturned)) {
+        $errorCode = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        throw [ComponentModel.Win32Exception]::new(
+            $errorCode, 'The interactive Windows session could not be queried.')
+    }
+    try {
+        if ($buffer -eq [IntPtr]::Zero -or $bytesReturned -le 2) {
+            return ''
+        }
+        return [Runtime.InteropServices.Marshal]::PtrToStringUni($buffer)
+    }
+    finally {
+        if ($buffer -ne [IntPtr]::Zero) {
+            [Native.WtsSession]::WTSFreeMemory($buffer)
+        }
+    }
 }
+
+function Get-CurrentSessionUserSid {
+    $sessionId = [Diagnostics.Process]::GetCurrentProcess().SessionId
+    $userName = Get-WtsSessionValue -SessionId $sessionId -InformationClass 5
+    if ([string]::IsNullOrWhiteSpace($userName)) {
+        return $null
+    }
+    $domainName = Get-WtsSessionValue -SessionId $sessionId -InformationClass 7
+    $accountName = if ([string]::IsNullOrWhiteSpace($domainName)) {
+        $userName
+    }
+    else {
+        "$domainName\$userName"
+    }
+    return [Security.Principal.NTAccount]::new($accountName).Translate(
+        [Security.Principal.SecurityIdentifier]).Value
+}
+
+function Get-InitialInstallerLanguage {
+    $sessionUserSid = Get-CurrentSessionUserSid
+    if ($sessionUserSid) {
+        foreach ($preference in @(
+            @{
+                SubKey = "$sessionUserSid\Control Panel\Desktop"
+                Value = 'PreferredUILanguages'
+            },
+            @{
+                SubKey = "$sessionUserSid\Control Panel\International\User Profile"
+                Value = 'Languages'
+            }
+        )) {
+            $key = [Microsoft.Win32.Registry]::Users.OpenSubKey($preference.SubKey)
+            if (-not $key) {
+                continue
+            }
+            try {
+                $preferredLanguages = @($key.GetValue($preference.Value))
+            }
+            finally {
+                $key.Dispose()
+            }
+            foreach ($cultureName in $preferredLanguages) {
+                if (-not [string]::IsNullOrWhiteSpace($cultureName)) {
+                    $culture = [Globalization.CultureInfo]::GetCultureInfo($cultureName)
+                    return $(if ($culture.TwoLetterISOLanguageName -eq 'de') {
+                        'de'
+                    } else {
+                        'en'
+                    })
+                }
+            }
+        }
+    }
+
+    return $(if (
+        [Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName -eq 'de') {
+        'de'
+    } else {
+        'en'
+    })
+}
+$script:language = Get-InitialInstallerLanguage
 $script:statusKey = 'StatusReady'
 $script:statusArguments = @()
+$script:installInProgress = $false
 
 $texts = @{
     de = @{
         WindowTitle = 'xucRun Installer'
         Heading = 'xucRun installieren'
-        Description = 'Installiert xucRun und den Broker nach C:\Program Files\xucRun.'
+        Description = 'Installiert xucRun und den Broker nach {0}.'
         SettingsTab = 'Einstellungen'
         DetailsTab = 'Ablauf und Deinstallation'
+        SecurityTab = 'Sicherheitshinweise'
+        LicenseTab = 'Lizenz'
+        LicenseIntroduction = 'xucRun ist Open Source und steht unter der Apache License 2.0. Der vollständige Lizenztext und die Urheberhinweise werden unten angezeigt.'
+        Acknowledgment = 'Ich stimme den Lizenzbedingungen zu und habe die Sicherheitshinweise verstanden.'
+        ReadmeLink = 'Anwenderdokumentation auf GitHub öffnen'
+        ReadmeUrl = 'https://github.com/HT64/xucRun/blob/main/README.de.md'
+        ReadmeOpenFailed = 'Die README konnte nicht über den Windows-Desktop geöffnet werden. Öffnen Sie diese Adresse in Ihrem Browser:'
+        LicenseReadFailed = 'Lizenztext oder Hinweise konnten nicht gelesen werden. Die Installation kann nicht fortgesetzt werden.'
+        KnownFolderFailed = 'Die Windows-Ordner für Programme oder Programmdaten konnten nicht ermittelt werden. Die Installation kann nicht fortgesetzt werden.'
+        StatusNotice = @'
+xucRun wird aktiv weiterentwickelt. Die Dokumentation beschreibt das vorgesehene Verhalten. Der aktuelle Stand kann Fehler enthalten, davon abweichen und sich ändern.
+'@
+        SecurityNotice = @'
+xucRun verwendet Windows-APIs zur Speicherung von Anmeldedaten. Damit xucRun ein Programm unter einem anderen Benutzerkonto starten kann, muss xucRun die benötigten Anmeldedaten jedoch vorübergehend verarbeiten. Ein vollständiger Schutz vor dem Auslesen oder Missbrauch durch ausreichend privilegierte Malware oder ein bereits kompromittiertes System kann deshalb nicht gewährleistet werden. Der Quellcode von xucRun wird offengelegt, damit die eingesetzten technischen Maßnahmen, ihre Grenzen und die verbleibenden Risiken nachvollzogen und unabhängig geprüft werden können. Die Offenlegung allein ist jedoch weder eine Sicherheitsgarantie noch der Nachweis einer unabhängigen Sicherheitsprüfung. Der Einsatz erfolgt eigenverantwortlich. xucRun sollte nur auf vertrauenswürdigen, selbst verwalteten Systemen ohne erhöhten Schutzbedarf sowie möglichst mit dedizierten, minimal berechtigten Zielkonten eingesetzt werden. Skripte, Verknüpfungen, geplante Aufgaben und Konfigurationsdateien, die xucRun aufrufen oder seine Parameter vorgeben, müssen ebenfalls vertrauenswürdig und vor unbefugten Änderungen geschützt sein.
+
+Diese Sicherheitshinweise erheben keinen Anspruch auf Vollständigkeit; nicht alle Risiken und Sicherheitslücken können vorausgesehen oder ausgeschlossen werden.
+
+Soweit gesetzlich zulässig, übernehmen der Autor und die Mitwirkenden keine Haftung für Schäden, Datenverluste oder sonstige Folgen, die aus der Nutzung oder fehlerhaften Anwendung von xucRun, aus Softwarefehlern oder Sicherheitslücken sowie durch Malware oder ein kompromittiertes System entstehen. Dies umfasst insbesondere den Verlust, die Offenlegung oder den Missbrauch von Anmeldedaten. Maßgeblich sind der Gewährleistungsausschluss und die Haftungsbegrenzung der Apache License 2.0.
+'@
         LanguageLabel = 'Programmsprache'
         LanguageHint = 'Später über xucRun.ini, mit dem optionalen Tray-Add-on auch direkt in dessen Menü änderbar.'
-        PathCheck = 'C:\Program Files\xucRun zum systemweiten PATH hinzufügen'
+        PathCheck = '{0} zum systemweiten PATH hinzufügen'
         RuntimeCompatible = 'Erkannte Version der Microsoft Visual C++ Runtime x64: {0} (kompatibel)'
         RuntimeTooOld = 'Erkannte Version der Microsoft Visual C++ Runtime x64: {0} (zu alt)'
         RuntimeMissing = 'Microsoft Visual C++ Runtime x64: nicht gefunden'
@@ -74,9 +199,18 @@ $texts = @{
         CertificateExpired = 'Das vorhandene lokale xucRun-Zertifikat ist abgelaufen. Bei der Installation wird ein neues Zertifikat erstellt.'
         CertificateAmbiguous = 'Es wurden mehrere verwendbare lokale xucRun-Zertifikate gefunden. Die Installation kann nicht eindeutig fortgesetzt werden.'
         CertificateWarning = 'Der private Schlüssel ist nicht exportierbar und bleibt auf diesem Computer.'
+        RepairNotice = "Installierte Version: {0}`r`nInstalliert/zuletzt aktualisiert: {1}`r`nDie Installation wird mit den gewählten Einstellungen repariert."
         UpdateNotice = "Installierte Version: {0}`r`nInstalliert/zuletzt aktualisiert: {1}`r`nDie Installation wird mit den gewählten Einstellungen aktualisiert."
         NewInstallNotice = 'Es wurde keine vorhandene xucRun-Installation erkannt. xucRun wird mit den gewählten Einstellungen installiert.'
         UnknownInstallTime = 'nicht verfügbar'
+        TrayNotInstalled = 'xucRun Tray: nicht installiert.'
+        TrayCompatible = 'xucRun Tray: Version {0} ist kompatibel und kann bei dieser Core-Installation beibehalten werden.'
+        TrayLegacyInstallation = 'xucRun Tray wurde ohne separaten Deinstallationseintrag gefunden. Verwenden Sie den Installer der vollständigen Distribution.'
+        TrayVersionMismatch = "xucRun Tray ist nicht mit diesem Core-Paket kompatibel.`r`nRegistrierte Tray-Version: {0}   Tray-Dateiversion: {1}   Core-Paketversion: {2}`r`nDeinstallieren Sie zuerst xucRun Tray."
+        TrayIncomplete = 'Die installierte xucRun-Tray-Version ist unvollständig: {0}. Deinstallieren Sie zuerst xucRun Tray.'
+        TraySignerUnavailable = 'Das installierte xucRun Tray kann nicht beibehalten werden, weil das bisherige lokale xucRun-Zertifikat nicht eindeutig wiederverwendet werden kann. Deinstallieren Sie zuerst xucRun Tray.'
+        TraySignatureInvalid = 'Die installierte xucRun-Tray-Datei besitzt keine gültige vertrauenswürdige Signatur: {0} ({1}). Deinstallieren Sie zuerst xucRun Tray.'
+        TraySignerMismatch = 'Die installierte xucRun-Tray-Datei verwendet nicht das lokale Zertifikat, mit dem dieses Core-Paket signiert wird: {0}. Deinstallieren Sie zuerst xucRun Tray.'
         InstallButton = 'Installieren'
         CancelButton = 'Abbrechen'
         StatusReady = 'Bereit.'
@@ -113,15 +247,15 @@ $texts = @{
         Details = @'
 INSTALLATION
 
-1. Der Installer benötigt Administratorrechte und entpackt die eingebetteten xucRun-Dateien vorübergehend in ein geschütztes Verzeichnis unter %ProgramData%. Nur SYSTEM und Administratoren erhalten Zugriff. Nach Abschluss oder Abbruch wird das Verzeichnis entfernt.
+1. Der Installer benötigt Administratorrechte und entpackt die eingebetteten xucRun-Dateien vorübergehend in ein geschütztes Verzeichnis unter {0}. Nur SYSTEM und Administratoren erhalten Zugriff. Nach Abschluss oder Abbruch versucht der Installer, das Verzeichnis zu entfernen; schlägt dies fehl, zeigt er eine Warnung.
 
-2. xucRun benötigt Microsoft Visual C++ Redistributable x64. Fehlt es, kann der Installer die Datei vom offiziellen Microsoft-Link herunterladen oder eine vorhandene vc_redist.x64.exe verwenden. Vor dem Start werden Microsoft-Signatur und Originaldateiname geprüft.
+2. xucRun benötigt Microsoft Visual C++ Redistributable x64 mindestens in Version {3}. Fehlt eine passende Version oder ist sie zu alt, kann der Installer die Datei vom offiziellen Microsoft-Link herunterladen oder eine vorhandene vc_redist.x64.exe verwenden. Vor dem Start werden Microsoft-Signatur, Originaldateiname und Version geprüft.
 
 3. Der Installer verwendet ein bereits vorhandenes gültiges lokales xucRun-Codesignaturzertifikat mit privatem Schlüssel. Ist keines vorhanden, erzeugt er ein neues Zertifikat mit nicht exportierbarem privaten Schlüssel. Er richtet das Vertrauen auf diesem Computer ein und signiert die sechs installierbaren Dateien.
 
-4. Das Installationsskript prüft alle Signaturen erneut, installiert Client, Broker, Approval-Helper und Sprachdateien nach C:\Program Files\xucRun und richtet den Broker-Dienst sowie den Deinstallationseintrag ein.
+4. Das Installationsskript prüft alle Signaturen erneut, installiert Client, Broker, Approval-Helper und Sprachdateien nach {1} und richtet den Broker-Dienst sowie den Deinstallationseintrag ein.
 
-5. Die gewählte Sprache wird in xucRun.ini eingetragen. Der systemweite PATH-Eintrag wird entsprechend der Auswahl gesetzt oder entfernt.
+5. Die gewählte Sprache wird in xucRun.ini eingetragen. Der Installationsordner kann zum systemweiten PATH hinzugefügt werden. Bei Abwahl wird nur ein zuvor vom Installer hinzugefügter Eintrag entfernt.
 
 AKTUALISIERUNG
 
@@ -135,22 +269,41 @@ Die Deinstallation erfolgt über „Installierte Apps“ beziehungsweise „Prog
 
 Ein installiertes xucRun Tray muss zuvor separat deinstalliert werden. Beim Start über Installierte Apps bleibt das PowerShell-Fenster verborgen; ein manueller Skriptaufruf behält seine Konsolenausgabe.
 
-Vor der ersten Änderung verlangt die Deinstallation eine ausdrückliche Bestätigung. Bei Abbruch bleiben Installation und Daten unverändert.
+Vor der ersten Änderung verlangt die normale Deinstallation eine ausdrückliche Bestätigung. Bei Abbruch bleiben Installation und Daten unverändert. Beim manuellen Aufruf mit -NoSuccessDialog entfallen Bestätigung sowie Erfolgs- und Fehlerdialoge.
 
 ACHTUNG: Die Deinstallation löscht unwiderruflich alle gegebenenfalls vorhandenen xucRun-Anmeldedaten und Freigaben aller Windows-Benutzer sowie sämtliche lokalen xucRun-Sicherungen, Sicherheitsmerkmale und zugehörigen Metadaten. Außerdem entfernt sie Core, Brokerdienst, Programmdateien und das lokale xucRun-Standardzertifikat samt privatem Schlüssel und Vertrauenseinträgen.
 
-Die Erfolgsbestätigung führt entfernte Komponenten, Daten und Zertifikatsdetails auf. Ein Fehler bleibt in einem sichtbaren Dialog erhalten. Das technische Diagnoseprotokoll liegt unter %ProgramData%\xucRun\InstallerLogs; der Dialog zeigt den vollständigen Dateipfad in einem kopierbaren Feld und kann den Protokollordner öffnen. Das Protokoll enthält keine gespeicherten Kennwörter.
+Bei der normalen Deinstallation führt die Erfolgsbestätigung entfernte Komponenten, Daten und Zertifikatsdetails auf. Bei einem Fehler wird nach Möglichkeit ein Diagnoseprotokoll unter {2} geschrieben. Der Fehlerdialog zeigt den vollständigen Dateipfad und kann den Protokollordner öffnen; kann das Protokoll nicht geschrieben werden, meldet der Dialog dies. Das Protokoll enthält keine gespeicherten Kennwörter.
 '@
     }
     en = @{
         WindowTitle = 'xucRun Installer'
         Heading = 'Install xucRun'
-        Description = 'Installs xucRun and its broker in C:\Program Files\xucRun.'
+        Description = 'Installs xucRun and its broker in {0}.'
         SettingsTab = 'Settings'
         DetailsTab = 'Process and uninstallation'
+        SecurityTab = 'Security information'
+        LicenseTab = 'License'
+        LicenseIntroduction = 'xucRun is open source and is licensed under the Apache License 2.0. The complete license text and attribution notices are shown below.'
+        Acknowledgment = 'I agree to the license terms and understand the security information.'
+        ReadmeLink = 'Open user documentation on GitHub'
+        ReadmeUrl = 'https://github.com/HT64/xucRun/blob/main/README.md'
+        ReadmeOpenFailed = 'The README could not be opened through the Windows desktop. Open this address in your browser:'
+        LicenseReadFailed = 'The license text or notices could not be read. Installation cannot continue.'
+        KnownFolderFailed = 'The Windows program or program data directory could not be determined. Installation cannot continue.'
+        StatusNotice = @'
+xucRun is actively maintained and continues to evolve. The documentation describes the intended behavior. The current state may contain defects, differ from that behavior, and change.
+'@
+        SecurityNotice = @'
+xucRun uses Windows APIs to store credentials. For xucRun to start a program under another user account, however, xucRun must process the required credentials temporarily. Complete protection against reading or misuse by sufficiently privileged malware or an already compromised system therefore cannot be guaranteed. The source code of xucRun is disclosed so that the implemented technical measures, their limits, and the remaining risks can be understood and independently reviewed. Disclosure alone is neither a security guarantee nor evidence of an independent security audit. Use xucRun at your own responsibility. xucRun should be used only on trusted, self-managed systems that do not require an elevated level of protection, and preferably with dedicated target accounts having the minimum required privileges. Scripts, shortcuts, scheduled tasks, and configuration files that invoke xucRun or provide its parameters must also be trusted and protected against unauthorized modification.
+
+These security notices are not exhaustive; not all risks and security vulnerabilities can be anticipated or ruled out.
+
+To the extent permitted by law, the author and contributors accept no liability for damage, data loss, or other consequences arising from the use or incorrect use of xucRun, software defects or security vulnerabilities, malware, or a compromised system. This includes, in particular, the loss, disclosure, or misuse of credentials. The disclaimer of warranty and limitation of liability in the Apache License 2.0 govern.
+'@
         LanguageLabel = 'Application language'
         LanguageHint = 'Can be changed later in xucRun.ini or, with the optional Tray add-on, directly in its menu.'
-        PathCheck = 'Add C:\Program Files\xucRun to the system-wide PATH'
+        PathCheck = 'Add {0} to the system-wide PATH'
         RuntimeCompatible = 'Detected Microsoft Visual C++ Runtime x64 version: {0} (compatible)'
         RuntimeTooOld = 'Detected Microsoft Visual C++ Runtime x64 version: {0} (too old)'
         RuntimeMissing = 'Microsoft Visual C++ Runtime x64: not found'
@@ -160,9 +313,18 @@ Die Erfolgsbestätigung führt entfernte Komponenten, Daten und Zertifikatsdetai
         CertificateExpired = 'The existing local xucRun certificate has expired. A new certificate will be created during installation.'
         CertificateAmbiguous = 'Multiple usable local xucRun certificates were found. Installation cannot continue unambiguously.'
         CertificateWarning = 'The private key is non-exportable and remains on this computer.'
+        RepairNotice = "Installed version: {0}`r`nInstalled/last updated: {1}`r`nThe installation will be repaired with the selected settings."
         UpdateNotice = "Installed version: {0}`r`nInstalled/last updated: {1}`r`nThe installation will be updated with the selected settings."
         NewInstallNotice = 'No existing xucRun installation was detected. xucRun will be installed with the selected settings.'
         UnknownInstallTime = 'not available'
+        TrayNotInstalled = 'xucRun Tray: not installed.'
+        TrayCompatible = 'xucRun Tray: version {0} is compatible and can remain installed during this Core installation.'
+        TrayLegacyInstallation = 'xucRun Tray was found without a separate uninstall entry. Use the full Distribution installer.'
+        TrayVersionMismatch = "xucRun Tray is not compatible with this Core package.`r`nRegistered Tray version: {0}   Tray file version: {1}   Core package version: {2}`r`nUninstall xucRun Tray first."
+        TrayIncomplete = 'The installed xucRun Tray version is incomplete: {0}. Uninstall xucRun Tray first.'
+        TraySignerUnavailable = 'The installed xucRun Tray cannot remain because the previous local xucRun certificate cannot be reused unambiguously. Uninstall xucRun Tray first.'
+        TraySignatureInvalid = 'The installed xucRun Tray file does not have a valid trusted signature: {0} ({1}). Uninstall xucRun Tray first.'
+        TraySignerMismatch = 'The installed xucRun Tray file does not use the local certificate that will sign this Core package: {0}. Uninstall xucRun Tray first.'
         InstallButton = 'Install'
         CancelButton = 'Cancel'
         StatusReady = 'Ready.'
@@ -199,15 +361,15 @@ Die Erfolgsbestätigung führt entfernte Komponenten, Daten und Zertifikatsdetai
         Details = @'
 INSTALLATION
 
-1. The installer requires administrator rights and temporarily extracts the embedded xucRun files to a protected directory below %ProgramData%. Only SYSTEM and administrators receive access. The directory is removed after completion or cancellation.
+1. The installer requires administrator rights and temporarily extracts the embedded xucRun files to a protected directory below {0}. Only SYSTEM and administrators receive access. After completion or cancellation, it attempts to remove the directory and shows a warning if removal fails.
 
-2. xucRun requires Microsoft Visual C++ Redistributable x64. If it is missing, the installer can download it from the official Microsoft link or use an existing vc_redist.x64.exe. The Microsoft signature and original file name are checked before execution.
+2. xucRun requires Microsoft Visual C++ Redistributable x64 version {3} or later. If a compatible version is missing or too old, the installer can download it from the official Microsoft link or use an existing vc_redist.x64.exe. The Microsoft signature, original file name, and version are checked before execution.
 
 3. The installer reuses an existing valid local xucRun code-signing certificate with its private key. If none exists, it creates a new certificate with a non-exportable private key. It configures trust on this computer and signs the six installable files.
 
-4. The installation script checks all signatures again, installs the client, broker, approval helper, and language files in C:\Program Files\xucRun, and configures the broker service and uninstall entry.
+4. The installation script checks all signatures again, installs the client, broker, approval helper, and language files in {1}, and configures the broker service and uninstall entry.
 
-5. The selected language is written to xucRun.ini. The system-wide PATH entry is added or removed according to the selection.
+5. The selected language is written to xucRun.ini. The installation directory can be added to the system-wide PATH. If the option is cleared, only an entry previously added by the installer is removed.
 
 UPDATE
 
@@ -221,11 +383,11 @@ Uninstall through “Installed apps” or “Programs and Features”. Alternati
 
 An installed xucRun Tray must be uninstalled separately first. When started through Installed apps, the PowerShell window remains hidden; a manual script invocation retains its console output.
 
-Uninstall requires explicit confirmation before making its first change. Cancelling leaves the installation and its data unchanged.
+Normal uninstallation requires explicit confirmation before making its first change. Cancelling leaves the installation and its data unchanged. A manual invocation with -NoSuccessDialog suppresses confirmation as well as success and error dialogs.
 
 WARNING: Uninstall permanently deletes all credentials and approvals that may be stored by xucRun for every Windows user, together with all local xucRun backups, security markers, and associated metadata. It also removes Core, the broker service, program files, and the standard local xucRun certificate, including its private key and trust entries.
 
-The success confirmation lists removed components, data, and certificate details. A failure remains visible in a dialog. Its technical diagnostic log is stored under %ProgramData%\xucRun\InstallerLogs; the dialog shows the full file path in a copyable field and can open the log folder. The log contains no stored passwords.
+During normal uninstallation, the success confirmation lists removed components, data, and certificate details. On failure, a diagnostic log is written under {2} when possible. The error dialog shows the full file path and can open the log folder; if the log cannot be written, the dialog reports this. The log contains no stored passwords.
 '@
     }
 }
@@ -237,6 +399,34 @@ function Get-Text {
         return $value -f $Arguments
     }
     return $value
+}
+
+$programFilesDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::ProgramFiles)
+$programDataDirectory = [Environment]::GetFolderPath(
+    [Environment+SpecialFolder]::CommonApplicationData)
+if ([string]::IsNullOrWhiteSpace($programFilesDirectory) -or
+    [string]::IsNullOrWhiteSpace($programDataDirectory)) {
+    [Windows.Forms.MessageBox]::Show(
+        (Get-Text -Key KnownFolderFailed), (Get-Text -Key WindowTitle),
+        'OK', 'Error') | Out-Null
+    exit 1
+}
+$installDirectory = Join-Path $programFilesDirectory 'xucRun'
+$languageDirectory = Join-Path $installDirectory 'Languages'
+$installerLogDirectory = Join-Path $programDataDirectory 'xucRun\InstallerLogs'
+
+try {
+    $licenseText = [IO.File]::ReadAllText(
+        (Join-Path $PackageDirectory 'LICENSE'), [Text.Encoding]::UTF8)
+    $noticeText = [IO.File]::ReadAllText(
+        (Join-Path $PackageDirectory 'NOTICE'), [Text.Encoding]::UTF8)
+}
+catch {
+    [Windows.Forms.MessageBox]::Show(
+        ((Get-Text -Key LicenseReadFailed) + "`r`n`r`n" + $_.Exception.Message),
+        (Get-Text -Key WindowTitle), 'OK', 'Error') | Out-Null
+    exit 1
 }
 
 function Test-CodeSigningEku {
@@ -280,6 +470,119 @@ function Get-LocalCertificateState {
         Kind = if ($matching.Count -gt 0) { 'Expired' } else { 'New' }
         Certificate = $null
     }
+}
+
+function Get-CertificateSha256 {
+    param([Parameter(Mandatory)]
+        [Security.Cryptography.X509Certificates.X509Certificate2]$Certificate)
+
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try {
+        return $sha256.ComputeHash($Certificate.RawData)
+    }
+    finally {
+        $sha256.Dispose()
+    }
+}
+
+function Get-TrayCompatibilityState {
+    param(
+        [Parameter(Mandatory)][string]$PackageProductVersion,
+        [Parameter(Mandatory)]$CertificateState
+    )
+
+    $trayPath = Join-Path $installDirectory 'xucRunTray.exe'
+    if (-not (Test-Path -LiteralPath $trayPath -PathType Leaf)) {
+        return [pscustomobject]@{
+            Kind = 'NotInstalled'
+            TextKey = 'TrayNotInstalled'
+            Arguments = @()
+        }
+    }
+
+    $trayUninstallPath =
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun Tray'
+    if (-not (Test-Path -LiteralPath $trayUninstallPath)) {
+        return [pscustomobject]@{
+            Kind = 'Incompatible'
+            TextKey = 'TrayLegacyInstallation'
+            Arguments = @()
+        }
+    }
+
+    $registeredTrayVersion = [string](
+        Get-Item -LiteralPath $trayUninstallPath).GetValue('DisplayVersion', '')
+    $trayFileVersion = [string](
+        Get-Item -LiteralPath $trayPath).VersionInfo.ProductVersion
+    if ($registeredTrayVersion -ne $PackageProductVersion -or
+        $trayFileVersion -ne $PackageProductVersion) {
+        return [pscustomobject]@{
+            Kind = 'Incompatible'
+            TextKey = 'TrayVersionMismatch'
+            Arguments = @(
+                $registeredTrayVersion,
+                $trayFileVersion,
+                $PackageProductVersion)
+        }
+    }
+
+    $trayFiles = @(
+        $trayPath,
+        (Join-Path $languageDirectory 'xucRunTray.de-DE.dll'),
+        (Join-Path $languageDirectory 'xucRunTray.en-US.dll')
+    )
+    foreach ($path in $trayFiles) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            return [pscustomobject]@{
+                Kind = 'Incompatible'
+                TextKey = 'TrayIncomplete'
+                Arguments = @($path)
+            }
+        }
+    }
+
+    if ($CertificateState.Kind -ne 'Existing') {
+        return [pscustomobject]@{
+            Kind = 'Incompatible'
+            TextKey = 'TraySignerUnavailable'
+            Arguments = @()
+        }
+    }
+
+    $expectedSigner = [Convert]::ToBase64String(
+        (Get-CertificateSha256 -Certificate $CertificateState.Certificate))
+    foreach ($path in $trayFiles) {
+        $signature = Get-AuthenticodeSignature -LiteralPath $path
+        if ($signature.Status -ne
+            [Management.Automation.SignatureStatus]::Valid -or
+            -not $signature.SignerCertificate) {
+            return [pscustomobject]@{
+                Kind = 'Incompatible'
+                TextKey = 'TraySignatureInvalid'
+                Arguments = @($path, [string]$signature.Status)
+            }
+        }
+        $actualSigner = [Convert]::ToBase64String(
+            (Get-CertificateSha256 -Certificate $signature.SignerCertificate))
+        if ($actualSigner -ne $expectedSigner) {
+            return [pscustomobject]@{
+                Kind = 'Incompatible'
+                TextKey = 'TraySignerMismatch'
+                Arguments = @($path)
+            }
+        }
+    }
+
+    return [pscustomobject]@{
+        Kind = 'Compatible'
+        TextKey = 'TrayCompatible'
+        Arguments = @($PackageProductVersion)
+    }
+}
+
+function Get-TrayCompatibilityStatusText {
+    return Get-Text -Key $script:trayCompatibilityState.TextKey `
+        -Arguments $script:trayCompatibilityState.Arguments
 }
 
 function Get-CertificateStatusText {
@@ -378,7 +681,14 @@ function Get-InstallNoticeText {
     } else {
         Get-Text -Key UnknownInstallTime
     }
-    return Get-Text -Key UpdateNotice -Arguments @(
+    $noticeKey = if (
+        [Version]$script:installedProductState.Version -eq
+            [Version]$packageProductVersion) {
+        'RepairNotice'
+    } else {
+        'UpdateNotice'
+    }
+    return Get-Text -Key $noticeKey -Arguments @(
         $script:installedProductState.Version,
         $installedAtText)
 }
@@ -629,6 +939,15 @@ function Get-ProcessFailure {
 $script:certificateState = Get-LocalCertificateState
 $script:installedProductState = Get-InstalledProductState
 $script:vcRuntimeState = Get-VcRuntimeState
+$packageClientPath = Join-Path $PackageDirectory 'xucRun.exe'
+$packageProductVersion = [string](
+    Get-Item -LiteralPath $packageClientPath).VersionInfo.ProductVersion
+if ([string]::IsNullOrWhiteSpace($packageProductVersion)) {
+    throw "The Core package version could not be determined: $packageClientPath"
+}
+$script:trayCompatibilityState = Get-TrayCompatibilityState `
+    -PackageProductVersion $packageProductVersion `
+    -CertificateState $script:certificateState
 $form = [Windows.Forms.Form]::new()
 $form.ClientSize = [Drawing.Size]::new(620, 545)
 $form.FormBorderStyle = 'FixedDialog'
@@ -643,8 +962,9 @@ $heading.Size = [Drawing.Size]::new(562, 38)
 $form.Controls.Add($heading)
 
 $description = [Windows.Forms.Label]::new()
+$description.AutoSize = $true
 $description.Location = [Drawing.Point]::new(30, 62)
-$description.Size = [Drawing.Size]::new(560, 30)
+$description.MaximumSize = [Drawing.Size]::new(560, 0)
 $form.Controls.Add($description)
 
 $tabs = [Windows.Forms.TabControl]::new()
@@ -653,7 +973,9 @@ $tabs.Size = [Drawing.Size]::new(562, 315)
 $form.Controls.Add($tabs)
 $settingsTab = [Windows.Forms.TabPage]::new()
 $detailsTab = [Windows.Forms.TabPage]::new()
-$tabs.TabPages.AddRange(@($settingsTab, $detailsTab))
+$securityTab = [Windows.Forms.TabPage]::new()
+$licenseTab = [Windows.Forms.TabPage]::new()
+$tabs.TabPages.AddRange(@($settingsTab, $detailsTab, $securityTab, $licenseTab))
 
 $languageLabel = [Windows.Forms.Label]::new()
 $languageLabel.Location = [Drawing.Point]::new(14, 18)
@@ -675,8 +997,9 @@ $languageHint.MaximumSize = [Drawing.Size]::new(522, 0)
 $settingsTab.Controls.Add($languageHint)
 
 $pathCheck = [Windows.Forms.CheckBox]::new()
+$pathCheck.AutoSize = $true
 $pathCheck.Location = [Drawing.Point]::new(14, 68)
-$pathCheck.Size = [Drawing.Size]::new(522, 28)
+$pathCheck.MaximumSize = [Drawing.Size]::new(522, 0)
 $pathCheck.Checked = $true
 $settingsTab.Controls.Add($pathCheck)
 
@@ -707,6 +1030,12 @@ $updateNotice.Location = [Drawing.Point]::new(14, 228)
 $updateNotice.MaximumSize = [Drawing.Size]::new(522, 0)
 $settingsTab.Controls.Add($updateNotice)
 
+$trayCompatibility = [Windows.Forms.Label]::new()
+$trayCompatibility.AutoSize = $true
+$trayCompatibility.Location = [Drawing.Point]::new(14, 274)
+$trayCompatibility.MaximumSize = [Drawing.Size]::new(522, 0)
+$settingsTab.Controls.Add($trayCompatibility)
+
 $details = [Windows.Forms.TextBox]::new()
 $details.Location = [Drawing.Point]::new(10, 12)
 $details.Size = [Drawing.Size]::new(534, 244)
@@ -715,6 +1044,41 @@ $details.ReadOnly = $true
 $details.ScrollBars = 'Vertical'
 $details.BackColor = [Drawing.SystemColors]::Window
 $detailsTab.Controls.Add($details)
+
+$securityDetails = [Windows.Forms.TextBox]::new()
+$securityDetails.Location = [Drawing.Point]::new(10, 12)
+$securityDetails.Size = [Drawing.Size]::new(522, 190)
+$securityDetails.Multiline = $true
+$securityDetails.ReadOnly = $true
+$securityDetails.ScrollBars = 'Vertical'
+$securityDetails.BackColor = [Drawing.SystemColors]::Window
+$securityTab.Controls.Add($securityDetails)
+$readmeLink = [Windows.Forms.LinkLabel]::new()
+$readmeLink.AutoSize = $true
+$readmeLink.Location = [Drawing.Point]::new(10, 100)
+$securityTab.Controls.Add($readmeLink)
+$licenseIntroduction = [Windows.Forms.Label]::new()
+$licenseIntroduction.AutoSize = $true
+$licenseIntroduction.Location = [Drawing.Point]::new(10, 12)
+$licenseIntroduction.MaximumSize = [Drawing.Size]::new(522, 0)
+$licenseTab.Controls.Add($licenseIntroduction)
+$licenseDetails = [Windows.Forms.TextBox]::new()
+$licenseDetails.Location = [Drawing.Point]::new(10, 12)
+$licenseDetails.Size = [Drawing.Size]::new(522, 244)
+$licenseDetails.Multiline = $true
+$licenseDetails.ReadOnly = $true
+$licenseDetails.ScrollBars = 'Vertical'
+$licenseDetails.BackColor = [Drawing.SystemColors]::Window
+$licenseDetails.Text = (($licenseText + "`n`nNOTICE`n`n" + $noticeText) `
+    -replace "`r?`n", "`r`n")
+$licenseTab.Controls.Add($licenseDetails)
+
+$acknowledgment = [Windows.Forms.CheckBox]::new()
+$acknowledgment.AutoSize = $true
+$acknowledgment.Location = [Drawing.Point]::new(28, 420)
+$acknowledgment.MaximumSize = [Drawing.Size]::new(562, 0)
+$acknowledgment.Checked = $false
+$form.Controls.Add($acknowledgment)
 
 $statusLabel = [Windows.Forms.Label]::new()
 $statusLabel.Location = [Drawing.Point]::new(28, 432)
@@ -729,7 +1093,7 @@ $form.Controls.Add($progress)
 $installButton = [Windows.Forms.Button]::new()
 $installButton.Location = [Drawing.Point]::new(378, 495)
 $installButton.Size = [Drawing.Size]::new(102, 34)
-$installButton.Enabled = $script:certificateState.Kind -ne 'Ambiguous'
+$installButton.Enabled = $false
 $form.AcceptButton = $installButton
 $form.Controls.Add($installButton)
 $cancelButton = [Windows.Forms.Button]::new()
@@ -740,14 +1104,23 @@ $form.CancelButton = $cancelButton
 $form.Controls.Add($cancelButton)
 
 function Update-SettingsLayout {
+    $tabs.Top = [Math]::Max(100, $description.Bottom + 8)
+    $pathCheck.Top = $languageHint.Bottom + 8
+    $runtimeStatus.Top = $pathCheck.Bottom + 8
     $certificateGroup.Top = $runtimeStatus.Bottom + 10
     $certificateWarning.Top = $localCertificate.Bottom + 10
     $certificateGroup.Height = $certificateWarning.Bottom + 12
     $updateNotice.Top = $certificateGroup.Bottom + 10
+    $trayCompatibility.Top = $updateNotice.Bottom + 10
 
-    $tabs.Height = $updateNotice.Bottom + 38
+    $tabs.Height = $trayCompatibility.Bottom + 38
     $details.Height = $tabs.Height - 56
-    $statusLabel.Top = $tabs.Bottom + 16
+    $securityDetails.Height = $tabs.Height - 85
+    $readmeLink.Top = $securityDetails.Bottom + 8
+    $licenseDetails.Top = $licenseIntroduction.Bottom + 10
+    $licenseDetails.Height = $tabs.Height - $licenseDetails.Top - 44
+    $acknowledgment.Top = $tabs.Bottom + 12
+    $statusLabel.Top = $acknowledgment.Bottom + 12
     $progress.Top = $statusLabel.Bottom + 4
     $installButton.Top = $progress.Bottom + 24
     $cancelButton.Top = $installButton.Top
@@ -758,18 +1131,29 @@ function Update-SettingsLayout {
 function Update-Language {
     $form.Text = Get-Text -Key WindowTitle
     $heading.Text = Get-Text -Key Heading
-    $description.Text = Get-Text -Key Description
+    $description.Text = Get-Text -Key Description -Arguments @($installDirectory)
     $settingsTab.Text = Get-Text -Key SettingsTab
     $detailsTab.Text = Get-Text -Key DetailsTab
+    $securityTab.Text = Get-Text -Key SecurityTab
+    $licenseTab.Text = Get-Text -Key LicenseTab
+    $licenseIntroduction.Text = Get-Text -Key LicenseIntroduction
     $languageLabel.Text = Get-Text -Key LanguageLabel
     $languageHint.Text = Get-Text -Key LanguageHint
-    $pathCheck.Text = Get-Text -Key PathCheck
+    $pathCheck.Text = Get-Text -Key PathCheck -Arguments @($installDirectory)
     $runtimeStatus.Text = Get-VcRuntimeStatusText
     $certificateGroup.Text = Get-Text -Key CertificateGroup
     $localCertificate.Text = Get-CertificateStatusText
     $certificateWarning.Text = Get-Text -Key CertificateWarning
     $updateNotice.Text = Get-InstallNoticeText
-    $details.Text = (Get-Text -Key Details).Trim()
+    $trayCompatibility.Text = Get-TrayCompatibilityStatusText
+    $details.Text = (Get-Text -Key Details -Arguments @(
+        $programDataDirectory, $installDirectory, $installerLogDirectory,
+        $minimumVcRuntimeVersion)).Trim()
+    $securityDetails.Text = (((Get-Text -Key StatusNotice).Trim() +
+        "`r`n`r`n" + (Get-Text -Key SecurityNotice).Trim()) `
+        -replace "`r?`n", "`r`n")
+    $readmeLink.Text = Get-Text -Key ReadmeLink
+    $acknowledgment.Text = Get-Text -Key Acknowledgment
     $statusLabel.Text = Get-Text -Key $script:statusKey `
         -Arguments $script:statusArguments
     $installButton.Text = Get-Text -Key InstallButton
@@ -777,13 +1161,42 @@ function Update-Language {
     Update-SettingsLayout
 }
 
+function Update-InstallAvailability {
+    $installButton.Enabled = $acknowledgment.Checked -and
+        $script:certificateState.Kind -ne 'Ambiguous' -and
+        $script:trayCompatibilityState.Kind -ne 'Incompatible' -and
+        -not $script:installInProgress
+}
+
+$acknowledgment.Add_CheckedChanged({ Update-InstallAvailability })
+$readmeLink.Add_LinkClicked({
+    $url = Get-Text -Key ReadmeUrl
+    try {
+        $shell = New-Object -ComObject Shell.Application
+        $desktopHandle = 0
+        $desktop = $shell.Windows().FindWindowSW(0, 0, 8, [ref]$desktopHandle, 1)
+        if ($null -eq $desktop) {
+            throw 'The Windows desktop shell is unavailable.'
+        }
+        $desktop.Document.Application.ShellExecute($url, '', '', 'open', 1)
+    }
+    catch {
+        [Windows.Forms.MessageBox]::Show(
+            ((Get-Text -Key ReadmeOpenFailed) + "`r`n`r`n" + $url +
+                "`r`n`r`n" + $_.Exception.Message),
+            (Get-Text -Key WindowTitle), 'OK', 'Error') | Out-Null
+    }
+})
+
 $languageCombo.Add_SelectedIndexChanged({
     $script:language = if ($languageCombo.SelectedIndex -eq 0) { 'de' } else { 'en' }
     Update-Language
 })
 
 $installButton.Add_Click({
-    $installButton.Enabled = $false
+    $script:installInProgress = $true
+    Update-InstallAvailability
+    $acknowledgment.Enabled = $false
     $cancelButton.Enabled = $false
     $progress.Visible = $true
     $form.UseWaitCursor = $true
@@ -838,7 +1251,9 @@ $installButton.Add_Click({
         [Windows.Forms.MessageBox]::Show(
             $_.Exception.Message, (Get-Text -Key WindowTitle),
             'OK', 'Error') | Out-Null
-        $installButton.Enabled = $true
+        $script:installInProgress = $false
+        $acknowledgment.Enabled = $true
+        Update-InstallAvailability
         $cancelButton.Enabled = $true
         $progress.Visible = $false
         $form.UseWaitCursor = $false

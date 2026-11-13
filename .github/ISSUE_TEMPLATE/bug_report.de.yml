@@ -20,8 +20,8 @@ body:
     id: xucrun-version
     attributes:
       label: xucRun-Version
-      description: Ausgabe von `xucRun.exe /info` oder die Version in der Titelleiste eines Dialogs, zum Beispiel `0.9.1.6`.
-      placeholder: "0.9.1.6"
+      description: Ausgabe von `xucRun.exe /info` oder die Version in der Titelleiste eines Dialogs, zum Beispiel `0.9.1.7`.
+      placeholder: "0.9.1.7"
     validations:
       required: true
   - type: input

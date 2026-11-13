@@ -171,7 +171,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             { IDR_BROKER, L"xucRunBroker.exe", false },
             { IDR_APPROVAL_HELPER, L"xucRunApproval.exe", false },
             { IDR_LANGUAGE_DE, L"Languages\\xucRun.de-DE.dll", false },
-            { IDR_LANGUAGE_EN, L"Languages\\xucRun.en-US.dll", false }
+            { IDR_LANGUAGE_EN, L"Languages\\xucRun.en-US.dll", false },
+            { IDR_LICENSE, L"LICENSE", false },
+            { IDR_NOTICE, L"NOTICE", false }
         };
         for (const PayloadFile& payload : payloadFiles)
             ExtractResource(temporaryDirectory, payload);

@@ -6,7 +6,28 @@ Dieses Änderungsprotokoll beschreibt ausschließlich Änderungen, die für Anwe
 relevant sind. Interne Entwicklungs-, Export- und Veröffentlichungsabläufe werden nicht
 aufgeführt.
 
+Die Versionskennzeichnung `0.x.x.x` ist keine Qualitätsbewertung. Sie wird beibehalten, bis mehr
+praktische Erfahrungen und Rückmeldungen aus anderen Benutzerumgebungen vorliegen.
+
 ## [Unveröffentlicht]
+
+## [0.9.1.7] - 2026-11-13
+
+### Geändert
+
+- Der Installer legt die Lizenz- und Urheberhinweise im Unterverzeichnis `Licenses` ab.
+- Der grafische Installer zeigt Lizenztext, Urheberhinweise sowie Status- und Sicherheitshinweise
+  offline auf eigenen Registerkarten an und verlangt bei jeder Installation oder Aktualisierung
+  deren Bestätigung.
+- Der Core-Installer prüft eine vorhandene Tray-Installation vor einer Installation oder
+  Aktualisierung. Bei inkompatibler Version, unvollständiger Installation oder nicht
+  wiederverwendbarer Signiererbindung wird die Installation blockiert und zur vorherigen
+  Tray-Deinstallation aufgefordert.
+
+### Behoben
+
+- Die anfängliche Sprache des Installers folgt jetzt den Windows-Sprachpräferenzen des interaktiv
+  angemeldeten Benutzers.
 
 ## [0.9.1.6] - 2026-11-10
 
@@ -196,7 +217,8 @@ mehr verwendet werden.
   Der grafische Installer prüft diese Voraussetzung und bietet bei Bedarf den offiziellen
   Microsoft-Download an.
 
-[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.6...HEAD
+[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.7...HEAD
+[0.9.1.7]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.7
 [0.9.1.6]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.6
 [0.9.1.5]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.5
 [0.9.1.4]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.4

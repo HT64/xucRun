@@ -5,8 +5,8 @@ Creates bilingual release notes for one xucRun version.
 .DESCRIPTION
 Extracts the requested version section from the English and German changelogs,
 validates that the supplied checksum file contains the matching installer and
-ZIP entries, and writes UTF-8 release notes containing the signing, pre-installation
-README, version designation, and Tray update notices, both changelog sections,
+ZIP entries, and writes UTF-8 release notes containing the open-source status,
+signing, pre-installation README, version designation, and Tray update notices, both changelog sections,
 links, and checksums. GitHub renders every line break in a release description
 as a visible line break, so the hard-wrapped lines of each changelog paragraph
 and list item are joined into one line. Headings, list item starts, table
@@ -27,9 +27,9 @@ Specifies the mandatory output file. Its parent directory is created when
 necessary, and an existing file is replaced.
 
 .EXAMPLE
-.\New-xucRun-ReleaseNotes.ps1 -Version 0.9.1.6 -ChecksumPath .\artifacts\Release\0.9.1.6\SHA256SUMS.txt -DestinationPath .\artifacts\Release\0.9.1.6\RELEASE_NOTES.md
+.\New-xucRun-ReleaseNotes.ps1 -Version 0.9.1.7 -ChecksumPath .\artifacts\Release\0.9.1.7\SHA256SUMS.txt -DestinationPath .\artifacts\Release\0.9.1.7\RELEASE_NOTES.md
 
-Creates release notes for version 0.9.1.6 from the matching checksums and
+Creates release notes for version 0.9.1.7 from the matching checksums and
 changelog sections.
 
 .NOTES
@@ -146,15 +146,15 @@ $germanChanges = ConvertTo-UnwrappedMarkdown -Text (Get-ChangelogVersionBody `
 $notes = @"
 ## Important notice / Wichtiger Hinweis
 
-xucRun is a non-commercial open-source project. The provided installer is not signed by a publicly trusted publisher. Windows may therefore report an unknown publisher when it is first started. Download the files only from this GitHub Release and compare the SHA-256 checksum before starting the installer.
+xucRun is an open-source project. The provided installer is not signed by a publicly trusted publisher. Windows may therefore report an unknown publisher when it is first started. Download the files only from this GitHub Release and compare the SHA-256 checksum before starting the installer.
 
-xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
+xucRun ist ein Open-Source-Projekt. Die bereitgestellte Installer-Datei besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
 
 ## Before installing / Vor der Installation
 
-xucRun is a powerful tool. Using it involves risks that the user must understand. Before installing, therefore, be sure to read the [README](https://github.com/HT64/xucRun/blob/v$Version/README.md), in particular the section [``Important security notice``](https://github.com/HT64/xucRun/blob/v$Version/README.md#requirements-and-intended-use).
+xucRun is a powerful tool. Using it involves risks that the user must understand. Before installing, therefore, be sure to read the [README](https://github.com/HT64/xucRun/blob/v$Version/README.md), in particular its [security notices](https://github.com/HT64/xucRun/blob/v$Version/README.md#requirements-and-intended-use).
 
-xucRun ist ein mächtiges Werkzeug. Seine Nutzung birgt Risiken, die der Anwender verstanden haben muss. Lesen Sie deshalb vor der Installation unbedingt die [README](https://github.com/HT64/xucRun/blob/v$Version/README.de.md), insbesondere den Abschnitt [``Wichtiger Sicherheitshinweis``](https://github.com/HT64/xucRun/blob/v$Version/README.de.md#voraussetzungen-und-einsatzbereich).
+xucRun ist ein mächtiges Werkzeug. Seine Nutzung birgt Risiken, die der Anwender verstanden haben muss. Lesen Sie deshalb vor der Installation unbedingt die [README](https://github.com/HT64/xucRun/blob/v$Version/README.de.md), insbesondere die [Sicherheitshinweise](https://github.com/HT64/xucRun/blob/v$Version/README.de.md#voraussetzungen-und-einsatzbereich).
 
 ## Version designation / Versionskennzeichnung
 

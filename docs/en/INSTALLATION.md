@@ -16,7 +16,8 @@ This document describes graphical and manual installation of xucRun.
 
 ## Graphical installation
 
-xucRun is a non-commercial open-source project. The provided installer is currently not
+xucRun is an open-source project under the [Apache License 2.0](../../LICENSE).
+The provided installer is currently not
 signed by a publicly trusted publisher. Windows may therefore report an unknown publisher when
 it is first started. Download the installer only from the official GitHub Release and compare its
 SHA-256 checksum with the checksum published there before starting it.
@@ -27,21 +28,24 @@ The recommended installation method is to double-click:
 xucRun-Installer-<Version>-x64.exe
 ```
 
-For version 0.9.1.6, for example, the file is named
-`xucRun-Installer-0.9.1.6-x64.exe`. Package creation derives the name automatically from the
+For version 0.9.1.7, for example, the file is named
+`xucRun-Installer-0.9.1.7-x64.exe`. Package creation derives the name automatically from the
 product version of the file that is still built internally as `Installer.exe`.
 
 Display the local SHA-256 checksum, for example, with:
 
 ```powershell
-Get-FileHash .\xucRun-Installer-0.9.1.6-x64.exe -Algorithm SHA256
+Get-FileHash .\xucRun-Installer-0.9.1.7-x64.exe -Algorithm SHA256
 ```
 
 The complete hash must match the entry for that file in `SHA256SUMS.txt` from the corresponding
 GitHub Release.
 
 Windows User Account Control requests the required administrator rights. The application language
-and machine PATH behavior can then be selected.
+and machine PATH behavior can then be selected. Every installation and update requires users to
+agree to the license terms and confirm that they understand the security information.
+The installer provides the license text, notices, and the README's status and security notices
+offline on separate tabs. A link opens the README.
 
 For an existing installation, the interface shows its registered version and the time it was
 installed or last updated.
@@ -68,8 +72,10 @@ Microsoft signature and original file name before execution.
 ## Not a portable application package
 
 The public `xucRun-<Version>-x64.zip` contains the executables, language resources, installation
-scripts, and graphical installer. It therefore supports graphical or script-based installation,
-but it is not a portable application package.
+scripts, graphical installer, `LICENSE`, and `NOTICE`. It therefore supports graphical or
+script-based installation, but it is not a portable application package.
+Both installation methods place `LICENSE-xucRun.txt` and `NOTICE-xucRun.txt` in
+`%ProgramFiles%\xucRun\Licenses`. These text files are not Authenticode-signed.
 
 Merely copying or directly starting the included EXE and DLL files does not create a complete,
 supported xucRun installation. In particular, it omits:
@@ -143,6 +149,9 @@ When reinstalling the same xucRun version, the separately installed optional
 version, file version, and signers still match the Core package exactly. Remove it through its
 separate Windows uninstall entry before changing versions. After the xucRun update, install a
 Tray release with the exact same four-part version from the public Tray repository.
+The graphical installer shows this compatibility before installation begins and disables
+installation when it detects a conflict. The installation script checks it again immediately
+before every installation, including manual invocation.
 If the broker service was running before reinstallation, the installer starts it again after
 replacing the files, restoring its previous running state. A broker service that was previously
 stopped or disabled remains stopped or disabled.
@@ -168,15 +177,17 @@ files.
 
 Uninstall also removes the service, installed files, uninstall registration, a PATH entry added by
 the installer, and the verified standard machine-local xucRun certificate, including its private
-key and trust entries. Uninstall requires explicit confirmation before its first change. Cancelling
-leaves the installation and data unchanged. The success confirmation lists the removed components,
+key and trust entries. Normal uninstallation requires explicit confirmation before its first
+change. Cancelling leaves the installation and data unchanged. The success confirmation lists the removed components,
 all stored data that may have been present, and the removed certificate's name, validity period,
-and thumbprint. Separately created test certificates with custom names are not removed.
+and thumbprint. Separately created test certificates with custom names are not removed. A manual
+invocation with `-NoSuccessDialog` suppresses confirmation as well as success and error dialogs.
 
-An uninstall failure remains visible in a dialog even when uninstall was started through
-**Installed apps**. Its technical diagnostic log is stored under
+An error during normal uninstallation remains visible in a dialog even when it was started through
+**Installed apps**. Its technical diagnostic log is written when possible under
 `%ProgramData%\xucRun\InstallerLogs`; the dialog shows the full path of the specific file in a
-copyable field and can open the folder directly. The log contains error, script, and system
+copyable field and can open the folder directly. If the log cannot be written, the dialog reports
+this. The log contains error, script, and system
 information, but no stored passwords. The path shown in the dialog is authoritative. A later
 successful Core uninstall also removes these logs.
 

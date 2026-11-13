@@ -47,11 +47,13 @@ treats that encoding as binary.
 | `docs/de/images/data-backups.png` | Documentation image | German documentation screenshot showing data backups. |
 | `docs/de/images/delete-credential.png` | Documentation image | German documentation screenshot showing delete credential. |
 | `docs/de/images/first-use-target-user-selection.png` | Documentation image | German documentation screenshot showing first-use target account selection. |
+| `docs/de/images/incompatible-tray-update.png` | Documentation image | German documentation screenshot showing a Core update blocked by an incompatible Tray version. |
 | `docs/de/images/installation-success.png` | Documentation image | German documentation screenshot showing installation success. |
 | `docs/de/images/installer.png` | Documentation image | German documentation screenshot showing installer. |
 | `docs/de/images/installer-process-and-uninstallation.png` | Documentation image | German documentation screenshot showing installer process and uninstallation. |
 | `docs/de/images/overview.svg` | Documentation image | German overview graphic showing a program launched under the target account within the signed-in standard user's Windows session. |
 | `docs/de/images/program-hash-change-approval.png` | Documentation image | German documentation screenshot showing program hash change approval. |
+| `docs/de/images/repair-installation.png` | Documentation image | German documentation screenshot showing repair of the same Core version with a compatible Tray installation. |
 | `docs/de/images/reset-approvals.png` | Documentation image | German documentation screenshot showing reset approvals. |
 | `docs/de/images/runtime-information.png` | Documentation image | German documentation screenshot showing runtime information. |
 | `docs/de/images/security-audit.png` | Documentation image | German documentation screenshot showing security audit. |
@@ -78,11 +80,13 @@ treats that encoding as binary.
 | `docs/en/images/data-backups.png` | Documentation image | English documentation screenshot showing data backups. |
 | `docs/en/images/delete-credential.png` | Documentation image | English documentation screenshot showing delete credential. |
 | `docs/en/images/first-use-target-user-selection.png` | Documentation image | English documentation screenshot showing first-use target account selection. |
+| `docs/en/images/incompatible-tray-update.png` | Documentation image | English documentation screenshot showing a Core update blocked by an incompatible Tray version. |
 | `docs/en/images/installation-success.png` | Documentation image | English documentation screenshot showing installation success. |
 | `docs/en/images/installer.png` | Documentation image | English documentation screenshot showing installer. |
 | `docs/en/images/installer-process-and-uninstallation.png` | Documentation image | English documentation screenshot showing installer process and uninstallation. |
 | `docs/en/images/overview.svg` | Documentation image | English overview graphic showing a program launched under the target account within the signed-in standard user's Windows session. |
 | `docs/en/images/program-hash-change-approval.png` | Documentation image | English documentation screenshot showing program hash change approval. |
+| `docs/en/images/repair-installation.png` | Documentation image | English documentation screenshot showing repair of the same Core version with a compatible Tray installation. |
 | `docs/en/images/reset-approvals.png` | Documentation image | English documentation screenshot showing reset approvals. |
 | `docs/en/images/runtime-information.png` | Documentation image | English documentation screenshot showing runtime information. |
 | `docs/en/images/security-audit.png` | Documentation image | English documentation screenshot showing security audit. |
@@ -104,7 +108,7 @@ treats that encoding as binary.
 | `ExplorerKontextMenue.reg` | Registry script | Adds xucRun commands to Windows Explorer context menus for supported files, folders, folder backgrounds, and drives. |
 | `FILE_REGISTER.md` | Documentation | Catalogs every tracked and unignored repository file and its purpose. |
 | `Install-xucRun.ps1` | PowerShell script | Installs, updates, or uninstalls xucRun on the local Windows computer. |
-| `LICENSE` | Legal text | Contains the Apache License 2.0 terms governing xucRun. |
+| `LICENSE` | Legal text | Contains the Apache License 2.0 governing xucRun. |
 | `New-xucRun-Package.ps1` | PowerShell script | Creates an unsigned xucRun package from compiled public build outputs. |
 | `New-xucRun-Release.ps1` | PowerShell script | Creates unsigned xucRun release assets from a Release build. |
 | `New-xucRun-ReleaseNotes.ps1` | PowerShell script | Creates bilingual release notes with signing, version-designation, and Tray update notices for one xucRun version. |

@@ -16,7 +16,8 @@ Dieses Dokument beschreibt die grafische und die manuelle Installation von xucRu
 
 ## Grafische Installation
 
-xucRun ist ein nicht kommerzielles Open-Source-Projekt. Die bereitgestellte Installer-Datei
+xucRun ist ein Open-Source-Projekt unter der [Apache License 2.0](../../LICENSE).
+Die bereitgestellte Installer-Datei
 besitzt derzeit keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann
 deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie den Installer
 ausschließlich aus dem offiziellen GitHub Release herunter und vergleichen Sie vor dem Start die
@@ -28,21 +29,25 @@ Der empfohlene Installationsweg ist ein Doppelklick auf:
 xucRun-Installer-<Version>-x64.exe
 ```
 
-Bei Version 0.9.1.6 heißt die Datei beispielsweise
-`xucRun-Installer-0.9.1.6-x64.exe`. Der Dateiname wird bei der Paketerzeugung automatisch aus
+Bei Version 0.9.1.7 heißt die Datei beispielsweise
+`xucRun-Installer-0.9.1.7-x64.exe`. Der Dateiname wird bei der Paketerzeugung automatisch aus
 der Produktversion der intern weiterhin als `Installer.exe` gebauten Datei erzeugt.
 
 Die lokale SHA-256-Prüfsumme kann beispielsweise so angezeigt werden:
 
 ```powershell
-Get-FileHash .\xucRun-Installer-0.9.1.6-x64.exe -Algorithm SHA256
+Get-FileHash .\xucRun-Installer-0.9.1.7-x64.exe -Algorithm SHA256
 ```
 
 Der ausgegebene Hash muss vollständig mit dem Eintrag für diese Datei in der zum GitHub Release
 gehörenden `SHA256SUMS.txt` übereinstimmen.
 
 Die Windows-Benutzerkontensteuerung fordert die erforderlichen Administratorrechte an. Danach
-können Programmsprache und Maschinen-PATH ausgewählt werden.
+können Programmsprache und Maschinen-PATH ausgewählt werden. Bei jeder Installation und
+Aktualisierung müssen die Benutzer den Lizenzbedingungen zustimmen und bestätigen, dass sie die
+Sicherheitshinweise verstanden haben. Lizenztext, Hinweise sowie der Statushinweis
+und die Sicherheitshinweise der README sind auf getrennten Laschen auch offline verfügbar. Ein
+Link führt zur README.
 
 Bei einer vorhandenen Installation zeigt die Oberfläche deren registrierte Version und den
 Zeitpunkt der Installation beziehungsweise letzten Aktualisierung an.
@@ -72,8 +77,10 @@ Ausführung prüft er Microsoft-Signatur und Originaldateiname.
 ## Kein portables Programmpaket
 
 Das öffentliche `xucRun-<Version>-x64.zip` enthält die ausführbaren Dateien, Sprachressourcen,
-Installationsskripte und den grafischen Installer. Es ermöglicht damit eine grafische oder
-skriptbasierte Installation, ist aber kein portables Programmpaket.
+Installationsskripte, den grafischen Installer sowie `LICENSE` und `NOTICE`. Es ermöglicht damit
+eine grafische oder skriptbasierte Installation, ist aber kein portables Programmpaket.
+Beide Installationswege legen `LICENSE-xucRun.txt` und `NOTICE-xucRun.txt` unter
+`%ProgramFiles%\xucRun\Licenses` ab. Diese Textdateien sind nicht Authenticode-signiert.
 
 Das bloße Kopieren oder direkte Starten der enthaltenen EXE- und DLL-Dateien stellt keine
 vollständige und unterstützte xucRun-Installation her. Es fehlen dann insbesondere:
@@ -151,6 +158,9 @@ registrierte Version, Dateiversion und Signierer weiterhin exakt zum Core-Paket 
 Versionswechsel muss es über seinen eigenen Windows-Deinstallationseintrag entfernt werden. Nach
 dem xucRun-Update kann aus dem öffentlichen Tray-Repository eine Tray-Version mit exakt derselben
 vierteiligen Version installiert werden.
+Der grafische Installer zeigt diese Kompatibilität bereits vor Beginn der Installation an und
+deaktiviert die Installation bei einem erkannten Konflikt. Das Installationsskript prüft sie
+unmittelbar vor jeder Installation erneut; dies gilt auch beim manuellen Aufruf.
 War der Brokerdienst vor der erneuten Installation aktiv, startet ihn der Installer nach dem
 Dateiaustausch automatisch wieder und stellt damit seinen vorherigen Laufzustand wieder her. Ein
 zuvor gestoppter oder deaktivierter Brokerdienst bleibt gestoppt beziehungsweise deaktiviert.
@@ -177,16 +187,18 @@ vom Broker verwalteten Geheimnisse vor Dienst und Dateien gelöscht werden.
 Zusätzlich entfernt die Deinstallation Dienst, installierte Dateien, Uninstall-Eintrag, einen vom
 Installer hinzugefügten PATH-Eintrag und das verifizierte rechnerlokale
 xucRun-Standardzertifikat samt privatem Schlüssel und Vertrauenseinträgen. Die
-Deinstallation verlangt vor der ersten Änderung eine ausdrückliche Bestätigung. Bei Abbruch bleiben
-Installation und Daten unverändert. Die Erfolgsbestätigung führt die entfernten Komponenten, alle
+normale Deinstallation verlangt vor der ersten Änderung eine ausdrückliche Bestätigung. Bei Abbruch
+bleiben Installation und Daten unverändert. Die Erfolgsbestätigung führt die entfernten Komponenten, alle
 gegebenenfalls vorhandenen gespeicherten Daten sowie Name, Gültigkeitszeitraum und Fingerabdruck
 des entfernten Zertifikats auf.
 Separat erzeugte, individuell benannte Testzertifikate werden nicht entfernt.
+Beim manuellen Aufruf mit `-NoSuccessDialog` entfallen Bestätigung sowie Erfolgs- und Fehlerdialoge.
 
-Ein Deinstallationsfehler wird auch beim Start über **Installierte Apps** in einem sichtbaren
-Dialog angezeigt. Das technische Diagnoseprotokoll liegt unter
-`%ProgramData%\xucRun\InstallerLogs`; der Dialog zeigt den vollständigen konkreten Dateipfad in
-einem kopierbaren Feld und kann den Ordner direkt öffnen. Das Protokoll enthält Fehler-, Skript-
+Ein Fehler der normalen Deinstallation wird auch beim Start über **Installierte Apps** in einem
+sichtbaren Dialog angezeigt. Das technische Diagnoseprotokoll wird nach Möglichkeit unter
+`%ProgramData%\xucRun\InstallerLogs` geschrieben; der Dialog zeigt den konkreten Dateipfad in
+einem kopierbaren Feld und kann den Ordner direkt öffnen. Kann das Protokoll nicht geschrieben
+werden, meldet der Dialog dies. Das Protokoll enthält Fehler-, Skript-
 und Systeminformationen, aber keine gespeicherten Kennwörter. Maßgeblich ist der im Dialog
 angezeigte Pfad. Eine später erfolgreiche Core-Deinstallation entfernt auch diese Protokolle.
 

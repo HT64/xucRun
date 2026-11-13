@@ -17,9 +17,7 @@ Approach: Combines conceptual guidance, security boundaries, examples, and links
 
 > **Status:** xucRun wird aktiv weiterentwickelt und ist auf Windows-10- und Windows-11-Systemen
 > des Autors praktisch erprobt. Weitere Änderungen sind möglich, und Fehler können nicht
-> ausgeschlossen werden. Die Versionskennzeichnung 0.x.x.x dient nicht als Qualitätsbewertung,
-> sondern wird beibehalten, bis mehr praktische Erfahrungen und Rückmeldungen aus anderen
-> Benutzerumgebungen vorliegen.
+> ausgeschlossen werden.
 
 ## Überblick
 
@@ -39,10 +37,9 @@ Eine gesonderte Ersteinrichtung ist nicht erforderlich; xucRun fragt fehlende An
 Entscheidungen bei Bedarf ab und lässt sich so schrittweise einrichten. xucRun-Freigaben müssen
 keinen vollständigen, unveränderlichen Aufruf festschreiben. Je nach gewählter Freigabe können
 Programm, Argumente, Arbeitsverzeichnis und weitere Merkmale eng gebunden oder für spätere Starts
-variabel bleiben. Bei weiteren Starts greift xucRun auf bereits eingerichtete Zielkonten,
-gespeicherte Anmeldedaten und geltende Freigaben zurück und ermöglicht so eine flexible und
-komfortable tägliche Nutzung. Windows-UAC bleibt, soweit erforderlich, ein interaktiver Schritt im
-Startvorgang.
+variabel bleiben. Die verfügbaren Optionen können dabei zunächst komplex wirken. Sind passende
+Freigaben eingerichtet, ist die alltägliche Nutzung von xucRun jedoch einfach und sehr komfortabel.
+Windows-UAC bleibt, soweit erforderlich, ein interaktiver Schritt im Startvorgang.
 
 ### Warum mit einem Standardkonto arbeiten?
 
@@ -79,9 +76,10 @@ sich deshalb an erfahrene Windows-Anwender.
 
 ### Wie xucRun administrative Aktionen aus einem Standardkonto unterstützt
 
-**xucRun erhält diese Trennung aufrecht und behandelt Kontowahl und Erhöhung als getrennte
-Entscheidungen.** Es macht den Standardbenutzer nicht vorübergehend zum Administrator und
-erweitert dessen Rechte nicht.
+**xucRun erhält die Trennung zwischen dem angemeldeten Standardkonto und dem für einen Start
+gewählten Zielkonto aufrecht und behandelt Kontowahl und Rechteerhöhung als getrennte
+Entscheidungen.** Es macht den Standardbenutzer nicht vorübergehend zum Administrator und erweitert
+dessen Rechte nicht.
 
 Mit xucRun kann der angemeldete Standardbenutzer für einen Start ein vom Anmeldekonto abweichendes
 Zielkonto wählen. Das Zielkonto kann auch ein anderes Standardkonto sein. Für administrative
@@ -91,11 +89,15 @@ die Identität und Berechtigungen des gewählten Zielkontos, etwa beim Zugriff a
 Außerdem wird das Benutzerprofil dieses Kontos geladen. Dazu gehören beispielsweise
 benutzerbezogene Profildaten, in Anwendungen gespeicherte Anmeldungen für E-Mail-Konten und
 Registry-Einstellungen. `HKEY_CURRENT_USER` verweist dementsprechend auf den Registry-Hive des
-Zielkontos und nicht auf den des an Windows angemeldeten Benutzers.
+Zielkontos und nicht auf den des an Windows angemeldeten Benutzers. Auch Umgebungsvariablen wie
+`%USERPROFILE%`, `%APPDATA%` und `%LOCALAPPDATA%` sowie bekannte Ordner wie Dokumente und Desktop
+beziehen sich auf das Zielkonto.
 
-xucRun verbindet Windows-Kontowechsel und UAC mit von xucRun verwalteten Anmeldedaten für
-Zielkonten. Diese Anmeldedaten werden geschützt gespeichert und nur verwendet, wenn eine passende
-[xucRun-Freigabe](#freigabedialog-dauer-und-umfang) die angeforderte Ausführung erlaubt. Eine an ein
+xucRun kombiniert den Start unter einem anderen Benutzerkonto mit der optionalen Rechteerhöhung
+über UAC und verwaltet die dafür benötigten Anmeldedaten selbst (siehe
+[Aufgabe und Vertrauensgrenze des Brokers](#aufgabe-und-vertrauensgrenze-des-brokers)). Diese
+Anmeldedaten werden nur verwendet, wenn eine passende
+[xucRun-Freigabe](#freigabedialog-dauer-und-umfang) den angeforderten Start erlaubt. Eine an ein
 bestimmtes Zielkonto gebundene Freigabe kann nur für Starts unter diesem Konto verwendet werden.
 
 Für einen typischen Start genügt der Aufruf des Programms, Befehls oder Skripts mit seinen
@@ -235,6 +237,8 @@ startet die Ersatz-Shell ohne Erhöhung. Das Arbeitsverzeichnis bleibt in allen 
 Die oben gezeigten Aufrufe mit einem Zielprogramm können auch in Skripten und
 Desktop-Verknüpfungen verwendet werden. Kann xucRun das Zielkonto eindeutig automatisch bestimmen,
 muss im Aufruf kein Kontoname stehen.
+
+### Schutz fest konfigurierter Aufrufe
 
 Für die Trennung zwischen Standardbenutzer und privilegiertem Zielkonto gilt der Grundsatz:
 **Der Standardbenutzer darf die privilegierte Aktion anfordern, aber nicht unbemerkt deren
@@ -609,7 +613,7 @@ Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
 | `xucRun.exe /resetapprovals[:<Konto>]` | Freigaben zurücksetzen |
 | `xucRun.exe /system [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell als `LocalSystem` starten |
 | `xucRun.exe /trustedinstaller [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell mit `LocalSystem`-Rechten und der TrustedInstaller-Dienstidentität starten |
-| `xucRun.exe /info` | Version, Copyright, Signierzertifikat, Brokerstatus und aktuelle Konfiguration anzeigen |
+| `xucRun.exe /info` | Version, Copyright, Apache License 2.0, Signierzertifikat, Brokerstatus und aktuelle Konfiguration anzeigen |
 | `xucRun.exe /admin-status` | Daten aller Windows-Benutzer erhöht anzeigen und verwalten |
 | `xucRun.exe /backup` | lokale Datensicherungen verwalten |
 | `xucRun.exe /audit` | Sicherheitsdiagnose ausführen |
@@ -1085,7 +1089,8 @@ stammt. Nachgelagerte Programme und dynamisch nachgeladene Skripte, Module,
 Konfigurationsdateien, Plugins und Programmeingaben gehören ebenfalls nicht automatisch zur
 Bindung. Solche Programme und Dateien sowie die für ihren Austausch relevanten Verzeichnisse
 müssen deshalb weiterhin entsprechend geschützt sein; eine xucRun-Freigabe ersetzt diesen
-[Schutz](#anwendungsbeispiele) nicht. Die übrigen Brokerprüfungen, insbesondere zu Konto,
+[Schutz fest konfigurierter Aufrufe](#schutz-fest-konfigurierter-aufrufe) nicht. Die übrigen
+Brokerprüfungen, insbesondere zu Konto,
 angeforderten Rechten, Sichtbarkeit, Zielpfad und Zielprogrammhash, bleiben wirksam.
 
 Rechte enden nicht mit dem Schließen eines Fensters. Prozesse, die ein über xucRun gestartetes
@@ -1134,7 +1139,7 @@ xucRun ist für erfahrene Privatanwender und Entwickler auf selbst verwalteten R
 persönlichen Entwicklungs- und Testsystemen vorgesehen. Es ist keine Lösung für unbeaufsichtigte
 Rechteerhöhung, zentrale Rechteverwaltung oder Systeme mit erhöhtem Schutzbedarf.
 
-> **Wichtiger Sicherheitshinweis:** xucRun verwendet Windows-APIs zur Speicherung von
+> **Wichtige Sicherheitshinweise:** xucRun verwendet Windows-APIs zur Speicherung von
 > Anmeldedaten. Damit xucRun ein Programm unter einem anderen
 > Benutzerkonto starten kann, muss xucRun die benötigten Anmeldedaten jedoch vorübergehend
 > verarbeiten. Ein vollständiger Schutz vor dem Auslesen oder Missbrauch durch ausreichend
@@ -1149,6 +1154,8 @@ Rechteerhöhung, zentrale Rechteverwaltung oder Systeme mit erhöhtem Schutzbeda
 > Skripte, Verknüpfungen, geplante Aufgaben und Konfigurationsdateien, die xucRun aufrufen oder
 > seine Parameter vorgeben, müssen ebenfalls vertrauenswürdig und vor unbefugten Änderungen
 > geschützt sein.
+> Diese Sicherheitshinweise erheben keinen Anspruch auf Vollständigkeit; nicht alle Risiken und
+> Sicherheitslücken können vorausgesehen oder ausgeschlossen werden.
 > Soweit gesetzlich zulässig, übernehmen der Autor und die Mitwirkenden keine Haftung für Schäden,
 > Datenverluste oder sonstige Folgen, die aus der Nutzung oder fehlerhaften Anwendung von xucRun,
 > aus Softwarefehlern oder Sicherheitslücken sowie durch Malware oder ein kompromittiertes System
@@ -1179,15 +1186,18 @@ unter welchem Konto, mit welchen Argumenten und mit welchen Rechten starten darf
 xucRun trennt diese sicherheitskritische Fähigkeit deshalb in einen privilegierten Brokerdienst.
 Nur der Broker speichert und entschlüsselt die Anmeldedaten, führt die Windows-Anmeldung aus und
 startet das erlaubte Programm. Er prüft den tatsächlichen Aufrufer und bindet die Verwendung der
-Anmeldedaten an den verifizierten Kontext des konkreten Programmstarts. Auch die verschlüsselt
-gespeicherten Anmeldedaten und ihre internen Zuordnungen werden nicht an den normalen Client
-ausgegeben. Sie liegen in einem durch Windows geschützten Speicher des Systemkontos und sind
-zusätzlich an dieses Konto auf dem lokalen Computer gebunden. Ein normaler Benutzerprozess kann
-sie deshalb nicht in seinem eigenen Sicherheitskontext entschlüsseln. Der normale Client erhält
-weder das gespeicherte Kennwort noch eine Berechtigung, mit der er selbst Programme unter dem
-Zielkonto starten könnte. Schlägt eine erforderliche Prüfung fehl, wird kein Programm mit den
-gespeicherten Anmeldedaten gestartet; es gibt keinen Rückfall auf eine clientseitige
-Entschlüsselung.
+Anmeldedaten an den verifizierten Kontext des konkreten Programmstarts. Die Kennwortdaten speichert
+der Broker als generische Anmeldedaten in der Windows-Anmeldeinformationsverwaltung des Kontos
+`LocalSystem`. Sie erscheinen deshalb nicht in der Anmeldeinformationsverwaltung des an Windows
+angemeldeten Benutzers. Vor der Speicherung verschlüsselt xucRun sie zusätzlich mit einem in
+Windows integrierten Schutzmechanismus. Die verwendete Bindung ist so eingerichtet, dass Windows
+die Daten nur im Sicherheitskontext von `LocalSystem` auf demselben Computer entschlüsselt. Auch
+die internen Zuordnungen der Anmeldedaten werden nicht an den normalen Client ausgegeben. Ein
+normaler Benutzerprozess kann die Kennwortdaten deshalb nicht in seinem eigenen Sicherheitskontext
+entschlüsseln. Der normale Client erhält weder das gespeicherte Kennwort noch eine Berechtigung,
+mit der er selbst Programme unter dem Zielkonto starten könnte. Schlägt eine erforderliche Prüfung
+fehl, wird kein Programm mit den gespeicherten Anmeldedaten gestartet; es gibt keinen Rückfall auf
+eine clientseitige Entschlüsselung.
 
 Der dafür unter dem Windows-Systemkonto `LocalSystem` laufende Dienst besitzt jedoch weitreichende
 Rechte und vergrößert damit selbst die sicherheitsrelevante Angriffsfläche. Die zusätzliche
@@ -1273,8 +1283,8 @@ Sicherheitsgrenze, nicht als absolute Sicherheitsgarantie.
 
 ## Installation in Kürze
 
-Der grafische Installer signiert die installierbaren Paketdateien auf dem Zielrechner einheitlich
-mit einem lokalen xucRun-Zertifikat.
+Der grafische Installer signiert die Programmdateien und den Maschineninstaller auf dem
+Zielrechner einheitlich mit einem lokalen xucRun-Zertifikat.
 
 Das öffentliche Binär-ZIP ist ein vollständiges Installationspaket, aber kein portables
 Programmpaket. Die darin enthaltenen EXE- und DLL-Dateien dürfen nicht einzeln in ein beliebiges
@@ -1284,6 +1294,8 @@ grafischen Installer oder den in der
 zusätzlich zu den Programmdateien den geschützten Installationspfad, das lokale
 Signaturzertifikat, den Brokerdienst und dessen Autorisierungsbindung sowie Konfiguration und
 Deinstallation ein.
+Beide Wege installieren außerdem `LICENSE-xucRun.txt` und `NOTICE-xucRun.txt` unter
+`%ProgramFiles%\xucRun\Licenses`; diese Textdateien sind nicht Authenticode-signiert.
 
 ### Lokales Signaturzertifikat
 
@@ -1313,14 +1325,18 @@ Windows kann beim ersten Start einen unbekannten Herausgeber melden.
 
 Der einfachste Installationsweg ist
 `xucRun-Installer-<Version>-x64.exe`, beispielsweise
-`xucRun-Installer-0.9.1.6-x64.exe`. Vor dem Start sollte die Datei nur aus den
+`xucRun-Installer-0.9.1.7-x64.exe`. Vor dem Start sollte die Datei nur aus den
 [offiziellen xucRun-Veröffentlichungen](https://github.com/HT64/xucRun/releases) bezogen, ihre
 SHA-256-Prüfsumme mit der dort veröffentlichten Prüfsumme verglichen und eine vorhandene
 Authenticode-Signatur geprüft werden.
 
 Beim Start fordert die Windows-Benutzerkontensteuerung die erforderlichen Administratorrechte an.
 Danach können Programmsprache und Maschinen-PATH gewählt werden. Der Installer zeigt den
-Gültigkeitszeitraum und Fingerabdruck des lokalen xucRun-Zertifikats an.
+Gültigkeitszeitraum und Fingerabdruck des lokalen xucRun-Zertifikats an. Bei jeder Installation
+und Aktualisierung müssen die Benutzer den Lizenzbedingungen zustimmen und bestätigen, dass sie
+die Sicherheitshinweise verstanden haben. Lizenztext, Hinweise sowie der Statushinweis
+und die Sicherheitshinweise dieser README sind im Installer
+auf getrennten Laschen auch ohne Internet verfügbar. Ein Link führt zu dieser README.
 
 ![Grafischer xucRun-Installer](docs/de/images/installer.png)
 
@@ -1338,6 +1354,16 @@ Versionsbindung. Vor einem Versionswechsel oder der Deinstallation von xucRun mu
 über seinen eigenen Windows-Deinstallationseintrag entfernt werden; anschließend kann die
 Tray-Version mit derselben neuen Versionsnummer installiert werden. Bei einer erneuten
 Installation derselben passenden Version kann Tray installiert bleiben.
+
+Bei der Reparatur derselben Core-Version verwendet der Installer das vorhandene gültige lokale
+xucRun-Zertifikat erneut und bestätigt, dass die passende Tray-Version beibehalten werden kann.
+
+![Reparatur derselben xucRun-Version mit kompatiblem Tray](docs/de/images/repair-installation.png)
+
+Erkennt der Installer dagegen eine Tray-Version, die nicht zum Core-Paket passt, blockiert er die
+Installation und fordert dazu auf, Tray zuerst zu deinstallieren.
+
+![Blockierte Core-Aktualisierung wegen einer inkompatiblen Tray-Version](docs/de/images/incompatible-tray-update.png)
 
 Für eine Aktualisierung wird der versionierte grafische Installer des neueren Pakets gestartet. Er
 verwendet das vorhandene gültige lokale xucRun-Zertifikat erneut. Gespeicherte Anmeldedaten,
@@ -1366,12 +1392,14 @@ $windowsPowerShell = Join-Path `
 > Sicherheitsmerkmale und zugehörigen Metadaten. Außerdem entfernt sie das lokale
 > xucRun-Standardzertifikat samt privatem Schlüssel und Vertrauenseinträgen.
 
-Vor der ersten Änderung verlangt die Deinstallation eine ausdrückliche Bestätigung dieser
-unwiderruflichen Löschung. Bei Abbruch bleiben Installation und Daten unverändert.
+Vor der ersten Änderung verlangt die normale Deinstallation eine ausdrückliche Bestätigung dieser
+unwiderruflichen Löschung. Bei Abbruch bleiben Installation und Daten unverändert. Beim manuellen
+Aufruf mit `-NoSuccessDialog` entfallen Bestätigung sowie Erfolgs- und Fehlerdialoge.
 
-Bei einem Deinstallationsfehler schreibt xucRun ein technisches Diagnoseprotokoll nach
-`%ProgramData%\xucRun\InstallerLogs`; der Fehlerdialog zeigt den konkreten Dateipfad und kann den
-Protokollordner öffnen. Das Protokoll enthält keine gespeicherten Kennwörter.
+Bei einem Fehler der normalen Deinstallation schreibt xucRun nach Möglichkeit ein technisches
+Diagnoseprotokoll nach `%ProgramData%\xucRun\InstallerLogs`; der Fehlerdialog zeigt den konkreten
+Dateipfad und kann den Protokollordner öffnen. Kann das Protokoll nicht geschrieben werden, meldet
+der Dialog dies. Das Protokoll enthält keine gespeicherten Kennwörter.
 
 Beide Installationswege und die Hinweise zur lokalen Testsignierung stehen ausführlich in der
 [Installationsanleitung](docs/de/INSTALLATION.md).
@@ -1538,15 +1566,18 @@ dokumentiert. Über die Jahre verband ich dafür frei verfügbare Tools und Wind
 zunehmend komplexen Skripten. Als diese Kombination meinen Anforderungen nicht mehr vollständig
 gerecht wurde, entwickelte ich eine eigenständige native Lösung in C++.
 
-Nachdem mit der Zeit immer mehr Arbeit in dieses Werkzeug für den eigenen Gebrauch geflossen war,
-erschien es mir irgendwann zu schade, es nur für mich zu behalten. Deshalb entschied ich mich, es
-als öffentliches Open-Source-Projekt auf GitHub zu veröffentlichen. Aus dieser Entscheidung
-entstand jedoch ein erheblicher zusätzlicher Aufwand: Um xucRun für die Nutzung durch andere
-aufzubereiten und seinen Einsatz, seine Funktionsweise sowie seine Grenzen nachvollziehbar zu
-erklären, mussten insbesondere das Sicherheitsmodell, die Funktionen zur Verwaltung
-gespeicherter Anmeldedaten und Programmfreigaben, die Konfigurations- und Diagnosefunktionen, die
-Benutzeroberflächen und ihre Dialoge, die Installer, die Lokalisierung, eine anwendergerechte
-Dokumentation und die automatisierten Tests systematisch weiterentwickelt und ausgearbeitet werden.
+xucRun ist zwar kein Werkzeug, auf das die Welt gewartet hat, für das flexible Ausführen von
+Anwendungen in einem anderen Benutzerkontext – mit oder ohne Rechteerhöhung – jedoch eine Art
+Schweizer Taschenmesser. Nachdem mit der Zeit immer mehr Arbeit in xucRun geflossen war, erschien
+es mir zu schade, das Werkzeug nur für mich zu behalten. Deshalb entschied ich mich, es als
+öffentliches Open-Source-Projekt auf GitHub zu veröffentlichen. Aus dieser Entscheidung ergab sich
+jedoch ein erheblicher zusätzlicher Aufwand: Um xucRun für die
+Nutzung durch andere aufzubereiten und seinen Einsatz, seine Funktionsweise sowie
+seine Grenzen nachvollziehbar zu erklären, mussten insbesondere das Sicherheitsmodell, die
+Funktionen zur Verwaltung gespeicherter Anmeldedaten und Programmfreigaben, die Konfigurations-
+und Diagnosefunktionen, die Benutzeroberflächen und ihre Dialoge, die Installer, die Lokalisierung,
+eine anwendergerechte Dokumentation und die automatisierten Tests systematisch weiterentwickelt
+und ausgearbeitet werden.
 
 Ein wesentlicher Teil dieses Aufwands entstand aus dem Ziel, den zusätzlichen Bedienkomfort nicht
 durch eine pauschale, weitreichende Freigabe zu erkaufen. Stattdessen sollen Anwender das
@@ -1555,11 +1586,6 @@ festlegen und die Wirkung ihrer Auswahl nachvollziehen können. Daraus entwickel
 anderem der unter
 [Freigabedialog, Dauer und Umfang](#freigabedialog-dauer-und-umfang) beschriebene differenzierte
 Freigabedialog.
-
-Die Konfiguration von Freigaben erfordert bei der Einrichtung und bei späteren Änderungen
-Aufmerksamkeit und Entscheidungen, nicht aber bei jedem Aufruf. Sind passende Freigaben
-eingerichtet, lässt sich xucRun einfach und komfortabel nutzen, solange sie gelten und auf den
-jeweiligen Aufruf passen.
 
 KI-gestützte Entwicklungswerkzeuge haben mir dabei geholfen, diesen zusätzlichen Entwicklungsaufwand
 als Einzelentwickler zu bewältigen. Dabei setzte ich sie in zahlreichen interaktiven
@@ -1586,8 +1612,7 @@ dauerhafte Verfügbarkeit, Support oder Weiterentwicklung zuzusagen.
 
 Ich würde mich freuen, wenn xucRun auch für andere Privatanwender so nützlich ist wie für mich.
 Rückmeldungen und Anregungen sind willkommen. Hinweise auf mögliche Probleme helfen mir, xucRun
-weiter zu verbessern. Ich wäre auch offen dafür, xucRun zu einem späteren Zeitpunkt gemeinsam mit
-anderen weiterzuentwickeln und zu pflegen.
+weiter zu verbessern.
 
 ## Projekt unterstützen
 
@@ -1614,7 +1639,8 @@ Artefakte und die erforderliche Entfernungsreihenfolge.
 
 ## Lizenz
 
-xucRun steht unter der Apache License 2.0. Maßgeblich sind `LICENSE` und `NOTICE`.
+xucRun ist Open Source und wird unter der [Apache License 2.0](LICENSE) angeboten.
+[NOTICE](NOTICE) enthält Urheberhinweise.
 
 Externe Codebeiträge werden derzeit nicht angenommen; Einzelheiten stehen in
 [CONTRIBUTING.de.md](CONTRIBUTING.de.md).

@@ -12,7 +12,7 @@ local signing certificate, signs the supplied package, installs xucRun, and
 verifies files, metadata, signatures, broker authorization, registry entries,
 language, system PATH, the absence of staging remnants, and the client
 information command. It repeats the
-installation to test update behavior, verifies that an installed Tray add-on
+installation to test update behavior and legal-file migration, verifies that an installed Tray add-on
 blocks removal, then uninstalls and confirms that product data and the test
 certificate are gone. Best-effort cleanup runs after success or failure.
 
@@ -256,6 +256,18 @@ function Assert-InstalledState {
         Assert-Condition (Test-Path -LiteralPath $requiredPath -PathType Leaf) `
             "Installed file is missing: $requiredPath"
     }
+    foreach ($entry in @(
+        @{ Source = 'LICENSE'; Installed = 'LICENSE-xucRun.txt' },
+        @{ Source = 'NOTICE'; Installed = 'NOTICE-xucRun.txt' }
+    )) {
+        $installedLegal = Join-Path (Join-Path $installDirectory 'Licenses') $entry.Installed
+        Assert-Condition (Test-Path -LiteralPath $installedLegal -PathType Leaf) `
+            "Installed legal file is missing: $installedLegal"
+        Assert-Condition (
+            (Get-FileHash -LiteralPath $installedLegal -Algorithm SHA256).Hash -eq
+            (Get-FileHash -LiteralPath (Join-Path $packageRoot $entry.Source) -Algorithm SHA256).Hash) `
+            "Installed legal file does not match the package: $installedLegal"
+    }
 
     $metadata = @(
         @{ Path = $installedBroker; OriginalFilename = 'xucRunBroker.exe' },
@@ -274,8 +286,8 @@ function Assert-InstalledState {
         Assert-Condition (
             $versionInfo.CompanyName -eq 'HT64' -and
             $versionInfo.LegalCopyright -eq $expectedCopyright -and
-            $versionInfo.FileVersion -eq '0.9.1.6' -and
-            $versionInfo.ProductVersion -eq '0.9.1.6' -and
+            $versionInfo.FileVersion -eq '0.9.1.7' -and
+            $versionInfo.ProductVersion -eq '0.9.1.7' -and
             -not [string]::IsNullOrWhiteSpace($versionInfo.FileDescription) -and
             $versionInfo.OriginalFilename -eq $entry.OriginalFilename) `
             "Installed file metadata is incomplete: $($entry.Path)"
@@ -323,10 +335,10 @@ function Assert-InstalledState {
         [string]$uninstallKey.GetValue('DisplayName', '') -eq 'xucRun') `
         'The uninstall DisplayName is not xucRun.'
     Assert-Condition (
-        [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.1.6') `
-        'The uninstall DisplayVersion is not 0.9.1.6.'
+        [string]$uninstallKey.GetValue('DisplayVersion', '') -eq '0.9.1.7') `
+        'The uninstall DisplayVersion is not 0.9.1.7.'
     Assert-Condition (
-        [int]$uninstallKey.GetValue('InstallationContractVersion', 0) -eq 1) `
+        [int]$uninstallKey.GetValue('InstallationContractVersion', 0) -eq 3) `
         'The installation contract version is missing or invalid.'
     Assert-Condition (
         [string]$uninstallKey.GetValue('InstallDate', '') -match '^\d{8}$') `
@@ -513,11 +525,23 @@ try {
     (Get-Service -Name $serviceName).WaitForStatus(
         [System.ServiceProcess.ServiceControllerStatus]::Running,
         [TimeSpan]::FromSeconds(30))
+    foreach ($name in @('LICENSE', 'NOTICE')) {
+        [IO.File]::WriteAllText((Join-Path $installDirectory "$name-xucRun.txt"), 'legacy')
+        [IO.File]::WriteAllText((Join-Path $installDirectory "$name-xucRun-Tray.txt"), 'tray')
+    }
     & $installer `
         -PackageDirectory $packageRoot `
         -Language en `
         -AddToSystemPath
     Assert-InstalledState
+    foreach ($name in @('LICENSE', 'NOTICE')) {
+        Assert-Condition (-not (Test-Path -LiteralPath (
+            Join-Path $installDirectory "$name-xucRun.txt"))) `
+            "The legacy Core $name was not removed."
+        Assert-Condition ([IO.File]::ReadAllText(
+            (Join-Path $installDirectory "$name-xucRun-Tray.txt")) -eq 'tray') `
+            "Core installation changed the legacy Tray $name."
+    }
     Assert-Condition (
         (Get-Service -Name $serviceName).Status -eq
         [System.ServiceProcess.ServiceControllerStatus]::Running) `

@@ -13,5 +13,7 @@
 #define IDR_APPROVAL_HELPER 206
 #define IDR_LANGUAGE_DE 207
 #define IDR_LANGUAGE_EN 208
+#define IDR_LICENSE 209
+#define IDR_NOTICE 210
 
 #endif

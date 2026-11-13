@@ -3,11 +3,14 @@
 Installs, updates, or uninstalls xucRun on the local Windows computer.
 
 .DESCRIPTION
-In install mode, validates that every required package file has a valid,
+In install mode, validates that every required executable and script has a valid,
 trusted Authenticode signature from one common signer. It then copies the
 package into a staging directory that is created together with an access
 control list for administrators and SYSTEM only, rechecks the staged copies
-against the package signer, and records their SHA-256 hashes. The staged files
+against the package signer, and records their SHA-256 hashes. The unsigned
+LICENSE and NOTICE are staged and hash-checked separately and installed as
+Licenses\LICENSE-xucRun.txt and Licenses\NOTICE-xucRun.txt. Legacy copies in
+the installation root are removed after the new copies are verified. The staged files
 are installed under Program Files, compared with the recorded hashes, and
 verified once more against the package signer before the broker service and
 authorization policy are configured. Finally the script writes the selected
@@ -99,7 +102,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $serviceName = 'xucRunBroker'
-$installationContractVersion = 1
+$installationContractVersion = 3
 $serviceDisplayName = 'xucRun Privileged Broker'
 $programFilesDirectory = [Environment]::GetFolderPath(
     [Environment+SpecialFolder]::ProgramFiles)
@@ -108,6 +111,7 @@ if ([string]::IsNullOrWhiteSpace($programFilesDirectory)) {
 }
 $installDirectory = Join-Path $programFilesDirectory 'xucRun'
 $languageDirectory = Join-Path $installDirectory 'Languages'
+$legalDirectory = Join-Path $installDirectory 'Licenses'
 $installedBroker = Join-Path $installDirectory 'xucRunBroker.exe'
 $installedClient = Join-Path $installDirectory 'xucRun.exe'
 $installedApproval = Join-Path $installDirectory 'xucRunApproval.exe'
@@ -529,7 +533,43 @@ function Get-PackageFiles {
         }
         [pscustomobject]@{
             RelativePath = $relativePath
+            DestinationRelativePath = $relativePath
             Path = (Resolve-Path -LiteralPath $path).ProviderPath
+        }
+    }
+}
+
+function Get-PackageLegalFiles {
+    param([Parameter(Mandatory)][string]$Root)
+
+    foreach ($entry in @(
+        @{ Source = 'LICENSE'; Destination = 'Licenses\LICENSE-xucRun.txt' },
+        @{ Source = 'NOTICE'; Destination = 'Licenses\NOTICE-xucRun.txt' }
+    )) {
+        $path = Join-Path $Root $entry.Source
+        Assert-NotReparsePoint -Path $path
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Package legal file is missing: $path"
+        }
+        [pscustomobject]@{
+            RelativePath = $entry.Source
+            DestinationRelativePath = $entry.Destination
+            Path = (Resolve-Path -LiteralPath $path).ProviderPath
+        }
+    }
+}
+
+function Remove-LegacyLegalFiles {
+    param([Parameter(Mandatory)][string]$Root)
+
+    foreach ($name in @('LICENSE-xucRun.txt', 'NOTICE-xucRun.txt')) {
+        $legacyPath = Join-Path $Root $name
+        Assert-NotReparsePoint -Path $legacyPath
+        if (Test-Path -LiteralPath $legacyPath) {
+            if (-not (Test-Path -LiteralPath $legacyPath -PathType Leaf)) {
+                throw "Legacy legal file is not a file: $legacyPath"
+            }
+            Remove-Item -LiteralPath $legacyPath -Force
         }
     }
 }
@@ -976,6 +1016,7 @@ if ($Uninstall) {
         Assert-WindowsPowerShell
         Assert-Administrator
         Assert-NotReparsePoint -Path $installDirectory
+        Assert-NotReparsePoint -Path $legalDirectory
         $uninstalled = Uninstall-xucRun
         if ($uninstalled -eq $false) {
             return
@@ -1010,6 +1051,7 @@ if ([string]::IsNullOrWhiteSpace($PackageDirectory)) {
 $packageRoot = (Resolve-Path -LiteralPath $PackageDirectory).ProviderPath
 Assert-NotReparsePoint -Path $packageRoot
 $packageFiles = @(Get-PackageFiles -Root $packageRoot)
+$packageLegalFiles = @(Get-PackageLegalFiles -Root $packageRoot)
 $signerSha256 = Assert-ConsistentPackageSignatures -Files $packageFiles
 $packageClient = $packageFiles | Where-Object RelativePath -eq 'xucRun.exe'
 $packageProductVersion =
@@ -1031,7 +1073,7 @@ $stagingDirectory = Join-Path $programDataDirectory (
     'xucRun-Installer-' + [Guid]::NewGuid().ToString('N'))
 New-ProtectedDirectory -Path $stagingDirectory
 try {
-    foreach ($file in $packageFiles) {
+    foreach ($file in @($packageFiles + $packageLegalFiles)) {
         $stagedPath = Join-Path $stagingDirectory $file.RelativePath
         $stagedParent = Split-Path -Parent $stagedPath
         if (-not (Test-Path -LiteralPath $stagedParent)) {
@@ -1047,13 +1089,14 @@ try {
         }
     }
     $stagedFiles = @(Get-PackageFiles -Root $stagingDirectory)
+    $stagedLegalFiles = @(Get-PackageLegalFiles -Root $stagingDirectory)
     $stagedSignerSha256 = Assert-ConsistentPackageSignatures -Files $stagedFiles
     if ([Convert]::ToBase64String($stagedSignerSha256) -ne
         [Convert]::ToBase64String($signerSha256)) {
         throw 'The staged package is not signed by the package signer.'
     }
     $verifiedHashes = @{}
-    foreach ($file in $stagedFiles) {
+    foreach ($file in @($stagedFiles + $stagedLegalFiles)) {
         $verifiedHashes[$file.RelativePath] =
             (Get-FileHash -LiteralPath $file.Path -Algorithm SHA256).Hash
     }
@@ -1076,9 +1119,13 @@ try {
     Set-InstallDirectoryAcl -Path $installDirectory
     New-Item -ItemType Directory -Path $languageDirectory -Force | Out-Null
     Set-InstallDirectoryAcl -Path $languageDirectory
+    Assert-NotReparsePoint -Path $legalDirectory
+    New-Item -ItemType Directory -Path $legalDirectory -Force | Out-Null
+    Set-InstallDirectoryAcl -Path $legalDirectory
 
-    foreach ($file in $stagedFiles) {
-        $destination = Join-Path $installDirectory $file.RelativePath
+    foreach ($file in @($stagedFiles + $stagedLegalFiles)) {
+        $destination = Join-Path $installDirectory $file.DestinationRelativePath
+        Assert-NotReparsePoint -Path $destination
         $verifiedHash = $verifiedHashes[$file.RelativePath]
         if ((Get-FileHash -LiteralPath $file.Path -Algorithm SHA256).Hash -ne
             $verifiedHash) {
@@ -1097,6 +1144,7 @@ try {
         [Convert]::ToBase64String($signerSha256)) {
         throw 'The installed files are not signed by the package signer.'
     }
+    Remove-LegacyLegalFiles -Root $installDirectory
     Set-ConfigurationLanguage -SelectedLanguage $selectedLanguage
 
     $quotedBroker = '"' + $installedBroker + '"'

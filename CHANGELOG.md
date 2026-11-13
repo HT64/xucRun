@@ -5,7 +5,27 @@
 This changelog covers only changes relevant to users of xucRun. Internal development, export,
 and publication processes are not listed.
 
+The `0.x.x.x` version designation is not a quality rating. It will be retained until more
+practical experience and feedback from other user environments are available.
+
 ## [Unreleased]
+
+## [0.9.1.7] - 2026-11-13
+
+### Changed
+
+- The installer places the license and attribution notices in the `Licenses` subdirectory.
+- The graphical installer displays the license text, attribution notices, and status and security
+  notices offline on separate tabs and requires their acknowledgment for every installation or
+  update.
+- Before installation or update, the Core installer checks an existing Tray installation. It
+  blocks installation and asks users to uninstall Tray first if its version is incompatible, its
+  installation is incomplete, or its signer binding cannot be reused.
+
+### Fixed
+
+- The installer's initial language now follows the Windows language preferences of the
+  interactively signed-in user.
 
 ## [0.9.1.6] - 2026-11-10
 
@@ -181,7 +201,8 @@ recommended; installers of earlier versions should no longer be used.
   The graphical installer checks this requirement and offers the official Microsoft download if
   necessary.
 
-[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.6...HEAD
+[Unreleased]: https://github.com/HT64/xucRun/compare/v0.9.1.7...HEAD
+[0.9.1.7]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.7
 [0.9.1.6]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.6
 [0.9.1.5]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.5
 [0.9.1.4]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.4

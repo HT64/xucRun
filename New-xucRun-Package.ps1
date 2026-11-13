@@ -6,8 +6,9 @@ Creates an unsigned xucRun package from compiled public build outputs.
 Validates the selected build's versioned graphical installer and all required
 client, broker, approval, language, installation, and signing files. It then
 cleans only known package outputs from a safe, non-reparse-point destination,
-copies the required files, and writes SHA256SUMS.json for the resulting
-package. The graphical installer is renamed to include its product version.
+copies the required files including LICENSE and NOTICE, and writes
+SHA256SUMS.json for the resulting package. The graphical installer is renamed
+to include its product version.
 
 .PARAMETER Configuration
 Selects the build configuration to package. Allowed values are Debug and
@@ -66,6 +67,8 @@ $sourceFiles += [ordered]@{
     'xucRunBroker.exe' = "xucRunBroker\x64\$Configuration\xucRunBroker.exe"
     'xucRunApproval.exe' = "xucRun\x64\$Configuration\xucRunApproval.exe"
     'Install-xucRun.ps1' = 'Install-xucRun.ps1'
+    'LICENSE' = 'LICENSE'
+    'NOTICE' = 'NOTICE'
     'UserCodeSigning\Sign-xucRunPackage.ps1' =
         'UserCodeSigning\Sign-xucRunPackage.ps1'
     'Languages\xucRun.de-DE.dll' =
