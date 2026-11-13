@@ -34,6 +34,7 @@ treats that encoding as binary.
 | `CONTRIBUTING.de.md` | Documentation | Explains the current contribution policy in German. |
 | `CONTRIBUTING.md` | Documentation | Explains the current contribution policy in English. |
 | `Directory.Build.targets` | MSBuild targets | Ensures changes to shared client resources are embedded in every dependent binary. |
+| `docs/de/BACKGROUND.md` | Documentation | Describes the motivation and personal history behind xucRun in German. |
 | `docs/de/BUILDING.md` | Documentation | Explains how users build xucRun from source in German. |
 | `docs/de/images/administrative-status.png` | Documentation image | German documentation screenshot showing administrative status. |
 | `docs/de/images/approval-dialog.png` | Documentation image | German documentation screenshot showing approval dialog. |
@@ -67,6 +68,10 @@ treats that encoding as binary.
 | `docs/de/images/uninstall-confirmation.png` | Documentation image | German documentation screenshot showing uninstall confirmation. |
 | `docs/de/INSTALLATION.md` | Documentation | Explains how users install xucRun in German. |
 | `docs/de/MANUAL_REMOVAL.md` | Documentation | Explains how users manually remove xucRun in German. |
+| `docs/de/REFERENCE.md` | Documentation | Provides the complete xucRun command and configuration reference in German. |
+| `docs/de/SECURITY_MODEL.md` | Documentation | Explains the xucRun security model, safeguards, trust boundaries, and remaining risks in German. |
+| `docs/de/USAGE.md` | Documentation | Explains everyday xucRun workflows, account selection, stored-data management, and integrations in German. |
+| `docs/en/BACKGROUND.md` | Documentation | Describes the motivation and personal history behind xucRun in English. |
 | `docs/en/BUILDING.md` | Documentation | Explains how users build xucRun from source in English. |
 | `docs/en/images/administrative-status.png` | Documentation image | English documentation screenshot showing administrative status. |
 | `docs/en/images/approval-dialog.png` | Documentation image | English documentation screenshot showing approval dialog. |
@@ -100,6 +105,9 @@ treats that encoding as binary.
 | `docs/en/images/uninstall-confirmation.png` | Documentation image | English documentation screenshot showing uninstall confirmation. |
 | `docs/en/INSTALLATION.md` | Documentation | Explains how users install xucRun in English. |
 | `docs/en/MANUAL_REMOVAL.md` | Documentation | Explains how users manually remove xucRun in English. |
+| `docs/en/REFERENCE.md` | Documentation | Provides the complete xucRun command and configuration reference in English. |
+| `docs/en/SECURITY_MODEL.md` | Documentation | Explains the xucRun security model, safeguards, trust boundaries, and remaining risks in English. |
+| `docs/en/USAGE.md` | Documentation | Explains everyday xucRun workflows, account selection, stored-data management, and integrations in English. |
 | `docs/media/xucRun-elevated-powershell.mp4` | Documentation video | Demonstrates a PowerShell command failing without elevation and succeeding after an elevated xucRun launch. |
 | `docs/media/xucRun-other-user-profile.mp4` | Documentation video | Demonstrates an explicit standard-account launch and interactive target-account selection with `/user:*`. |
 | `docs/media/xucRun-simple-elevation.mp4` | Documentation video | Demonstrates replacing a non-elevated shell and running an individual command under the configured administrator account. |
@@ -113,8 +121,8 @@ treats that encoding as binary.
 | `New-xucRun-Release.ps1` | PowerShell script | Creates unsigned xucRun release assets from a Release build. |
 | `New-xucRun-ReleaseNotes.ps1` | PowerShell script | Creates bilingual release notes with signing, version-designation, and Tray update notices for one xucRun version. |
 | `NOTICE` | Legal notice | Provides attribution and copyright notices for xucRun. |
-| `README.de.md` | Documentation | Introduces xucRun, its security model, use, and documentation in German. |
-| `README.md` | Documentation | Introduces xucRun, its security model, use, and documentation in English. |
+| `README.de.md` | Documentation | Introduces xucRun and guides users through installation, first use, and further documentation in German. |
+| `README.md` | Documentation | Introduces xucRun and guides users through installation, first use, and further documentation in English. |
 | `SECURITY.de.md` | Documentation | Explains supported versions and vulnerability reporting in German. |
 | `SECURITY.md` | Documentation | Explains supported versions and vulnerability reporting in English. |
 | `Test-Installer.ps1` | PowerShell script | Runs the destructive xucRun installer smoke test on a clean Windows runner. |
