@@ -80,12 +80,17 @@ grafische und skriptbasierte Installation, Aktualisierung, Tray-Kompatibilität 
 
 ## Erster Start
 
-Nach der Installation PowerShell oder Eingabeaufforderung öffnen und beispielsweise ein Programm
-starten:
+Nach der Installation PowerShell oder Eingabeaufforderung öffnen. Zum Beispiel:
 
 ```powershell
+xucRun.exe
 xucRun.exe powershell.exe -NoExit
+xucRun.exe regedit.exe
 ```
+
+Ohne Argumente ersetzt xucRun eine unterstützte Eltern-Shell durch denselben Shelltyp im
+automatisch gewählten Benutzer- und Berechtigungskontext. Mit einem Programm startet es dieses
+Programm und übergibt die nachfolgenden Argumente.
 
 Fehlen noch passende Daten, führt xucRun während dieses Aufrufs durch die erforderlichen Schritte:
 
@@ -107,14 +112,7 @@ Kontokennzeichnungen unterscheiden Mitglieder der Administratorengruppe (`[A]`),
 Schalter zur Kontowahl beschreibt
 [xucRun verwenden](docs/de/USAGE.md#kontowahl-und-rechtemodus).
 
-## Häufige Beispiele
-
-Die aktuelle unterstützte Shell durch denselben Shelltyp im automatisch gewählten Benutzer- und
-Berechtigungskontext ersetzen:
-
-```powershell
-xucRun.exe
-```
+## Weitere Beispiele
 
 Gerätemanager aus einer Standardbenutzersitzung öffnen:
 
@@ -122,10 +120,11 @@ Gerätemanager aus einer Standardbenutzersitzung öffnen:
 xucRun.exe "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
 ```
 
-PowerShell mit Argumenten starten:
+Eine Desktop-Verknüpfung für eine erhöhte PowerShell erstellen, indem in ihr Feld **Ziel**
+Folgendes eingetragen wird:
 
-```powershell
-xucRun.exe powershell.exe -NoExit
+```text
+"C:\Program Files\xucRun\xucRun.exe" /user-elevated "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoExit
 ```
 
 Thunderbird mit Profil und Identität des Windows-Kontos `MailUser` ohne angeforderte Erhöhung

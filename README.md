@@ -78,11 +78,17 @@ graphical and script-based installation, updates, Tray compatibility, and uninst
 
 ## First launch
 
-After installation, open PowerShell or Command Prompt and start a program, for example:
+After installation, open PowerShell or Command Prompt. For example:
 
 ```powershell
+xucRun.exe
 xucRun.exe powershell.exe -NoExit
+xucRun.exe regedit.exe
 ```
+
+Without arguments, xucRun replaces a supported parent shell with the same shell in the
+automatically selected account and privilege context. With a program, it starts that program and
+passes along the remaining arguments.
 
 If no suitable data exists yet, xucRun performs the required steps during this invocation:
 
@@ -104,14 +110,7 @@ accounts whose membership could not be determined (`[?]`). The detailed first-us
 account-selection switches are documented in
 [Using xucRun](docs/en/USAGE.md#account-selection-and-privilege-mode).
 
-## Common examples
-
-Replace the current supported shell with the same shell in the automatically selected account and
-privilege context:
-
-```powershell
-xucRun.exe
-```
+## More examples
 
 Open Device Manager from a standard-user session:
 
@@ -119,10 +118,11 @@ Open Device Manager from a standard-user session:
 xucRun.exe "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
 ```
 
-Run PowerShell with arguments:
+Create a desktop shortcut for an elevated PowerShell by entering the following in its
+**Target** field:
 
-```powershell
-xucRun.exe powershell.exe -NoExit
+```text
+"C:\Program Files\xucRun\xucRun.exe" /user-elevated "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoExit
 ```
 
 Run Thunderbird with the profile and identity of the `MailUser` Windows account without requesting
