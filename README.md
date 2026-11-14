@@ -232,9 +232,13 @@ LocalSystem and TrustedInstaller launches, exit codes, backups, configuration, a
 ## Requirements and security information
 
 xucRun supports x64 editions of Windows 10 and Windows 11 and requires the Microsoft Visual C++
-Redistributable v14 for x64. It is intended for trusted, self-managed systems without elevated
-protection requirements. Use dedicated target accounts with only the permissions they need where
-practical.
+Redistributable v14 for x64.
+
+Windows UAC must remain enabled system-wide. Elevated cross-account launches additionally require
+Windows Admin Approval Mode for the selected administrator account, particularly the built-in
+`Administrator` account. The
+[requirements and intended use](docs/en/SECURITY_MODEL.md#requirements-and-intended-use) section
+explains the configuration and its system-wide effects.
 
 > **Important security notices:** xucRun uses Windows APIs to store credentials. For xucRun to
 > start a program under another user account, however, xucRun

@@ -241,9 +241,13 @@ und Diagnose.
 ## Voraussetzungen und Sicherheitshinweise
 
 xucRun unterstützt x64-Ausgaben von Windows 10 und Windows 11 und benötigt Microsoft Visual C++
-Redistributable v14 für x64. Es ist für vertrauenswürdige, selbst verwaltete Systeme ohne erhöhten
-Schutzbedarf vorgesehen. Nach Möglichkeit sollten dedizierte Zielkonten nur die tatsächlich
-benötigten Berechtigungen besitzen.
+Redistributable v14 für x64.
+
+Windows-UAC muss systemweit aktiviert bleiben. Für kontenübergreifende erhöhte Starts muss außerdem
+der Windows-Administratorbestätigungsmodus für das ausgewählte Administratorkonto aktiviert sein.
+Das betrifft insbesondere das integrierte Konto `Administrator`. Der Abschnitt
+[Voraussetzungen und Einsatzbereich](docs/de/SECURITY_MODEL.md#voraussetzungen-und-einsatzbereich)
+erläutert die Konfiguration und ihre systemweiten Auswirkungen.
 
 > **Wichtige Sicherheitshinweise:** xucRun verwendet Windows-APIs zur Speicherung von
 > Anmeldedaten. Damit xucRun ein Programm unter einem anderen

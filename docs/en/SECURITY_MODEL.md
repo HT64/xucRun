@@ -110,8 +110,7 @@ confirmation for the target launch, that confirmation remains interactive.
 
 ### `runas.exe /savecred`
 
-Another built-in Windows option with more similarity to xucRun is
-[`runas.exe`](https://learn.microsoft.com/windows-server/administration/windows-commands/runas).
+Another built-in Windows option with more similarity to xucRun is `runas.exe`.
 It can start individual programs under another account. With `/savecred`, the credentials used for
 this are stored in the signed-in user's Windows Credential Manager after the password is entered
 once.

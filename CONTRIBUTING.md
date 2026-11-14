@@ -11,4 +11,4 @@ Approach: States the accepted reporting channels and links to the project securi
 External pull requests are not accepted at this time.
 
 Bug reports and reproducible test cases are still valuable. Suspected vulnerabilities must never
-be posted publicly; use the confidential process documented in `SECURITY.md`.
+be posted publicly; use the confidential process documented in [SECURITY.md](SECURITY.md).

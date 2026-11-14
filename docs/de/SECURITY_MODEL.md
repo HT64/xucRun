@@ -117,8 +117,7 @@ diese interaktiv.
 
 ### `runas.exe /savecred`
 
-Eine weitere Windows-eigene Möglichkeit, die mehr Ähnlichkeit mit xucRun hat, ist
-[`runas.exe`](https://learn.microsoft.com/windows-server/administration/windows-commands/runas).
+Eine weitere Windows-eigene Möglichkeit, die mehr Ähnlichkeit mit xucRun hat, ist `runas.exe`.
 Damit lassen sich einzelne Programme gezielt unter einem anderen Benutzerkonto starten. Mit dem
 Parameter `/savecred` werden die dafür verwendeten Anmeldedaten nach der ersten Kennworteingabe in
 der Windows-Anmeldeinformationsverwaltung des angemeldeten Benutzers gespeichert. Danach kann
