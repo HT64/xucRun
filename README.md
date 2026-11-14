@@ -69,7 +69,8 @@ and other approaches.
 Windows may report an unknown publisher on first launch because the public installer currently
 has no signature from a publicly trusted publisher. The installer creates or reuses a protected
 machine-local certificate and uses it to establish trust between the installed xucRun components.
-The package is not portable; copying individual executables is not a complete installation.
+xucRun is not portable: Installation sets up a Windows service, protected access permissions, and
+a machine-local certificate that establishes trust between the components.
 
 ![Graphical xucRun installer](docs/en/images/installer.png)
 
@@ -269,7 +270,7 @@ fully usable without an installed or running Tray. Core and Tray versions must m
 ## Project background
 
 The [background and origins](docs/en/BACKGROUND.md) describe why xucRun was created, the practical
-needs that shaped it, and why its security considerations are documented in detail.
+needs that shaped it, and the significance of its security considerations.
 
 ## Support the project
 

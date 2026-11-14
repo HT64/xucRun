@@ -11,6 +11,14 @@ praktische Erfahrungen und Rückmeldungen aus anderen Benutzerumgebungen vorlieg
 
 ## [Unveröffentlicht]
 
+## [0.9.1.8] - 2026-11-14
+
+### Geändert
+
+- Die offiziellen Core- und Tray-Release-Dateien werden jetzt automatisiert aus dem getaggten
+  Quellstand auf GitHub-Actions-Runnern erstellt, geprüft und mit Herkunftsnachweisen sowie einem
+  Bericht der verwendeten Build-Toolchain veröffentlicht.
+
 ## [0.9.1.7] - 2026-11-13
 
 ### Geändert
@@ -217,7 +225,8 @@ mehr verwendet werden.
   Der grafische Installer prüft diese Voraussetzung und bietet bei Bedarf den offiziellen
   Microsoft-Download an.
 
-[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.7...HEAD
+[Unveröffentlicht]: https://github.com/HT64/xucRun/compare/v0.9.1.8...HEAD
+[0.9.1.8]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.8
 [0.9.1.7]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.7
 [0.9.1.6]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.6
 [0.9.1.5]: https://github.com/HT64/xucRun/releases/tag/v0.9.1.5

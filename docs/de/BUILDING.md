@@ -57,6 +57,10 @@ xucRun-0.9.1.7-x64.zip
 SHA256SUMS.txt
 ```
 
+Der taggesteuerte GitHub-Release-Workflow ergänzt `BUILD-TOOLCHAIN.txt`. Diese Datei nennt den
+Quellcommit und die beim Build tatsächlich aufgelösten Versionen von Visual Studio, MSBuild, MSVC
+und Windows SDK. Ihre SHA-256-Prüfsumme wird ebenfalls in `SHA256SUMS.txt` aufgenommen.
+
 Das Release-Skript lehnt signierte Buildausgaben bewusst ab. Öffentliche Releases werden ohne
 kommerzielles Herausgeberzertifikat bereitgestellt; die lokale Signierung erfolgt auf dem
 Zielrechner über den grafischen Installer oder vor der manuellen Installation.

@@ -6,9 +6,7 @@ Approach: Preserves the maintainer narrative separately from the task-focused us
 
 **Language:** English | [Deutsch](../de/BACKGROUND.md)
 
-This document preserves the personal background previously included in the main README without interrupting the installation and first-use path.
-
-## A personal note on the origins of xucRun
+## A personal note
 
 
 The starting point for xucRun was a recurring need over many years across several computers in a
@@ -61,3 +59,5 @@ availability, support, or future development.
 I would be glad if xucRun proved as useful to other individual users as it has been to me.
 Feedback and suggestions are welcome. Reports of potential problems help me improve xucRun
 further.
+
+— HT64

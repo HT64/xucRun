@@ -6,12 +6,12 @@ Creates bilingual release notes for one xucRun version.
 Extracts the requested version section from the English and German changelogs,
 validates that the supplied checksum file contains the matching installer and
 ZIP entries, and writes UTF-8 release notes containing the open-source status,
-signing, pre-installation README, version designation, and Tray update notices, both changelog sections,
-links, and checksums. GitHub renders every line break in a release description
-as a visible line break, so the hard-wrapped lines of each changelog paragraph
-and list item are joined into one line. Headings, list item starts, table
-rows, blank lines, fenced code blocks, and explicit Markdown line breaks are
-kept.
+signing, pre-installation README, version designation, build provenance, and
+Tray update notices, both changelog sections, links, and checksums. GitHub
+renders every line break in a release description as a visible line break, so
+the hard-wrapped lines of each changelog paragraph and list item are joined
+into one line. Headings, list item starts, table rows, blank lines, fenced code
+blocks, and explicit Markdown line breaks are kept.
 
 .PARAMETER Version
 Specifies the release version. This mandatory value must contain exactly four
@@ -161,6 +161,12 @@ xucRun ist ein mächtiges Werkzeug. Seine Nutzung birgt Risiken, die der Anwende
 The 0.x.x.x version designation is not intended as a quality rating. It will be retained until more practical experience and feedback from other user environments are available.
 
 Die Versionskennzeichnung 0.x.x.x dient nicht als Qualitätsbewertung. Sie wird beibehalten, bis mehr praktische Erfahrungen und Rückmeldungen aus anderen Benutzerumgebungen vorliegen.
+
+## Build provenance / Build-Herkunft
+
+The official release files were built and verified automatically from the tagged source on a fresh GitHub Actions runner. `BUILD-TOOLCHAIN.txt` records the build tools actually used. GitHub build provenance attestations are also available for the files.
+
+Die offiziellen Release-Dateien wurden automatisiert aus dem getaggten Quellstand auf einem frischen GitHub-Actions-Runner erstellt und geprüft. `BUILD-TOOLCHAIN.txt` dokumentiert die tatsächlich verwendeten Buildwerkzeuge. Für die Dateien steht außerdem ein GitHub-Herkunftsnachweis zur Verfügung.
 
 ## Update with xucRun Tray / Aktualisierung mit xucRun Tray
 

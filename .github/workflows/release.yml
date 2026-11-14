@@ -78,6 +78,23 @@ jobs:
             throw "Release packaging failed with exit code $LASTEXITCODE."
           }
 
+      - name: Record build toolchain
+        shell: powershell
+        run: |
+          $releaseDirectory =
+            ".\artifacts\Release\$env:XUCRUN_RELEASE_VERSION"
+          $reportPath = Join-Path $releaseDirectory 'BUILD-TOOLCHAIN.txt'
+          .\New-BuildToolchainReport.ps1 `
+            -ProjectPath .\xucRun\XUCRun.vcxproj `
+            -ProductName xucRun `
+            -DestinationPath $reportPath
+          $reportHash =
+            (Get-FileHash -LiteralPath $reportPath -Algorithm SHA256).Hash
+          [IO.File]::AppendAllText(
+            (Join-Path $releaseDirectory 'SHA256SUMS.txt'),
+            "$reportHash  BUILD-TOOLCHAIN.txt`n",
+            [Text.UTF8Encoding]::new($false))
+
       - name: Verify tracked files are unchanged
         shell: powershell
         run: |
@@ -93,6 +110,7 @@ jobs:
           subject-path: |
             artifacts/Release/${{ env.XUCRUN_RELEASE_VERSION }}/*.exe
             artifacts/Release/${{ env.XUCRUN_RELEASE_VERSION }}/*.zip
+            artifacts/Release/${{ env.XUCRUN_RELEASE_VERSION }}/BUILD-TOOLCHAIN.txt
             artifacts/Release/${{ env.XUCRUN_RELEASE_VERSION }}/SHA256SUMS.txt
 
       - name: Upload release preparation artifact
@@ -154,6 +172,7 @@ jobs:
             gh release upload $tag `
               (Join-Path $releaseDirectory $installerName) `
               (Join-Path $releaseDirectory $archiveName) `
+              (Join-Path $releaseDirectory 'BUILD-TOOLCHAIN.txt') `
               (Join-Path $releaseDirectory 'SHA256SUMS.txt') `
               --clobber
             if ($LASTEXITCODE -ne 0) {
@@ -164,6 +183,7 @@ jobs:
           gh release create $tag `
             (Join-Path $releaseDirectory $installerName) `
             (Join-Path $releaseDirectory $archiveName) `
+            (Join-Path $releaseDirectory 'BUILD-TOOLCHAIN.txt') `
             (Join-Path $releaseDirectory 'SHA256SUMS.txt') `
             --draft `
             --verify-tag `

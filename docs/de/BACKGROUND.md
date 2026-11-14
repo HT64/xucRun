@@ -6,9 +6,7 @@ Approach: Bewahrt die Maintainer-Erzählung getrennt von der aufgabenorientierte
 
 **Sprache:** [English](../en/BACKGROUND.md) | Deutsch
 
-Dieses Dokument bewahrt den zuvor in der Haupt-README enthaltenen persönlichen Hintergrund, ohne den Installations- und Ersteinstiegspfad zu unterbrechen.
-
-## Persönliche Notiz zur Entstehung von xucRun
+## Persönliche Notiz
 
 
 Der Ausgangspunkt für xucRun war ein über Jahre wiederkehrender Bedarf auf mehreren Rechnern im
@@ -70,3 +68,5 @@ dauerhafte Verfügbarkeit, Support oder Weiterentwicklung zuzusagen.
 Ich würde mich freuen, wenn xucRun auch für andere Privatanwender so nützlich ist wie für mich.
 Rückmeldungen und Anregungen sind willkommen. Hinweise auf mögliche Probleme helfen mir, xucRun
 weiter zu verbessern.
+
+— HT64

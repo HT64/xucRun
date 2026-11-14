@@ -70,8 +70,9 @@ und anderen Ansätzen.
 Windows kann beim ersten Start einen unbekannten Herausgeber melden, weil der öffentliche
 Installer derzeit keine Signatur eines öffentlich vertrauenswürdigen Herausgebers besitzt. Der
 Installer erzeugt oder verwendet ein geschütztes rechnerlokales Zertifikat und stellt damit das
-Vertrauen zwischen den installierten xucRun-Komponenten her. Das Paket ist nicht portabel; das
-Kopieren einzelner Programmdateien ist keine vollständige Installation.
+Vertrauen zwischen den installierten xucRun-Komponenten her. xucRun ist nicht portabel: Die
+Installation richtet einen Windows-Dienst, geschützte Zugriffsrechte und ein rechnerlokales
+Zertifikat für das Vertrauen zwischen den Komponenten ein.
 
 ![Grafischer xucRun-Installer](docs/de/images/installer.png)
 
@@ -282,8 +283,8 @@ müssen exakt übereinstimmen.
 ## Projekthintergrund
 
 [Hintergrund und Entstehung](docs/de/BACKGROUND.md) beschreiben, warum xucRun entwickelt wurde,
-welche praktischen Anforderungen es geprägt haben und weshalb die Sicherheitsüberlegungen so
-ausführlich dokumentiert sind.
+welche praktischen Anforderungen es geprägt haben und welche Bedeutung die Sicherheitsaspekte
+haben.
 
 ## Projekt unterstützen
 

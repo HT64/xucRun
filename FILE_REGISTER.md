@@ -117,6 +117,7 @@ treats that encoding as binary.
 | `FILE_REGISTER.md` | Documentation | Catalogs every tracked and unignored repository file and its purpose. |
 | `Install-xucRun.ps1` | PowerShell script | Installs, updates, or uninstalls xucRun on the local Windows computer. |
 | `LICENSE` | Legal text | Contains the Apache License 2.0 governing xucRun. |
+| `New-BuildToolchainReport.ps1` | PowerShell script | Records the exact Visual Studio, MSBuild, MSVC, and Windows SDK versions resolved for a build. |
 | `New-xucRun-Package.ps1` | PowerShell script | Creates an unsigned xucRun package from compiled public build outputs. |
 | `New-xucRun-Release.ps1` | PowerShell script | Creates unsigned xucRun release assets from a Release build. |
 | `New-xucRun-ReleaseNotes.ps1` | PowerShell script | Creates bilingual release notes with signing, version-designation, and Tray update notices for one xucRun version. |
