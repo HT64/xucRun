@@ -135,12 +135,13 @@ xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\dev
 xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\diskmgmt.msc"
 ```
 
+xucRun treats the respective `.msc` file as an argument to the explicitly identified `mmc.exe`.
+
 The first invocation opens Device Manager, and the second opens Windows Disk Management. Neither
-invocation contains the administrator account or its password. `/user-elevated` selects a suitable
-Administrators-group account and requests elevated privileges; xucRun treats the respective
-`.msc` file as an argument to the explicitly identified `mmc.exe`. The switch is not required when
-automatic account selection would already unambiguously choose a suitable Administrators-group
-account and start elevated.
+invocation contains the administrator account or its password. The examples use `/user-elevated`
+to explicitly request an elevated launch under a suitable account in the local Administrators
+group. **If automatic account selection already unambiguously results in such a launch, the switch
+can be omitted. This also applies to the examples below.**
 
 Open PowerShell under an account selected for this launch:
 

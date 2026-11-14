@@ -22,12 +22,13 @@ xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\dev
 xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\diskmgmt.msc"
 ```
 
+xucRun behandelt die jeweilige `.msc`-Datei als Argument der ausdrücklich angegebenen `mmc.exe`.
+
 Der erste Aufruf öffnet den Gerätemanager, der zweite die Windows-Datenträgerverwaltung. Beide
-Aufrufe enthalten weder das Administratorkonto noch dessen Kennwort. `/user-elevated` wählt ein
-geeignetes Konto aus der Administratorengruppe und fordert erhöhte Rechte an; xucRun behandelt die
-jeweilige `.msc`-Datei als Argument der ausdrücklich angegebenen `mmc.exe`. Der Schalter ist nicht
-erforderlich, wenn die automatische Kontowahl ohnehin eindeutig ein geeignetes Konto aus der
-Administratorengruppe bestimmt und erhöht startet.
+Aufrufe enthalten weder das Administratorkonto noch dessen Kennwort. Die Beispiele verwenden
+`/user-elevated`, um ausdrücklich einen erhöhten Start unter einem geeigneten Konto aus der lokalen
+Administratorengruppe anzufordern. **Ergibt die automatische Kontowahl bereits eindeutig einen
+solchen Start, kann der Schalter entfallen. Das gilt auch für die nachfolgenden Beispiele.**
 
 Eine administrative PowerShell mit einem Skript starten:
 
