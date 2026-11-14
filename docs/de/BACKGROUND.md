@@ -14,19 +14,17 @@ privaten Umfeld, von denen einige auch von anderen Personen genutzt wurden. Ich 
 grundsätzlich mit Windows-Standardkonten, muss aber dennoch einzelne Programme mit erhöhten
 Rechten oder unter einem anderen Konto starten, ohne dafür in eine separate Sitzung zu wechseln
 oder bei jedem Start dieselben Anmeldedaten einzugeben. Ein zentraler Anwendungsfall ist das Öffnen
-eines Dateimanagers im Kontext eines anderen Kontos aus meiner bestehenden Sitzung heraus; die
-daraus hervorgegangenen
-[Konfigurationsbeispiele für Total Commander](USAGE.md#integration-in-total-commander) sind weiter oben
-dokumentiert. Über die Jahre verband ich dafür frei verfügbare Tools und Windows-eigene Befehle in
-zunehmend komplexen Skripten. Als diese Kombination meinen Anforderungen nicht mehr vollständig
-gerecht wurde, entwickelte ich eine eigenständige native Lösung in C++.
+eines Dateimanagers im Kontext eines anderen Kontos aus meiner bestehenden Sitzung heraus; daraus
+gingen die Konfigurationsbeispiele für Total Commander im
+[Benutzerhandbuch](USAGE.md#integration-in-total-commander) hervor. Über die Jahre verband ich
+dafür frei verfügbare Tools und Windows-eigene Befehle in
+zunehmend komplexen Skripten. Aber alle diese Lösungen waren Kompromisse. So entschied ich mich,
+das Thema von Grund auf anzugehen, und entwickelte eine eigenständige native Lösung in C++.
 
-xucRun ist zwar kein Werkzeug, auf das die Welt gewartet hat, für das flexible Ausführen von
-Anwendungen in einem anderen Benutzerkontext – mit oder ohne Rechteerhöhung – jedoch eine Art
-Schweizer Taschenmesser. Nachdem mit der Zeit immer mehr Arbeit in xucRun geflossen war, erschien
-es mir zu schade, das Werkzeug nur für mich zu behalten. Deshalb entschied ich mich, es als
-öffentliches Open-Source-Projekt auf GitHub zu veröffentlichen. Aus dieser Entscheidung ergab sich
-jedoch ein erheblicher zusätzlicher Aufwand: Um xucRun für die
+Nachdem mit der Zeit immer mehr Arbeit in xucRun geflossen war, erschien es mir zu schade, das
+Werkzeug nur für mich zu behalten. Deshalb entschied ich mich, es als öffentliches
+Open-Source-Projekt auf GitHub zu veröffentlichen. Aus dieser Entscheidung ergab sich jedoch ein
+erheblicher zusätzlicher Aufwand: Um xucRun für die
 Nutzung durch andere aufzubereiten und seinen Einsatz, seine Funktionsweise sowie
 seine Grenzen nachvollziehbar zu erklären, mussten insbesondere das Sicherheitsmodell, die
 Funktionen zur Verwaltung gespeicherter Anmeldedaten und Programmfreigaben, die Konfigurations-
@@ -49,14 +47,16 @@ alltäglichen Tätigkeiten am Rechner selbst und entwickelte xucRun auf Grundlag
 weiter. Erst nachdem xucRun auf diese Weise einen aus meiner Sicht angemessenen Reifegrad erreicht
 hatte, stellte ich die erste öffentliche Version bereit.
 
-Die fachlichen Entscheidungen und die Verantwortung für das Ergebnis liegen weiterhin bei mir.
+xucRun ist zwar kein Werkzeug, auf das die Welt gewartet hat, für das flexible Ausführen von
+Anwendungen in einem anderen Benutzerkontext – mit oder ohne Rechteerhöhung – jedoch eine Art
+Schweizer Taschenmesser.
 
 Die ausführliche Darstellung der Sicherheitsaspekte kann auf den ersten Blick ungewöhnlich
-kritisch wirken, insbesondere im Vergleich mit einer knappen Produktbeschreibung. Sie ist jedoch
-eine bewusste Folge der Veröffentlichung: Gerade weil xucRun gespeicherte Anmeldedaten verarbeitet
-und einen privilegierten Dienst verwendet, sah ich mich mit der Entscheidung zur Veröffentlichung
-in der Verantwortung, die damit verbundenen Sicherheitsfragen, die getroffenen Schutzmaßnahmen
-und die verbleibenden Grenzen so ausführlich und nachvollziehbar wie mir möglich darzustellen.
+kritisch wirken. Sie ist jedoch eine bewusste Folge der Veröffentlichung: Gerade weil xucRun
+gespeicherte Anmeldedaten verarbeitet und einen privilegierten Dienst verwendet, sah ich mich mit
+der Entscheidung zur Veröffentlichung in der Verantwortung, die damit verbundenen
+Sicherheitsfragen, die getroffenen Schutzmaßnahmen und die verbleibenden Grenzen so ausführlich
+und nachvollziehbar wie mir möglich darzustellen.
 Diese Ausführlichkeit ist weder als Aussage zu verstehen, xucRun sei unsicherer als weniger
 ausführlich dokumentierte Werkzeuge, noch als Zusage, alle Risiken erkannt oder ausgeschlossen zu
 haben.

@@ -14,14 +14,13 @@ private setting, some of which were also used by other people. I generally work 
 Windows accounts but still need to start individual programs with elevated privileges or under
 another account without switching to a separate session or entering the same credentials for
 every launch. One central use case is opening a file manager in another account's context from my
-existing session; the resulting [configuration examples for Total Commander](USAGE.md#total-commander-integration)
-are documented above. Over the years, I combined freely available utilities and built-in Windows
-commands in increasingly complex scripts. As this combination no longer fully met my requirements,
-I developed a dedicated native solution in C++.
+existing session; this use case led to the configuration examples for Total Commander in the
+[user guide](USAGE.md#total-commander-integration). Over the years, I combined freely available
+utilities and built-in Windows commands in increasingly complex scripts. But all these solutions
+involved compromises. So I decided to address the matter from the ground up and developed a
+dedicated native solution in C++.
 
-xucRun may not be a tool the world has been waiting for, but for launching applications in a
-different user context—with or without elevation—it is something of a Swiss Army knife. As more
-and more work went into xucRun, it eventually seemed a shame to keep the tool to myself. I
+As more and more work went into xucRun, it eventually seemed a shame to keep the tool to myself. I
 therefore decided to publish it as a public open-source project on GitHub. That decision, however,
 involved substantially more work:
 preparing xucRun for use by others and clearly explaining its intended use, internal workings, and
@@ -41,14 +40,16 @@ developer. I used them in a supporting role across numerous interactive developm
 Throughout this process, I used successive development versions in my everyday computer work and
 continued developing xucRun based on that experience. Only after xucRun had reached what I
 considered an appropriate level of maturity in this way did I make the first public version
-available. The technical decisions and responsibility for the result remain mine.
+available.
 
-The detailed discussion of security considerations may initially appear unusually critical,
-particularly when compared with a brief product description. It is, however, a deliberate
-consequence of publication: precisely because xucRun processes stored credentials and uses a
-privileged service, I considered it my responsibility, when deciding to publish it, to describe
-the associated security considerations, the safeguards implemented, and the remaining
-limitations as thoroughly and clearly as I can. This level of detail should be
+xucRun may not be a tool the world has been waiting for, but for launching applications in a
+different user context—with or without elevation—it is something of a Swiss Army knife.
+
+The detailed discussion of security considerations may initially appear unusually critical. It
+is, however, a deliberate consequence of publication: precisely because xucRun processes stored
+credentials and uses a privileged service, I considered it my responsibility, when deciding to
+publish it, to describe the associated security considerations, the safeguards implemented, and
+the remaining limitations as thoroughly and clearly as I can. This level of detail should be
 understood neither as a claim that xucRun is less secure than tools with less detailed
 documentation nor as an assurance that all risks have been identified or eliminated.
 
