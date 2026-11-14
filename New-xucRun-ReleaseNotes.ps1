@@ -152,9 +152,9 @@ xucRun ist ein Open-Source-Projekt. Die bereitgestellte Installer-Datei ist nich
 
 ## Before installing / Vor der Installation
 
-Please read the [security information](https://github.com/HT64/xucRun/blob/v$Version/README.md#requirements-and-intended-use) before installing xucRun.
+Please read the [security information](https://github.com/HT64/xucRun/blob/main/README.md#requirements-and-security-information) before installing xucRun.
 
-Bitte lesen Sie vor der Installation von xucRun die [Sicherheitshinweise](https://github.com/HT64/xucRun/blob/v$Version/README.de.md#voraussetzungen-und-einsatzbereich).
+Bitte lesen Sie vor der Installation von xucRun die [Sicherheitshinweise](https://github.com/HT64/xucRun/blob/main/README.de.md#voraussetzungen-und-sicherheitshinweise).
 
 ## Version designation / Versionskennzeichnung
 
