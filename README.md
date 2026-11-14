@@ -66,8 +66,8 @@ and other approaches.
 4. Optionally let the installer add xucRun to the machine-wide PATH so that `xucRun.exe` works
    without an absolute path in interactive commands.
 
-Windows may report an unknown publisher on first launch because the public installer currently
-has no signature from a publicly trusted publisher. The installer creates or reuses a protected
+Windows may report an unknown publisher on first launch because the public installer is currently
+not Authenticode-signed. The installer creates or reuses a protected
 machine-local certificate and uses it to establish trust between the installed xucRun components.
 xucRun is not portable: Installation sets up a Windows service, protected access permissions, and
 a machine-local certificate that establishes trust between the components.

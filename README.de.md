@@ -68,8 +68,8 @@ und anderen Ansätzen.
    `xucRun.exe` in interaktiven Befehlen ohne absoluten Pfad funktioniert.
 
 Windows kann beim ersten Start einen unbekannten Herausgeber melden, weil der öffentliche
-Installer derzeit keine Signatur eines öffentlich vertrauenswürdigen Herausgebers besitzt. Der
-Installer erzeugt oder verwendet ein geschütztes rechnerlokales Zertifikat und stellt damit das
+Installer derzeit nicht Authenticode-signiert ist. Der Installer erzeugt oder verwendet ein
+geschütztes rechnerlokales Zertifikat und stellt damit das
 Vertrauen zwischen den installierten xucRun-Komponenten her. xucRun ist nicht portabel: Die
 Installation richtet einen Windows-Dienst, geschützte Zugriffsrechte und ein rechnerlokales
 Zertifikat für das Vertrauen zwischen den Komponenten ein.

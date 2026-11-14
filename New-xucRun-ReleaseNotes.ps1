@@ -6,7 +6,7 @@ Creates bilingual release notes for one xucRun version.
 Extracts the requested version section from the English and German changelogs,
 validates that the supplied checksum file contains the matching installer and
 ZIP entries, and writes UTF-8 release notes containing the open-source status,
-signing, pre-installation README, version designation, build provenance, and
+signing, pre-installation security link, version designation, build provenance, and
 Tray update notices, both changelog sections, links, and checksums. GitHub
 renders every line break in a release description as a visible line break, so
 the hard-wrapped lines of each changelog paragraph and list item are joined
@@ -146,15 +146,15 @@ $germanChanges = ConvertTo-UnwrappedMarkdown -Text (Get-ChangelogVersionBody `
 $notes = @"
 ## Important notice / Wichtiger Hinweis
 
-xucRun is an open-source project. The provided installer is not signed by a publicly trusted publisher. Windows may therefore report an unknown publisher when it is first started. Download the files only from this GitHub Release and compare the SHA-256 checksum before starting the installer.
+xucRun is an open-source project. The provided installer is not Authenticode-signed. Windows may therefore report an unknown publisher when it is first started. Download the files only from this GitHub Release and compare the SHA-256 checksum before starting the installer.
 
-xucRun ist ein Open-Source-Projekt. Die bereitgestellte Installer-Datei besitzt keine Signatur eines öffentlich vertrauenswürdigen Herausgebers. Windows kann deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
+xucRun ist ein Open-Source-Projekt. Die bereitgestellte Installer-Datei ist nicht Authenticode-signiert. Windows kann deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie die Dateien ausschließlich aus diesem GitHub Release herunter und vergleichen Sie vor dem Start die SHA-256-Prüfsumme.
 
 ## Before installing / Vor der Installation
 
-xucRun is a powerful tool. Using it involves risks that the user must understand. Before installing, therefore, be sure to read the [README](https://github.com/HT64/xucRun/blob/v$Version/README.md), in particular its [security notices](https://github.com/HT64/xucRun/blob/v$Version/README.md#requirements-and-intended-use).
+Please read the [security information](https://github.com/HT64/xucRun/blob/v$Version/README.md#requirements-and-intended-use) before installing xucRun.
 
-xucRun ist ein mächtiges Werkzeug. Seine Nutzung birgt Risiken, die der Anwender verstanden haben muss. Lesen Sie deshalb vor der Installation unbedingt die [README](https://github.com/HT64/xucRun/blob/v$Version/README.de.md), insbesondere die [Sicherheitshinweise](https://github.com/HT64/xucRun/blob/v$Version/README.de.md#voraussetzungen-und-einsatzbereich).
+Bitte lesen Sie vor der Installation von xucRun die [Sicherheitshinweise](https://github.com/HT64/xucRun/blob/v$Version/README.de.md#voraussetzungen-und-einsatzbereich).
 
 ## Version designation / Versionskennzeichnung
 
@@ -164,9 +164,9 @@ Die Versionskennzeichnung 0.x.x.x dient nicht als Qualitätsbewertung. Sie wird 
 
 ## Build provenance / Build-Herkunft
 
-The official release files were built and verified automatically from the tagged source on a fresh GitHub Actions runner. `BUILD-TOOLCHAIN.txt` records the build tools actually used. GitHub build provenance attestations are also available for the files.
+The official release files were built and verified automatically from the tagged source on a fresh GitHub Actions runner, independently of the local development system. `BUILD-TOOLCHAIN.txt` records the build tools actually used. GitHub build provenance attestations are also available for the files.
 
-Die offiziellen Release-Dateien wurden automatisiert aus dem getaggten Quellstand auf einem frischen GitHub-Actions-Runner erstellt und geprüft. `BUILD-TOOLCHAIN.txt` dokumentiert die tatsächlich verwendeten Buildwerkzeuge. Für die Dateien steht außerdem ein GitHub-Herkunftsnachweis zur Verfügung.
+Die offiziellen Release-Dateien wurden automatisiert aus dem getaggten Quellstand auf einem frischen GitHub-Actions-Runner und damit unabhängig vom lokalen Entwicklungssystem erstellt und geprüft. `BUILD-TOOLCHAIN.txt` dokumentiert die tatsächlich verwendeten Buildwerkzeuge. Für die Dateien steht außerdem ein GitHub-Herkunftsnachweis zur Verfügung.
 
 ## Update with xucRun Tray / Aktualisierung mit xucRun Tray
 
