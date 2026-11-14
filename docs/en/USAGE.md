@@ -11,17 +11,23 @@ This guide explains everyday xucRun use, account selection, stored data manageme
 ## Usage examples
 
 The following examples show how xucRun combines account selection, optional elevation, stored
-credentials, approvals, and argument forwarding in one invocation.
+credentials, approvals, and argument forwarding in one invocation. Many of the single-line `cmd`
+examples are also well suited as targets for desktop shortcuts when absolute program paths are
+specified.
 
-Open Device Manager with elevated privileges from a standard-user session:
+Open Windows administrative tools with elevated privileges from a standard-user session:
 
 ```cmd
 xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
+xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\diskmgmt.msc"
 ```
 
-The invocation contains neither the administrator account nor its password. `/user-elevated`
-selects a suitable Administrators-group account and requests elevated privileges; xucRun treats
-`devmgmt.msc` as an argument to the explicitly identified `mmc.exe`.
+The first invocation opens Device Manager, and the second opens Windows Disk Management. Neither
+invocation contains the administrator account or its password. `/user-elevated` selects a suitable
+Administrators-group account and requests elevated privileges; xucRun treats the respective
+`.msc` file as an argument to the explicitly identified `mmc.exe`. The switch is not required when
+automatic account selection would already unambiguously choose a suitable Administrators-group
+account and start elevated.
 
 Start an administrative PowerShell script:
 
@@ -29,10 +35,11 @@ Start an administrative PowerShell script:
 xucRun.exe /user-elevated powershell.exe -File "C:\Scripts\AdminScript.ps1"
 ```
 
-The [short PowerShell demonstration video](../media/xucRun-elevated-powershell.mp4) (34 seconds,
-MP4, English user interface) shows an online Windows-feature query failing without elevation and
-succeeding after xucRun starts PowerShell with elevated privileges under the administrator
-account. `whoami` confirms the target account.
+[Open or download the short PowerShell demonstration
+video](../media/xucRun-elevated-powershell.mp4) (34 seconds, MP4, English user interface): It shows
+an online Windows-feature query failing without elevation and succeeding after xucRun starts
+PowerShell with elevated privileges under the administrator account. `whoami` confirms the target
+account.
 
 Stop a Windows service through `cmd.exe`:
 
@@ -56,8 +63,8 @@ Open PowerShell under an account selected for this launch:
 selected account without requesting additional elevation through xucRun. Missing credentials are
 requested before the launch.
 
-Start Thunderbird from PowerShell under the `MailUser` Windows target account with that account's
-user profile and unchanged privilege mode:
+Start [Thunderbird](https://www.thunderbird.net/en-US/) from PowerShell under the `MailUser`
+Windows target account with that account's user profile and unchanged privilege mode:
 
 ```powershell
 & 'C:\Program Files\xucRun\xucRun.exe' `
@@ -85,6 +92,24 @@ xucRun keeps the target program and its arguments separate across the required p
 the invocation does not need a nested command line for a separate account-switching and elevation
 tool chain.
 
+Graphical applications with multiple structured arguments can also be launched directly, for
+example [Total Commander](https://www.ghisler.com/) with predefined panel paths:
+
+```cmd
+xucRun.exe /user-elevated "C:\totalcmd\TOTALCMD64.EXE" /L="C:\Windows\System32\config" /R="C:\Program Files" /P=L
+```
+
+The same application can instead be opened without requested elevation under the `Robert` Windows
+account with that account's `%LOCALAPPDATA%` directory:
+
+```cmd
+xucRun.exe /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\Program Files" /P=L
+```
+
+The carets prevent `cmd.exe` from expanding `%LOCALAPPDATA%` in the calling account's context; the
+variable passes through xucRun unchanged, and the launched application expands it only after the
+account switch. This invocation is intended for interactive entry in `cmd.exe`.
+
 Replace the current PowerShell with a PowerShell running in the automatically selected user and
 privilege context:
 
@@ -97,8 +122,8 @@ existing console after a successful start, and reopens the same shell in the ori
 directory. If the existing PowerShell runs under a standard account and credentials for exactly
 one account that is a member of the local Administrators group are stored in xucRun, xucRun
 selects that account automatically, requests Windows UAC confirmation, and starts the new
-PowerShell elevated under that account back in `D:\Example\Project`. This is the typical primary
-use case for shell replacement.
+PowerShell elevated under that account back in `D:\Example\Project`. This is the primary use case
+for shell replacement.
 
 If xucRun credentials are stored for several such accounts, an account selection dialog appears
 instead. If the current account is itself a member of the local Administrators group, xucRun uses
@@ -137,8 +162,8 @@ supported shell. It should be used in a script only when closing the existing co
 interactively starting a replacement shell is explicitly intended. An invocation without
 parameters is not suitable for a normal desktop shortcut.
 
-Supported parent shells are `cmd.exe`, `powershell.exe`, `pwsh.exe`, and `tcc.exe`. (TCC is the
-console of [Take Command from JP Software](https://jpsoft.com/).)
+Supported parent shells are `cmd.exe`, `powershell.exe`, `pwsh.exe`, and `tcc.exe`. TCC is
+[JP Software's command-line processor](https://jpsoft.com/products/tcc.html).
 
 ### Relaunch a batch file with elevated privileges when needed
 
@@ -227,8 +252,7 @@ directly.
 
 The following examples show excerpts from Total Commander's `usercmd.ini` configuration file.
 They were tested with Total Commander 11.58 (64-bit). They may also work with other versions, but
-their compatibility has not been verified. For general information about Total Commander, visit
-the [official Total Commander website](https://www.ghisler.com/).
+their compatibility has not been verified.
 The examples assume the standard Windows paths and a Total Commander installation under
 `C:\totalcmd`. When copying them manually, replace every executable path with the actual absolute
 path. To protect the configuration against redirection of these programs, a setup tool must
@@ -333,9 +357,12 @@ POPUP "xucRun"
 END_POPUP
 ```
 
-The [demonstration video](../media/xucRun-with-total-commander.mp4) (1:33, MP4, English user
-interface) shows this menu in practical use and illustrates how it can start programs through
-xucRun with and without elevated privileges and under different accounts.
+![Possible xucRun integration using custom commands in Total Commander](../media/xucRun-total-commander-menu.png)
+
+[Open or download the Total Commander integration demonstration
+video](../media/xucRun-with-total-commander.mp4) (1:33, MP4, English user interface): It shows this
+menu in practical use and illustrates how it can start programs through xucRun with and without
+elevated privileges and under different accounts.
 
 Additional accounts can be added in the same way. For each additional account, you can create a
 separate command in `usercmd.ini` and a corresponding `MENUITEM`.
@@ -362,12 +389,12 @@ several match, a selection dialog is shown.
 
 ### First use and account selection
 
-The [short demonstration video about launching under another user
-account](../media/xucRun-other-user-profile.mp4) (38 seconds, MP4, English user interface) first
-shows xucRun opening the Windows environment-variables dialog under an explicitly specified
-standard account. The displayed standard-account name and associated profile paths make the target
-account's user context visible. It then shows interactive target-account selection with `/user:*`;
-`whoami` confirms the selected account.
+[Open or download the demonstration video about launching under another user
+account](../media/xucRun-other-user-profile.mp4) (38 seconds, MP4, English user interface): It
+first shows xucRun opening the Windows environment-variables dialog under an explicitly specified
+standard account. The displayed standard-account name and associated profile paths make the
+target account's user context visible. It then shows interactive target-account selection with
+`/user:*`; `whoami` confirms the selected account.
 
 If `/user` finds no stored xucRun credentials, xucRun automatically opens local target-account
 selection for credential creation instead of aborting. After the selected account's credentials

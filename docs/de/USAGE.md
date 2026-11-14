@@ -11,17 +11,23 @@ Dieses Handbuch beschreibt die alltägliche Verwendung von xucRun, die Kontowahl
 ## Anwendungsbeispiele
 
 Die folgenden Beispiele zeigen, wie xucRun Kontowahl, optionale Rechteerhöhung, gespeicherte
-Anmeldedaten, Freigaben und Argumentübergabe in einem Aufruf verbindet.
+Anmeldedaten, Freigaben und Argumentübergabe in einem Aufruf verbindet. Viele der einzeiligen
+`cmd`-Beispiele eignen sich mit absoluten Programmpfaden auch gut als Ziele von
+Desktopverknüpfungen.
 
-Gerätemanager aus einer Standardbenutzersitzung mit erhöhten Rechten öffnen:
+Windows-Verwaltungswerkzeuge aus einer Standardbenutzersitzung mit erhöhten Rechten öffnen:
 
 ```cmd
 xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
+xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\diskmgmt.msc"
 ```
 
-Der Aufruf enthält weder das Administratorkonto noch dessen Kennwort. `/user-elevated` wählt ein
-geeignetes Konto aus der Administratorengruppe und fordert erhöhte Rechte an; xucRun behandelt
-`devmgmt.msc` als Argument der ausdrücklich angegebenen `mmc.exe`.
+Der erste Aufruf öffnet den Gerätemanager, der zweite die Windows-Datenträgerverwaltung. Beide
+Aufrufe enthalten weder das Administratorkonto noch dessen Kennwort. `/user-elevated` wählt ein
+geeignetes Konto aus der Administratorengruppe und fordert erhöhte Rechte an; xucRun behandelt die
+jeweilige `.msc`-Datei als Argument der ausdrücklich angegebenen `mmc.exe`. Der Schalter ist nicht
+erforderlich, wenn die automatische Kontowahl ohnehin eindeutig ein geeignetes Konto aus der
+Administratorengruppe bestimmt und erhöht startet.
 
 Eine administrative PowerShell mit einem Skript starten:
 
@@ -29,10 +35,11 @@ Eine administrative PowerShell mit einem Skript starten:
 xucRun.exe /user-elevated powershell.exe -File "C:\Scripts\AdminScript.ps1"
 ```
 
-Das [kurze PowerShell-Demonstrationsvideo](../media/xucRun-elevated-powershell.mp4) (34 Sekunden,
-MP4, englische Benutzeroberfläche) zeigt, wie eine Abfrage aktivierter Windows-Komponenten ohne
-Erhöhung fehlschlägt und erfolgreich ausgeführt wird, nachdem xucRun PowerShell mit erhöhten
-Rechten unter dem Administratorkonto gestartet hat. `whoami` bestätigt das Zielkonto.
+[Kurzes PowerShell-Demonstrationsvideo öffnen oder
+herunterladen](../media/xucRun-elevated-powershell.mp4) (34 Sekunden, MP4, englische
+Benutzeroberfläche): Es zeigt, wie eine Abfrage aktivierter Windows-Komponenten ohne Erhöhung
+fehlschlägt und erfolgreich ausgeführt wird, nachdem xucRun PowerShell mit erhöhten Rechten unter
+dem Administratorkonto gestartet hat. `whoami` bestätigt das Zielkonto.
 
 Einen Windows-Dienst über `cmd.exe` stoppen:
 
@@ -56,8 +63,8 @@ PowerShell unter einem für diesen Start ausgewählten Konto öffnen:
 zusätzliche Rechteerhöhung durch xucRun unter dem gewählten Konto. Fehlende Anmeldedaten werden vor
 dem Start angefordert.
 
-Thunderbird aus PowerShell unter dem Windows-Zielkonto `MailUser` mit dessen Benutzerprofil und
-unverändertem Rechtemodus starten:
+[Thunderbird](https://www.thunderbird.net/de/) aus PowerShell unter dem Windows-Zielkonto
+`MailUser` mit dessen Benutzerprofil und unverändertem Rechtemodus starten:
 
 ```powershell
 & 'C:\Program Files\xucRun\xucRun.exe' `
@@ -86,6 +93,25 @@ xucRun hält das Zielprogramm und seine Argumente über die erforderlichen Proze
 getrennt; der Aufruf benötigt keine verschachtelte Befehlszeile für eine Werkzeugkette aus
 Kontowechsel und Rechteerhöhung.
 
+Auch grafische Programme mit mehreren strukturierten Parametern können direkt gestartet werden,
+beispielsweise [Total Commander](https://www.ghisler.com/deutsch.htm) mit vorgegebenen
+Panelpfaden:
+
+```cmd
+xucRun.exe /user-elevated "C:\totalcmd\TOTALCMD64.EXE" /L="C:\Windows\System32\config" /R="C:\Program Files" /P=L
+```
+
+Dasselbe Programm kann stattdessen ohne angeforderte Rechteerhöhung unter dem Windows-Konto
+`Robert` mit dessen `%LOCALAPPDATA%`-Verzeichnis geöffnet werden:
+
+```cmd
+xucRun.exe /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\Program Files" /P=L
+```
+
+Die Carets verhindern, dass `cmd.exe` `%LOCALAPPDATA%` bereits im Kontext des aufrufenden Kontos
+auflöst; xucRun reicht die Variable unverändert durch, und das gestartete Programm wertet sie erst
+nach dem Kontowechsel aus. Dieser Aufruf ist für die interaktive Eingabe in `cmd.exe` bestimmt.
+
 Die aktuelle PowerShell durch eine PowerShell im automatisch gewählten Benutzer- und
 Berechtigungskontext ersetzen:
 
@@ -98,7 +124,7 @@ Konsole nach erfolgreichem Start und öffnet dieselbe Shell im ursprünglichen A
 neu. Läuft die bisherige PowerShell unter einem Standardkonto und ist genau ein
 Konto mit xucRun-Anmeldedaten gespeichert, das Mitglied der lokalen Administratorengruppe ist,
 wählt xucRun dieses Konto automatisch, fordert die Windows-UAC-Bestätigung an und startet die neue
-PowerShell erhöht unter diesem Konto wieder in `D:\Beispiel\Projekt`. Das ist der typische
+PowerShell erhöht unter diesem Konto wieder in `D:\Beispiel\Projekt`. Das ist der
 Hauptanwendungsfall der Shell-Ersetzung.
 
 Sind für mehrere solche Konten xucRun-Anmeldedaten gespeichert, erscheint stattdessen die
@@ -139,8 +165,8 @@ Shell bestimmt. In einem Skript sollte sie nur verwendet werden, wenn das Schlie
 Konsole und der interaktive Start einer Ersatz-Shell ausdrücklich beabsichtigt sind. Für eine
 normale Desktop-Verknüpfung ist der parameterlose Aufruf nicht geeignet.
 
-Unterstützte Eltern-Shells sind `cmd.exe`, `powershell.exe`, `pwsh.exe` und `tcc.exe`. (TCC ist
-die Konsole von [Take Command von JP Software](https://jpsoft.com/).)
+Unterstützte Eltern-Shells sind `cmd.exe`, `powershell.exe`, `pwsh.exe` und `tcc.exe`. TCC ist der
+[Kommandozeilenprozessor von JP Software](https://jpsoft.com/products/tcc.html).
 
 ### Batchdatei bei Bedarf erhöht neu starten
 
@@ -232,9 +258,7 @@ Kontextmenü verwendet, erscheinen sie unmittelbar.
 
 Die folgenden Beispiele zeigen Ausschnitte der Total-Commander-Konfigurationsdatei `usercmd.ini`.
 Sie wurden mit Total Commander 11.58 (64 Bit) getestet. Sie können auch mit anderen Versionen
-funktionieren; deren Kompatibilität wurde jedoch nicht geprüft. Allgemeine Informationen zu Total
-Commander bietet die
-[offizielle Total-Commander-Webseite](https://www.ghisler.com/deutsch.htm).
+funktionieren; deren Kompatibilität wurde jedoch nicht geprüft.
 Die Beispiele nehmen die Windows-Standardpfade und eine Total-Commander-Installation unter
 `C:\totalcmd` an. Bei einer manuellen Übernahme müssen alle ausführbaren Pfade durch die
 tatsächlichen absoluten Pfade ersetzt werden. Soll die Konfiguration gegen eine Umleitung dieser
@@ -347,10 +371,13 @@ POPUP "xucRun"
 END_POPUP
 ```
 
-Das [Demonstrationsvideo](../media/xucRun-with-total-commander.mp4) (1:33 Minuten, MP4,
-englische Benutzeroberfläche) zeigt dieses Menü im praktischen Einsatz und veranschaulicht, wie
-darüber Programme mit xucRun mit und ohne erhöhte Rechte sowie unter verschiedenen Konten
-gestartet werden können.
+![Mögliche xucRun-Integration über benutzerdefinierte Befehle in Total Commander](../media/xucRun-total-commander-menu.png)
+
+[Demonstrationsvideo zur Total-Commander-Integration öffnen oder
+herunterladen](../media/xucRun-with-total-commander.mp4) (1:33 Minuten, MP4, englische
+Benutzeroberfläche): Es zeigt dieses Menü im praktischen Einsatz und veranschaulicht, wie darüber
+Programme mit xucRun mit und ohne erhöhte Rechte sowie unter verschiedenen Konten gestartet werden
+können.
 
 Auf dieselbe Weise können weitere Konten ergänzt werden. Dazu können für jedes weitere Konto ein
 eigener Befehl in `usercmd.ini` sowie ein darauf verweisender `MENUITEM` angelegt werden.
@@ -377,12 +404,12 @@ gewählt; bei mehreren erscheint eine Auswahl.
 
 ### Erste Verwendung und Kontoauswahl
 
-Das [kurze Demonstrationsvideo zum Start unter einem anderen
-Benutzerkonto](../media/xucRun-other-user-profile.mp4) (38 Sekunden, MP4, englische
-Benutzeroberfläche) zeigt zunächst, wie xucRun den Windows-Dialog für Umgebungsvariablen unter einem
-ausdrücklich angegebenen Standardkonto öffnet. Der dort angezeigte Name des Standardkontos und die
-zugehörigen Profilpfade machen den Benutzerkontext des Zielkontos sichtbar. Anschließend zeigt
-`/user:*` die interaktive Zielkontoauswahl; `whoami` bestätigt das ausgewählte Konto.
+[Demonstrationsvideo zum Start unter einem anderen Benutzerkonto öffnen oder
+herunterladen](../media/xucRun-other-user-profile.mp4) (38 Sekunden, MP4, englische
+Benutzeroberfläche): Es zeigt zunächst, wie xucRun den Windows-Dialog für Umgebungsvariablen unter
+einem ausdrücklich angegebenen Standardkonto öffnet. Der dort angezeigte Name des Standardkontos
+und die zugehörigen Profilpfade machen den Benutzerkontext des Zielkontos sichtbar. Anschließend
+zeigt `/user:*` die interaktive Zielkontoauswahl; `whoami` bestätigt das ausgewählte Konto.
 
 Findet `/user` keine gespeicherten xucRun-Anmeldedaten, öffnet xucRun statt eines Abbruchs
 automatisch die lokale Zielkontoauswahl zum Anlegen von Anmeldedaten. Nachdem die Anmeldedaten des

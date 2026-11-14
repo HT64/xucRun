@@ -86,7 +86,13 @@ xucRun.exe
 
 Without arguments, xucRun replaces a supported parent shell with the same shell in the
 automatically selected account and privilege context while preserving the working directory. The
-invocation contains neither a target-account name nor a password.
+primary use case is to switch quickly from the current shell to the same shell type with elevated
+privileges. This works with Command Prompt (`cmd.exe`), Windows PowerShell (`powershell.exe`), and
+PowerShell 7 (`pwsh.exe`). The invocation contains neither a target-account name nor a password.
+
+[Open or download the short demonstration video](docs/media/xucRun-simple-elevation.mp4): It shows
+switching from a non-elevated shell to the same shell type with elevated privileges and the
+elevated launch of an individual program.
 
 Programs and their arguments can be started directly:
 
@@ -117,17 +123,23 @@ account-selection switches are documented in
 ## More examples
 
 The following examples show how xucRun combines account selection, optional elevation, stored
-credentials, approvals, and argument forwarding in one invocation.
+credentials, approvals, and argument forwarding in one invocation. Many of the single-line `cmd`
+examples are also well suited as targets for desktop shortcuts when absolute program paths are
+specified.
 
-Open Device Manager with elevated privileges from a standard-user session:
+Open Windows administrative tools with elevated privileges from a standard-user session:
 
 ```cmd
 xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
+xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\diskmgmt.msc"
 ```
 
-The invocation contains neither the administrator account nor its password. `/user-elevated`
-selects a suitable Administrators-group account and requests elevated privileges; xucRun treats
-`devmgmt.msc` as an argument to the explicitly identified `mmc.exe`.
+The first invocation opens Device Manager, and the second opens Windows Disk Management. Neither
+invocation contains the administrator account or its password. `/user-elevated` selects a suitable
+Administrators-group account and requests elevated privileges; xucRun treats the respective
+`.msc` file as an argument to the explicitly identified `mmc.exe`. The switch is not required when
+automatic account selection would already unambiguously choose a suitable Administrators-group
+account and start elevated.
 
 Open PowerShell under an account selected for this launch:
 
@@ -139,8 +151,8 @@ Open PowerShell under an account selected for this launch:
 selected account without requesting additional elevation through xucRun. Missing credentials are
 requested before the launch.
 
-Run Thunderbird with the profile and identity of the `MailUser` Windows account without requesting
-elevation:
+Run [Thunderbird](https://www.thunderbird.net/en-US/) from PowerShell with the profile and identity
+of the `MailUser` Windows account without requesting elevation:
 
 ```powershell
 & 'C:\Program Files\xucRun\xucRun.exe' `
@@ -162,11 +174,29 @@ xucRun keeps the target program and its arguments separate across the required p
 the invocation does not need a nested command line for a separate account-switching and elevation
 tool chain.
 
+Graphical applications with multiple structured arguments can also be launched directly, for
+example [Total Commander](https://www.ghisler.com/) with predefined panel paths:
+
+```cmd
+xucRun.exe /user-elevated "C:\totalcmd\TOTALCMD64.EXE" /L="C:\Windows\System32\config" /R="C:\Program Files" /P=L
+```
+
+The same application can instead be opened without requested elevation under the `Robert` Windows
+account with that account's `%LOCALAPPDATA%` directory:
+
+```cmd
+xucRun.exe /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\Program Files" /P=L
+```
+
+The carets prevent `cmd.exe` from expanding `%LOCALAPPDATA%` in the calling account's context; the
+variable passes through xucRun unchanged, and the launched application expands it only after the
+account switch. This invocation is intended for interactive entry in `cmd.exe`.
+
 Interactive commands may use executable short names. Scripts, shortcuts, scheduled tasks, and
 other fixed invocations should use the actual absolute paths of both `xucRun.exe` and the target
 program to reduce executable-search redirection risks. More examples, shell replacement, batch
-files, Explorer, desktop shortcuts, and Total Commander are covered in
-[Using xucRun](docs/en/USAGE.md). The
+files, Explorer, desktop shortcuts, and one possible integration using custom commands in Total
+Commander are covered in [Using xucRun](docs/en/USAGE.md). The
 [comparison with other approaches](docs/en/SECURITY_MODEL.md#comparison-with-windows-features-and-other-solutions)
 explains the differences without assuming that one solution is best for every use case.
 

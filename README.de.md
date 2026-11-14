@@ -89,7 +89,14 @@ xucRun.exe
 
 Ohne Argumente ersetzt xucRun eine unterstützte Eltern-Shell durch denselben Shelltyp im
 automatisch gewählten Benutzer- und Berechtigungskontext und behält das Arbeitsverzeichnis bei.
-Der Aufruf enthält weder den Namen eines Zielkontos noch ein Kennwort.
+Der Hauptanwendungsfall ist der schnelle Wechsel von der aktuellen Shell zu demselben Shelltyp mit
+erhöhten Rechten. Das funktioniert mit der Eingabeaufforderung (`cmd.exe`), Windows PowerShell
+(`powershell.exe`) und PowerShell 7 (`pwsh.exe`). Der Aufruf enthält weder den Namen eines
+Zielkontos noch ein Kennwort.
+
+[Kurzes Demonstrationsvideo öffnen oder herunterladen](docs/media/xucRun-simple-elevation.mp4): Es
+zeigt den Wechsel von einer Shell ohne erhöhte Rechte zu demselben Shelltyp mit erhöhten Rechten
+sowie den erhöhten Start eines einzelnen Programms.
 
 Programme und ihre Argumente können direkt gestartet werden:
 
@@ -120,17 +127,23 @@ Schalter zur Kontowahl beschreibt
 ## Weitere Beispiele
 
 Die folgenden Beispiele zeigen, wie xucRun Kontowahl, optionale Rechteerhöhung, gespeicherte
-Anmeldedaten, Freigaben und Argumentübergabe in einem Aufruf verbindet.
+Anmeldedaten, Freigaben und Argumentübergabe in einem Aufruf verbindet. Viele der einzeiligen
+`cmd`-Beispiele eignen sich mit absoluten Programmpfaden auch gut als Ziele von
+Desktopverknüpfungen.
 
-Gerätemanager aus einer Standardbenutzersitzung mit erhöhten Rechten öffnen:
+Windows-Verwaltungswerkzeuge aus einer Standardbenutzersitzung mit erhöhten Rechten öffnen:
 
 ```cmd
 xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
+xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\diskmgmt.msc"
 ```
 
-Der Aufruf enthält weder das Administratorkonto noch dessen Kennwort. `/user-elevated` wählt ein
-geeignetes Konto aus der Administratorengruppe und fordert erhöhte Rechte an; xucRun behandelt
-`devmgmt.msc` als Argument der ausdrücklich angegebenen `mmc.exe`.
+Der erste Aufruf öffnet den Gerätemanager, der zweite die Windows-Datenträgerverwaltung. Beide
+Aufrufe enthalten weder das Administratorkonto noch dessen Kennwort. `/user-elevated` wählt ein
+geeignetes Konto aus der Administratorengruppe und fordert erhöhte Rechte an; xucRun behandelt die
+jeweilige `.msc`-Datei als Argument der ausdrücklich angegebenen `mmc.exe`. Der Schalter ist nicht
+erforderlich, wenn die automatische Kontowahl ohnehin eindeutig ein geeignetes Konto aus der
+Administratorengruppe bestimmt und erhöht startet.
 
 PowerShell unter einem für diesen Start ausgewählten Konto öffnen:
 
@@ -142,8 +155,9 @@ PowerShell unter einem für diesen Start ausgewählten Konto öffnen:
 zusätzliche Rechteerhöhung durch xucRun unter dem gewählten Konto. Fehlende Anmeldedaten werden vor
 dem Start angefordert.
 
-Thunderbird mit Profil und Identität des Windows-Kontos `MailUser` ohne angeforderte Erhöhung
-starten:
+[Thunderbird](https://www.thunderbird.net/de/) aus PowerShell mit Profil und Identität des
+Windows-Kontos `MailUser` ohne
+angeforderte Erhöhung starten:
 
 ```powershell
 & 'C:\Program Files\xucRun\xucRun.exe' `
@@ -165,11 +179,31 @@ xucRun hält das Zielprogramm und seine Argumente über die erforderlichen Proze
 getrennt; der Aufruf benötigt keine verschachtelte Befehlszeile für eine Werkzeugkette aus
 Kontowechsel und Rechteerhöhung.
 
+Auch grafische Programme mit mehreren strukturierten Parametern können direkt gestartet werden,
+beispielsweise [Total Commander](https://www.ghisler.com/deutsch.htm) mit vorgegebenen
+Panelpfaden:
+
+```cmd
+xucRun.exe /user-elevated "C:\totalcmd\TOTALCMD64.EXE" /L="C:\Windows\System32\config" /R="C:\Program Files" /P=L
+```
+
+Dasselbe Programm kann stattdessen ohne angeforderte Rechteerhöhung unter dem Windows-Konto
+`Robert` mit dessen `%LOCALAPPDATA%`-Verzeichnis geöffnet werden:
+
+```cmd
+xucRun.exe /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\Program Files" /P=L
+```
+
+Die Carets verhindern, dass `cmd.exe` `%LOCALAPPDATA%` bereits im Kontext des aufrufenden Kontos
+auflöst; xucRun reicht die Variable unverändert durch, und das gestartete Programm wertet sie erst
+nach dem Kontowechsel aus. Dieser Aufruf ist für die interaktive Eingabe in `cmd.exe` bestimmt.
+
 Interaktive Befehle können Programmnamen verwenden. Skripte, Verknüpfungen, geplante Aufgaben und
 andere fest konfigurierte Aufrufe sollten die tatsächlichen absoluten Pfade von `xucRun.exe` und
 dem Zielprogramm verwenden, um Risiken durch die Windows-Programmsuche zu verringern. Weitere
-Beispiele, Shell-Ersetzung, Batchdateien, Explorer, Desktopverknüpfungen und Total Commander stehen
-unter [xucRun verwenden](docs/de/USAGE.md). Der
+Beispiele, Shell-Ersetzung, Batchdateien, Explorer, Desktopverknüpfungen und eine mögliche
+Integration über benutzerdefinierte Befehle in Total Commander stehen unter
+[xucRun verwenden](docs/de/USAGE.md). Der
 [Vergleich mit anderen Ansätzen](docs/de/SECURITY_MODEL.md#vergleich-mit-windows-funktionen-und-anderen-lösungen)
 erklärt die Unterschiede, ohne vorauszusetzen, dass eine Lösung für jeden Anwendungsfall die beste
 ist.
