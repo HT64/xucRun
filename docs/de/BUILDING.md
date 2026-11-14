@@ -46,14 +46,14 @@ Einzelinstaller, das vollständige ZIP-Archiv und die öffentliche SHA-256-Datei
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\New-xucRun-Release.ps1 `
-  -ExpectedVersion 0.9.1.7
+  -ExpectedVersion 0.9.1.8
 ```
 
-Die Dateien entstehen unter `artifacts\Release\0.9.1.7`:
+Die Dateien entstehen unter `artifacts\Release\0.9.1.8`:
 
 ```text
-xucRun-Installer-0.9.1.7-x64.exe
-xucRun-0.9.1.7-x64.zip
+xucRun-Installer-0.9.1.8-x64.exe
+xucRun-0.9.1.8-x64.zip
 SHA256SUMS.txt
 ```
 

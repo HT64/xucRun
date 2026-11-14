@@ -449,10 +449,10 @@ if (-not $getInstallNoticeFunction) {
 }
 . ([scriptblock]::Create($getInstallNoticeFunction.Extent.Text))
 $script:installedProductState = [pscustomobject]@{
-    Version = '0.9.1.7'
+    Version = '0.9.1.8'
     InstalledAt = [DateTimeOffset]'2026-11-12T22:59:00+01:00'
 }
-$packageProductVersion = '0.9.1.7'
+$packageProductVersion = '0.9.1.8'
 foreach ($language in @('de', 'en')) {
     $script:language = $language
     $repairText = Get-InstallNoticeText
@@ -466,7 +466,7 @@ foreach ($language in @('de', 'en')) {
     if (-not $updateText.Contains($updateTerm)) {
         throw "Installer update notice is incorrect for '$language'."
     }
-    $packageProductVersion = '0.9.1.7'
+    $packageProductVersion = '0.9.1.8'
 }
 $installerResources = [IO.File]::ReadAllText(
     (Join-Path $PSScriptRoot 'xucRunInstaller\Installer.rc'))

@@ -28,14 +28,14 @@ The recommended installation method is to double-click:
 xucRun-Installer-<Version>-x64.exe
 ```
 
-For version 0.9.1.7, for example, the file is named
-`xucRun-Installer-0.9.1.7-x64.exe`. Package creation derives the name automatically from the
+For version 0.9.1.8, for example, the file is named
+`xucRun-Installer-0.9.1.8-x64.exe`. Package creation derives the name automatically from the
 product version of the file that is still built internally as `Installer.exe`.
 
 Display the local SHA-256 checksum, for example, with:
 
 ```powershell
-Get-FileHash .\xucRun-Installer-0.9.1.7-x64.exe -Algorithm SHA256
+Get-FileHash .\xucRun-Installer-0.9.1.8-x64.exe -Algorithm SHA256
 ```
 
 The complete hash must match the entry for that file in `SHA256SUMS.txt` from the corresponding

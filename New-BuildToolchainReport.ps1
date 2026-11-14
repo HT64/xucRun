@@ -32,7 +32,7 @@ Optional path to MSBuild.exe. When omitted, MSBuild.exe is resolved from PATH.
 .\New-BuildToolchainReport.ps1 `
     -ProjectPath .\xucRun\XUCRun.vcxproj `
     -ProductName xucRun `
-    -DestinationPath .\artifacts\Release\0.9.1.7\BUILD-TOOLCHAIN.txt
+    -DestinationPath .\artifacts\Release\0.9.1.8\BUILD-TOOLCHAIN.txt
 
 Evaluates the Release x64 toolchain and writes the release report.
 

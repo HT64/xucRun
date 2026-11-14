@@ -27,9 +27,9 @@ Specifies the mandatory output file. Its parent directory is created when
 necessary, and an existing file is replaced.
 
 .EXAMPLE
-.\New-xucRun-ReleaseNotes.ps1 -Version 0.9.1.7 -ChecksumPath .\artifacts\Release\0.9.1.7\SHA256SUMS.txt -DestinationPath .\artifacts\Release\0.9.1.7\RELEASE_NOTES.md
+.\New-xucRun-ReleaseNotes.ps1 -Version 0.9.1.8 -ChecksumPath .\artifacts\Release\0.9.1.8\SHA256SUMS.txt -DestinationPath .\artifacts\Release\0.9.1.8\RELEASE_NOTES.md
 
-Creates release notes for version 0.9.1.7 from the matching checksums and
+Creates release notes for version 0.9.1.8 from the matching checksums and
 changelog sections.
 
 .NOTES
