@@ -6,7 +6,7 @@ Approach: Bündelt Praxisbeispiele, Kontowahl, Verwaltung gespeicherter Daten un
 
 **Sprache:** [English](../en/USAGE.md) | Deutsch
 
-Dieses Handbuch beschreibt die alltägliche Verwendung von xucRun, die Kontowahl, die Verwaltung gespeicherter Daten und praktische Integrationen. Installation und ersten Start beschreibt zunächst die [Haupt-README](../../README.de.md).
+Dieses Handbuch beschreibt die alltägliche Verwendung von xucRun, die Kontowahl, die Verwaltung gespeicherter Daten und praktische Integrationen. Installation und ersten Start beschreibt zunächst die [README](../../README.de.md).
 
 ## Anwendungsbeispiele
 

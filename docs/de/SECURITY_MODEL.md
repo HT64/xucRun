@@ -6,7 +6,7 @@ Approach: Verbindet Kontentrennung, Freigaben, Broker-Vertrauensgrenzen, Verglei
 
 **Sprache:** [English](../en/SECURITY_MODEL.md) | Deutsch
 
-Dieses Dokument beschreibt Sicherheitsziele, Autorisierungsmodell, Vertrauensgrenzen, Schutzmaßnahmen und verbleibende Risiken von xucRun. Eine kurze Produkteinführung bietet zuerst die [Haupt-README](../../README.de.md).
+Dieses Dokument beschreibt Sicherheitsziele, Autorisierungsmodell, Vertrauensgrenzen, Schutzmaßnahmen und verbleibende Risiken von xucRun. Eine kurze Produkteinführung bietet zuerst die [README](../../README.de.md).
 
 ### Warum mit einem Standardkonto arbeiten?
 

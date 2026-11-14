@@ -6,7 +6,7 @@ Approach: Groups practical examples, account selection, stored-data management, 
 
 **Language:** English | [Deutsch](../de/USAGE.md)
 
-This guide explains everyday xucRun use, account selection, stored data management, and practical integrations. Start with the [main README](../../README.md) for installation and the first launch.
+This guide explains everyday xucRun use, account selection, stored data management, and practical integrations. Start with the [README](../../README.md) for installation and the first launch.
 
 ## Usage examples
 

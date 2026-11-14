@@ -6,7 +6,7 @@ Approach: Connects account separation, approvals, broker trust boundaries, compa
 
 **Language:** English | [Deutsch](../de/SECURITY_MODEL.md)
 
-This document explains the security goals, authorization model, trust boundaries, safeguards, and remaining risks of xucRun. Read the [main README](../../README.md) first for a concise product introduction.
+This document explains the security goals, authorization model, trust boundaries, safeguards, and remaining risks of xucRun. Read the [README](../../README.md) first for a concise product introduction.
 
 ### Why work from a standard account?
 
