@@ -59,8 +59,8 @@ certificate, it also displays “Valid from”, “Valid until”, and the thumb
 The certificate lets Windows and xucRun verify that the installed program components belong to the
 same installation and have not been changed or replaced with differently signed files. The broker
 accepts security-sensitive requests only from matching signed xucRun components. A unique
-self-signed certificate is generated locally because the public package has no publicly trusted
-publisher certificate and must not distribute a reusable private signing key. The standard
+self-signed certificate is created or reused locally during installation and is not included in the
+public package. The standard
 certificate is stored in `LocalMachine\My` with its non-exportable private key and added to
 `LocalMachine\Root` and `LocalMachine\TrustedPublisher` for local trust. It establishes technical
 trust only on this computer and does not prove the origin of the downloaded package.

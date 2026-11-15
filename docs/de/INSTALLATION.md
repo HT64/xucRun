@@ -61,11 +61,11 @@ vorhandenen Zertifikat zeigt sie außerdem „Gültig seit“, „Gültig bis“
 Das Zertifikat ermöglicht Windows und xucRun die Prüfung, dass die installierten Programmteile zu
 derselben Installation gehören und nicht verändert oder durch abweichend signierte Dateien
 ersetzt wurden. Der Broker akzeptiert sicherheitsrelevante Anfragen nur von passend signierten
-xucRun-Komponenten. Das eindeutige selbstsignierte Zertifikat wird lokal erzeugt, weil das
-öffentliche Paket kein öffentlich vertrauenswürdiges Herausgeberzertifikat besitzt und keinen
-wiederverwendbaren privaten Signaturschlüssel verteilen darf. Das Standardzertifikat wird mit
-seinem nicht exportierbaren privaten Schlüssel in `LocalMachine\My` gespeichert und für das lokale
-Vertrauen zusätzlich in `LocalMachine\Root` und `LocalMachine\TrustedPublisher` eingetragen. Es
+xucRun-Komponenten. Das eindeutige selbstsignierte Zertifikat wird während der Installation lokal
+erzeugt oder wiederverwendet und nicht mit dem öffentlichen Paket verteilt. Das Standardzertifikat
+wird mit seinem nicht exportierbaren privaten Schlüssel in `LocalMachine\My` gespeichert
+und für das lokale Vertrauen zusätzlich in `LocalMachine\Root` und `LocalMachine\TrustedPublisher`
+eingetragen. Es
 begründet ausschließlich technisches Vertrauen auf diesem Rechner und belegt nicht die Herkunft
 des heruntergeladenen Pakets.
 
