@@ -41,7 +41,7 @@ use usually requires only the program and its arguments. The
 [security model](docs/en/SECURITY_MODEL.md) explains the account separation, authorization model,
 safeguards, and remaining risks.
 
-## When xucRun is useful
+## When to use xucRun
 
 A user who already works from an account in the local Administrators group and only wants to
 occasionally elevate programs under that same account can normally use Windows UAC or Sudo for
@@ -87,13 +87,13 @@ xucRun.exe
 
 Without arguments, xucRun replaces a supported parent shell with the same shell in the
 automatically selected account and privilege context while preserving the working directory. The
-primary use case is to switch quickly from the current shell to the same shell type with elevated
-privileges. This works with Command Prompt (`cmd.exe`), Windows PowerShell (`powershell.exe`), and
-PowerShell 7 (`pwsh.exe`). The invocation contains neither a target-account name nor a password.
+primary use case is to switch quickly from the current shell to the same shell type running with
+elevated privileges under an administrator account. This works with Command Prompt (`cmd.exe`),
+Windows PowerShell (`powershell.exe`), and PowerShell 7 (`pwsh.exe`). The invocation contains
+neither a target-account name nor a password.
 
-[Open or download the short demonstration video](docs/media/xucRun-simple-elevation.mp4): It shows
-switching from a non-elevated shell to the same shell type with elevated privileges and the
-elevated launch of an individual program.
+The [short demonstration video](docs/media/xucRun-simple-elevation.mp4) shows this shell switch and
+the elevated launch of an individual program.
 
 Programs and their arguments can be started directly:
 

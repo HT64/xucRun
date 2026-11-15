@@ -17,7 +17,7 @@ Dieses Dokument beschreibt die grafische und die manuelle Installation von xucRu
 ## Grafische Installation
 
 xucRun ist ein Open-Source-Projekt unter der [Apache License 2.0](../../LICENSE).
-Die bereitgestellte Installer-Datei ist derzeit nicht Authenticode-signiert. Windows kann
+Die bereitgestellte Installer-Datei ist nicht Authenticode-signiert. Windows kann
 deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie den Installer
 ausschließlich aus dem offiziellen GitHub Release herunter und vergleichen Sie vor dem Start die
 dort veröffentlichte SHA-256-Prüfsumme.

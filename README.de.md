@@ -43,13 +43,13 @@ Schutzmaßnahmen und verbleibende Risiken.
 
 ## Wann xucRun sinnvoll ist
 
-Wer bereits mit einem Mitglied der lokalen Administratorengruppe arbeitet und Programme nur unter
-demselben Konto erhöhen möchte, kann normalerweise Windows-UAC oder Windows Sudo verwenden. xucRun
-ist vor allem sinnvoll, wenn das angemeldete Standardkonto und das Konto für administrative
-Aktionen getrennt bleiben sollen und wiederkehrende Starts ohne erneute Kennworteingabe möglich
-sein sollen, der Anwender aber weiterhin entscheiden möchte, ob nur genau derselbe Aufruf oder
-beispielsweise auch andere Argumente erlaubt sind. Kontowahl und Rechteerhöhung bleiben dabei
-getrennte Entscheidungen.
+Wer bereits ein Konto verwendet, das Mitglied der lokalen Administratorengruppe ist, und Programme
+nur unter demselben Konto erhöhen möchte, kann normalerweise Windows-UAC oder Windows Sudo
+verwenden. xucRun ist vor allem sinnvoll, wenn das angemeldete Standardkonto und das Konto für
+administrative Aktionen getrennt bleiben sollen und wiederkehrende Starts ohne erneute
+Kennworteingabe möglich sein sollen, der Anwender aber weiterhin entscheiden möchte, ob nur genau
+derselbe Aufruf oder beispielsweise auch andere Argumente erlaubt sind. Kontowahl und
+Rechteerhöhung bleiben dabei getrennte Entscheidungen.
 
 xucRun richtet sich an erfahrene Windows-Anwender, die Windows-Konten, UAC und Berechtigungen
 verstehen. Der
@@ -68,7 +68,7 @@ und anderen Ansätzen.
    `xucRun.exe` in interaktiven Befehlen ohne absoluten Pfad funktioniert.
 
 Windows kann beim ersten Start einen unbekannten Herausgeber melden, weil der öffentliche
-Installer derzeit nicht Authenticode-signiert ist. Der Installer erzeugt oder verwendet ein
+Installer nicht Authenticode-signiert ist. Der Installer erzeugt oder verwendet ein
 geschütztes rechnerlokales Zertifikat und stellt damit das
 Vertrauen zwischen den installierten xucRun-Komponenten her. xucRun ist nicht portabel: Die
 Installation richtet einen Windows-Dienst, geschützte Zugriffsrechte und ein rechnerlokales
@@ -90,13 +90,12 @@ xucRun.exe
 
 Ohne Argumente ersetzt xucRun eine unterstützte Eltern-Shell durch denselben Shelltyp im
 automatisch gewählten Benutzer- und Berechtigungskontext und behält das Arbeitsverzeichnis bei.
-Der Hauptanwendungsfall ist der schnelle Wechsel von der aktuellen Shell zu demselben Shelltyp mit
-erhöhten Rechten. Das funktioniert mit der Eingabeaufforderung (`cmd.exe`), Windows PowerShell
-(`powershell.exe`) und PowerShell 7 (`pwsh.exe`). Der Aufruf enthält weder den Namen eines
-Zielkontos noch ein Kennwort.
+Der Hauptanwendungsfall ist der schnelle Wechsel von der aktuellen Shell zu demselben Shelltyp
+unter einem Administratorkonto mit erhöhten Rechten. Das funktioniert mit der Eingabeaufforderung
+(`cmd.exe`), Windows PowerShell (`powershell.exe`) und PowerShell 7 (`pwsh.exe`). Der Aufruf enthält
+weder den Namen eines Zielkontos noch ein Kennwort.
 
-[Kurzes Demonstrationsvideo öffnen oder herunterladen](docs/media/xucRun-simple-elevation.mp4): Es
-zeigt den Wechsel von einer Shell ohne erhöhte Rechte zu demselben Shelltyp mit erhöhten Rechten
+Das [kurze Demonstrationsvideo](docs/media/xucRun-simple-elevation.mp4) zeigt diesen Shellwechsel
 sowie den erhöhten Start eines einzelnen Programms.
 
 Programme und ihre Argumente können direkt gestartet werden:
