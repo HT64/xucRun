@@ -61,8 +61,8 @@ und anderen Ansätzen.
 
 1. Das aktuelle x64-Paket oder den grafischen Installer aus der
    [offiziellen Veröffentlichung](https://github.com/HT64/xucRun/releases/latest) herunterladen.
-2. Den SHA-256-Hash der heruntergeladenen Datei mit `SHA256SUMS.txt` aus der Veröffentlichung
-   vergleichen.
+2. Optional den SHA-256-Hash der heruntergeladenen Datei mit `SHA256SUMS.txt` aus der
+   Veröffentlichung vergleichen. Bei Abweichung die Datei nicht ausführen.
 3. `xucRun-Installer-<Version>-x64.exe` starten und die Windows-UAC-Anforderung bestätigen.
 4. Optional xucRun durch den Installer in den maschinenweiten PATH aufnehmen lassen, damit
    `xucRun.exe` in interaktiven Befehlen ohne absoluten Pfad funktioniert.

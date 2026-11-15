@@ -19,8 +19,8 @@ This document describes graphical and manual installation of xucRun.
 xucRun is an open-source project under the [Apache License 2.0](../../LICENSE).
 The provided installer is not Authenticode-signed. Windows may therefore report an
 unknown publisher when it is first started. Download the installer only from the official GitHub
-Release and compare its
-SHA-256 checksum with the checksum published there before starting it.
+Release. As an optional additional check before starting it, its SHA-256 checksum can be compared
+with the checksum published there.
 
 The recommended installation method is to double-click:
 
@@ -39,7 +39,7 @@ Get-FileHash .\xucRun-Installer-0.9.1.8-x64.exe -Algorithm SHA256
 ```
 
 The complete hash must match the entry for that file in `SHA256SUMS.txt` from the corresponding
-GitHub Release.
+GitHub Release. If the hashes differ, do not run the file.
 
 Windows User Account Control requests the required administrator rights. The application language
 and machine PATH behavior can then be selected. Every installation and update requires users to
