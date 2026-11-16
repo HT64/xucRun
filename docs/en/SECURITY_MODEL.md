@@ -111,11 +111,13 @@ and consent is handled exclusively by Windows UAC.
 
 xucRun program approvals apply to starts using another account's stored credentials. In the
 intended workflow from a non-elevated standard user account, any Windows UAC confirmation required
-for the specific launch remains interactive. For a launch without elevation, UAC can confirm the
-user's presence through the xucRun Approval Helper, after which the target program runs with the
-target account's non-elevated privileges. With elevation, UAC can instead confirm the target
-program start and grant it the requested administrator privileges. The UAC prompt that Windows
-actually displays depends on the specific launch path and Windows configuration.
+for the specific launch remains interactive. For a launch where xucRun does not request additional
+elevation, UAC can confirm the user's presence through the xucRun Approval Helper. The target
+program then uses the target account's existing or Windows-created token. xucRun neither changes
+that token's elevation state nor creates an artificially restricted token; if the token is already
+elevated, the target program is elevated as well. With requested elevation, UAC can instead confirm
+the target program start and grant it the requested administrator privileges. The UAC prompt that
+Windows actually displays depends on the specific launch path and Windows configuration.
 
 A matching reusable approval only avoids another xucRun approval dialog. It does not replace any
 Windows UAC confirmation required for the specific launch. The two decisions serve different
@@ -141,9 +143,9 @@ writable by the caller requires a one-time risk confirmation for every start; if
 also writable, xucRun blocks the elevated start.
 
 [Account selection and privilege mode](USAGE.md#account-selection-and-privilege-mode) describes how
-xucRun determines the account, requests missing credentials, and distinguishes starts with and
-without elevation. Any required UAC confirmation remains interactive regardless of the selected
-path.
+xucRun determines the account, requests missing credentials, and distinguishes starts with
+requested elevation from starts without additional elevation through xucRun. Any required UAC
+confirmation remains interactive regardless of the selected path.
 
 Account selection, management, information, and error dialogs appear on the normal user desktop.
 Password entry, approval decisions, and risk confirmations appear on a separate Windows desktop;

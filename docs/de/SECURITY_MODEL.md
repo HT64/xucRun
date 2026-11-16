@@ -117,12 +117,15 @@ xucRun keinen eigenen Freigabedialog; die Zustimmung erfolgt ausschließlich üb
 
 xucRun-Programmfreigaben gelten für Starts mit den gespeicherten Anmeldedaten eines anderen
 Kontos. Im vorgesehenen Ablauf aus einem nicht erhöhten Standardbenutzerkonto bleibt eine für den
-konkreten Start erforderliche Windows-UAC-Bestätigung interaktiv. Bei einem Start ohne Erhöhung
-kann UAC über den xucRun-Freigabehelper die Anwesenheit des Benutzers bestätigen; das Zielprogramm
-läuft danach mit den nicht erhöhten Rechten des Zielkontos. Bei einer Erhöhung kann UAC
-stattdessen den Start des Zielprogramms bestätigen und ihm die angeforderten Administratorrechte
-erteilen. Welche UAC-Abfrage Windows tatsächlich zeigt, hängt vom konkreten Startpfad und der
-Windows-Konfiguration ab.
+konkreten Start erforderliche Windows-UAC-Bestätigung interaktiv. Bei einem Start, für den xucRun
+keine zusätzliche Erhöhung anfordert, kann UAC über den xucRun-Freigabehelper die Anwesenheit des
+Benutzers bestätigen. Das Zielprogramm verwendet danach den vorhandenen beziehungsweise von
+Windows erzeugten Token des Zielkontos. xucRun ändert dessen Erhöhungszustand nicht und erzeugt
+keinen künstlich eingeschränkten Token; ist der verwendete Token bereits erhöht, läuft auch das
+Zielprogramm erhöht. Bei einer angeforderten Erhöhung kann UAC stattdessen den Start des
+Zielprogramms bestätigen und ihm die angeforderten Administratorrechte erteilen. Welche
+UAC-Abfrage Windows tatsächlich zeigt, hängt vom konkreten Startpfad und der Windows-Konfiguration
+ab.
 
 Eine passende wiederverwendbare Freigabe verhindert nur einen erneuten xucRun-Freigabedialog. Sie
 ersetzt keine für den konkreten Start erforderliche Windows-UAC-Bestätigung. Beide Entscheidungen
@@ -148,9 +151,10 @@ auszuführende, vom Aufrufer beschreibbare Startdatei ist bei jedem Start eine e
 Risikobestätigung erforderlich; ist auch ihr Verzeichnis beschreibbar, blockiert xucRun den
 erhöhten Start.
 
-Der Abschnitt [Kontowahl und Rechtemodus](USAGE.md#kontowahl-und-rechtemodus) beschreibt, wie xucRun das
-Konto bestimmt, fehlende Anmeldedaten abfragt und Starts mit und ohne Erhöhung unterscheidet.
-Eine erforderliche UAC-Bestätigung bleibt unabhängig vom gewählten Ablauf interaktiv.
+Der Abschnitt [Kontowahl und Rechtemodus](USAGE.md#kontowahl-und-rechtemodus) beschreibt, wie
+xucRun das Konto bestimmt, fehlende Anmeldedaten abfragt und Starts mit angeforderter Erhöhung von
+Starts ohne zusätzliche Erhöhung durch xucRun unterscheidet. Eine erforderliche UAC-Bestätigung
+bleibt unabhängig vom gewählten Ablauf interaktiv.
 
 Kontoauswahl sowie Verwaltungs-, Informations- und Fehlerdialoge erscheinen auf dem normalen
 Benutzerdesktop. Kennworteingaben, Freigabeentscheidungen und Risikobestätigungen zeigt xucRun auf

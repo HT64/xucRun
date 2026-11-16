@@ -266,13 +266,16 @@ beschreibt
 
 ### Start unter einem stärker eingeschränkten Konto
 
-Neben dem Start mit erhöhten Rechten unterstützt xucRun auch den umgekehrten Anwendungsfall: Ein
-Programm kann ohne Erhöhung unter einem anderen, bewusst stärker eingeschränkten Konto ausgeführt
-werden. Beispielsweise kann ein Programm unter einem dafür eingerichteten Standardkonto mit
-engeren Datei- oder Netzwerkberechtigungen und einer eigenen benutzerbezogenen Konfiguration
-ausgeführt werden. Der Prozess verwendet dabei den Windows-Zugriffstoken und das Benutzerprofil
-des Zielkontos. Dies ist keine Sandbox: Die wirksamen Einschränkungen ergeben sich aus den
-Gruppenmitgliedschaften, Berechtigungen und sonstigen Windows-Einstellungen des Zielkontos.
+Neben dem Start mit erhöhten Rechten kann xucRun ein Programm unter einem anderen Konto starten,
+ohne dafür eine zusätzliche Rechteerhöhung anzufordern. Eine tatsächliche Einschränkung entsteht
+nur, wenn der dabei verwendete Windows-Zugriffstoken weniger Rechte besitzt. Dafür kann
+beispielsweise ein eigenes Standardkonto mit engeren Datei- oder Netzwerkberechtigungen und einer
+separaten benutzerbezogenen Konfiguration verwendet werden. Beim aktuellen Konto übernimmt xucRun
+dagegen den bereits vorhandenen Zugriffstoken; ist dieser erhöht, läuft auch das gestartete
+Programm erhöht. xucRun erzeugt keinen künstlich eingeschränkten Token. Der Prozess verwendet den
+Zugriffstoken und das Benutzerprofil des Zielkontos. Dies ist keine Sandbox: Die wirksamen
+Einschränkungen ergeben sich aus dem verwendeten Token, den Gruppenmitgliedschaften,
+Berechtigungen und sonstigen Windows-Einstellungen des Zielkontos.
 
 ## Integrationen
 

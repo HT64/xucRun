@@ -262,12 +262,15 @@ Stored credentials do not replace a required Windows UAC confirmation. For detai
 
 ### Launching under a more restricted account
 
-In addition to starting programs with elevated privileges, xucRun also supports the opposite use
-case: a program can run without elevation under another, deliberately more restricted account.
-For example, an application can run under a dedicated standard account with narrower file or
-network permissions and its own user-specific configuration. The process uses the Windows access
-token and user profile of the target account. This is not a sandbox: the effective restrictions
-depend on the target account's group memberships, permissions, and other Windows settings.
+In addition to starting programs with elevated privileges, xucRun can start a program under
+another account without requesting additional elevation. An actual restriction exists only when
+the Windows access token used for the launch has fewer privileges. For example, a dedicated
+standard account can provide narrower file or network permissions and a separate user-specific
+configuration. For the current account, xucRun instead reuses the existing access token; if that
+token is elevated, the launched program is elevated as well. xucRun does not create an
+artificially restricted token. The process uses the target account's access token and user
+profile. This is not a sandbox: the effective restrictions depend on the token used, the target
+account's group memberships, permissions, and other Windows settings.
 
 ## Integrations
 
