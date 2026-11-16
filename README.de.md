@@ -14,9 +14,8 @@ Approach: Zeigt den kürzesten sicheren Weg zum ersten Start und verweist danach
 
 **xucRun** steht für **eXecute Under User Context**.
 
-> **Status:** xucRun wird aktiv weiterentwickelt und ist auf Windows-10- und Windows-11-Systemen
-> des Autors praktisch erprobt. Weitere Änderungen sind möglich, und Fehler können nicht
-> ausgeschlossen werden.
+**Projektstatus:** xucRun wird aktiv gepflegt.<br>
+**Lizenz:** [Apache License 2.0](LICENSE)
 
 ## Überblick
 
@@ -249,29 +248,14 @@ Das betrifft insbesondere das integrierte Konto `Administrator`. Der Abschnitt
 [Voraussetzungen und Einsatzbereich](docs/de/SECURITY_MODEL.md#voraussetzungen-und-einsatzbereich)
 erläutert die Konfiguration und ihre systemweiten Auswirkungen.
 
-> **Wichtige Sicherheitshinweise:** xucRun verwendet Windows-APIs zur Speicherung von
-> Anmeldedaten. Damit xucRun ein Programm unter einem anderen
-> Benutzerkonto starten kann, muss xucRun die benötigten Anmeldedaten jedoch vorübergehend
-> verarbeiten. Ein vollständiger Schutz vor dem Auslesen oder Missbrauch durch ausreichend
-> privilegierte Malware oder ein bereits kompromittiertes System kann deshalb nicht gewährleistet
-> werden. Der Quellcode von xucRun wird
-> offengelegt, damit die eingesetzten technischen Maßnahmen, ihre Grenzen und die
-> verbleibenden Risiken nachvollzogen und unabhängig geprüft werden können. Die Offenlegung allein
-> ist jedoch weder eine Sicherheitsgarantie noch der Nachweis einer unabhängigen
-> Sicherheitsprüfung. Der Einsatz erfolgt eigenverantwortlich. xucRun sollte nur auf
-> vertrauenswürdigen, selbst verwalteten Systemen ohne erhöhten Schutzbedarf sowie
-> möglichst mit dedizierten, minimal berechtigten Zielkonten eingesetzt werden.
-> Skripte, Verknüpfungen, geplante Aufgaben und Konfigurationsdateien, die xucRun aufrufen oder
-> seine Parameter vorgeben, müssen ebenfalls vertrauenswürdig und vor unbefugten Änderungen
-> geschützt sein.
-> Diese Sicherheitshinweise erheben keinen Anspruch auf Vollständigkeit; nicht alle Risiken und
-> Sicherheitslücken können vorausgesehen oder ausgeschlossen werden.
-> Soweit gesetzlich zulässig, übernehmen der Autor und die Mitwirkenden keine Haftung für Schäden,
-> Datenverluste oder sonstige Folgen, die aus der Nutzung oder fehlerhaften Anwendung von xucRun,
-> aus Softwarefehlern oder Sicherheitslücken sowie durch Malware oder ein kompromittiertes System
-> entstehen. Dies umfasst insbesondere den Verlust, die Offenlegung oder den Missbrauch von
-> Anmeldedaten. Maßgeblich sind der Gewährleistungsausschluss und die Haftungsbegrenzung der
-> [Apache License 2.0](LICENSE).
+> **Schutzgrenzen:** xucRun verwendet Windows-APIs zur Speicherung von Anmeldedaten und muss sie
+> vorübergehend verarbeiten, um ein Programm unter einem anderen Benutzerkonto zu starten. Gegen
+> das Auslesen oder den Missbrauch durch ausreichend privilegierte Malware oder ein bereits
+> kompromittiertes System kann es keinen vollständigen Schutz bieten. xucRun sollte deshalb nur
+> auf vertrauenswürdigen, selbst verwalteten Systemen ohne erhöhten Schutzbedarf sowie möglichst
+> mit dedizierten, minimal berechtigten Zielkonten eingesetzt werden. Skripte, Verknüpfungen,
+> geplante Aufgaben und Konfigurationsdateien, die xucRun aufrufen oder seine Parameter vorgeben,
+> müssen ebenfalls vertrauenswürdig und vor unbefugten Änderungen geschützt sein.
 
 Das vollständige [Sicherheitsmodell](docs/de/SECURITY_MODEL.md) dokumentiert die
 Broker-Vertrauensgrenze, Prüfung von Aufrufer und Startziel, Schutz der Anmeldedaten, Risiken fest

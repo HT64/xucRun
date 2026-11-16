@@ -178,14 +178,10 @@ $texts = @{
         LicenseReadFailed = 'Lizenztext oder Hinweise konnten nicht gelesen werden. Die Installation kann nicht fortgesetzt werden.'
         KnownFolderFailed = 'Die Windows-Ordner für Programme oder Programmdaten konnten nicht ermittelt werden. Die Installation kann nicht fortgesetzt werden.'
         StatusNotice = @'
-xucRun wird aktiv weiterentwickelt. Die Dokumentation beschreibt das vorgesehene Verhalten. Der aktuelle Stand kann Fehler enthalten, davon abweichen und sich ändern.
+xucRun wird aktiv gepflegt.
 '@
         SecurityNotice = @'
-xucRun verwendet Windows-APIs zur Speicherung von Anmeldedaten. Damit xucRun ein Programm unter einem anderen Benutzerkonto starten kann, muss xucRun die benötigten Anmeldedaten jedoch vorübergehend verarbeiten. Ein vollständiger Schutz vor dem Auslesen oder Missbrauch durch ausreichend privilegierte Malware oder ein bereits kompromittiertes System kann deshalb nicht gewährleistet werden. Der Quellcode von xucRun wird offengelegt, damit die eingesetzten technischen Maßnahmen, ihre Grenzen und die verbleibenden Risiken nachvollzogen und unabhängig geprüft werden können. Die Offenlegung allein ist jedoch weder eine Sicherheitsgarantie noch der Nachweis einer unabhängigen Sicherheitsprüfung. Der Einsatz erfolgt eigenverantwortlich. xucRun sollte nur auf vertrauenswürdigen, selbst verwalteten Systemen ohne erhöhten Schutzbedarf sowie möglichst mit dedizierten, minimal berechtigten Zielkonten eingesetzt werden. Skripte, Verknüpfungen, geplante Aufgaben und Konfigurationsdateien, die xucRun aufrufen oder seine Parameter vorgeben, müssen ebenfalls vertrauenswürdig und vor unbefugten Änderungen geschützt sein.
-
-Diese Sicherheitshinweise erheben keinen Anspruch auf Vollständigkeit; nicht alle Risiken und Sicherheitslücken können vorausgesehen oder ausgeschlossen werden.
-
-Soweit gesetzlich zulässig, übernehmen der Autor und die Mitwirkenden keine Haftung für Schäden, Datenverluste oder sonstige Folgen, die aus der Nutzung oder fehlerhaften Anwendung von xucRun, aus Softwarefehlern oder Sicherheitslücken sowie durch Malware oder ein kompromittiertes System entstehen. Dies umfasst insbesondere den Verlust, die Offenlegung oder den Missbrauch von Anmeldedaten. Maßgeblich sind der Gewährleistungsausschluss und die Haftungsbegrenzung der Apache License 2.0.
+xucRun verwendet Windows-APIs zur Speicherung von Anmeldedaten und muss sie vorübergehend verarbeiten, um ein Programm unter einem anderen Benutzerkonto zu starten. Gegen das Auslesen oder den Missbrauch durch ausreichend privilegierte Malware oder ein bereits kompromittiertes System kann es keinen vollständigen Schutz bieten. xucRun sollte deshalb nur auf vertrauenswürdigen, selbst verwalteten Systemen ohne erhöhten Schutzbedarf sowie möglichst mit dedizierten, minimal berechtigten Zielkonten eingesetzt werden. Skripte, Verknüpfungen, geplante Aufgaben und Konfigurationsdateien, die xucRun aufrufen oder seine Parameter vorgeben, müssen ebenfalls vertrauenswürdig und vor unbefugten Änderungen geschützt sein.
 '@
         LanguageLabel = 'Programmsprache'
         LanguageHint = 'Später über xucRun.ini, mit dem optionalen Tray-Add-on auch direkt in dessen Menü änderbar.'
@@ -292,14 +288,10 @@ Bei der normalen Deinstallation führt die Erfolgsbestätigung entfernte Kompone
         LicenseReadFailed = 'The license text or notices could not be read. Installation cannot continue.'
         KnownFolderFailed = 'The Windows program or program data directory could not be determined. Installation cannot continue.'
         StatusNotice = @'
-xucRun is actively maintained and continues to evolve. The documentation describes the intended behavior. The current state may contain defects, differ from that behavior, and change.
+xucRun is actively maintained.
 '@
         SecurityNotice = @'
-xucRun uses Windows APIs to store credentials. For xucRun to start a program under another user account, however, xucRun must process the required credentials temporarily. Complete protection against reading or misuse by sufficiently privileged malware or an already compromised system therefore cannot be guaranteed. The source code of xucRun is disclosed so that the implemented technical measures, their limits, and the remaining risks can be understood and independently reviewed. Disclosure alone is neither a security guarantee nor evidence of an independent security audit. Use xucRun at your own responsibility. xucRun should be used only on trusted, self-managed systems that do not require an elevated level of protection, and preferably with dedicated target accounts having the minimum required privileges. Scripts, shortcuts, scheduled tasks, and configuration files that invoke xucRun or provide its parameters must also be trusted and protected against unauthorized modification.
-
-These security notices are not exhaustive; not all risks and security vulnerabilities can be anticipated or ruled out.
-
-To the extent permitted by law, the author and contributors accept no liability for damage, data loss, or other consequences arising from the use or incorrect use of xucRun, software defects or security vulnerabilities, malware, or a compromised system. This includes, in particular, the loss, disclosure, or misuse of credentials. The disclaimer of warranty and limitation of liability in the Apache License 2.0 govern.
+xucRun uses Windows APIs to store credentials and must process them temporarily to start a program under another user account. It cannot provide complete protection against reading or misuse by sufficiently privileged malware or an already compromised system. xucRun should therefore be used only on trusted, self-managed systems that do not require an elevated level of protection, and preferably with dedicated target accounts having the minimum required privileges. Scripts, shortcuts, scheduled tasks, and configuration files that invoke xucRun or provide its parameters must also be trusted and protected against unauthorized modification.
 '@
         LanguageLabel = 'Application language'
         LanguageHint = 'Can be changed later in xucRun.ini or, with the optional Tray add-on, directly in its menu.'

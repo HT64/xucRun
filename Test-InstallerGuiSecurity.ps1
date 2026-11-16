@@ -351,27 +351,27 @@ if (-not $getTextFunction) {
 foreach ($language in @('de', 'en')) {
     $readmeName = if ($language -eq 'de') { 'README.de.md' } else { 'README.md' }
     $heading = if ($language -eq 'de') {
-        'Wichtige Sicherheitshinweise'
+        'Schutzgrenzen'
     } else {
-        'Important security notices'
+        'Protection boundaries'
     }
-    $completenessPattern = if ($language -eq 'de') {
-        'Diese Sicherheitshinweise erheben keinen Anspruch auf Vollst\u00e4ndigkeit; nicht alle Risiken und Sicherheitsl\u00fccken k\u00f6nnen vorausgesehen oder ausgeschlossen werden\.'
+    $expectedStatus = if ($language -eq 'de') {
+        'xucRun wird aktiv gepflegt.'
     } else {
-        'These security notices are not exhaustive; not all risks and security vulnerabilities can be anticipated or ruled out\.'
+        'xucRun is actively maintained.'
     }
-    if ($texts[$language].SecurityNotice -notmatch $completenessPattern) {
-        throw "Core installer completeness notice is missing for '$language'."
+    if ($texts[$language].StatusNotice.Trim() -cne $expectedStatus) {
+        throw "Core installer project status is incorrect for '$language'."
     }
-    $statusPattern = if ($language -eq 'de') {
-        'Die Dokumentation beschreibt das vorgesehene Verhalten\. Der aktuelle Stand kann Fehler enthalten, davon abweichen und sich \u00e4ndern\.'
+    $statusLabel = if ($language -eq 'de') {
+        'Projektstatus'
     } else {
-        'The documentation describes the intended behavior\. The current state may contain defects, differ from that behavior, and change\.'
-    }
-    if ($texts[$language].StatusNotice -notmatch $statusPattern) {
-        throw "Core installer documentation status notice is missing for '$language'."
+        'Project status'
     }
     $readme = [IO.File]::ReadAllText((Join-Path $PSScriptRoot $readmeName))
+    if (-not $readme.Contains("**${statusLabel}:** $expectedStatus")) {
+        throw "$readmeName differs from the installer project status."
+    }
     $changelogName = if ($language -eq 'de') {
         'CHANGELOG.de.md'
     } else {

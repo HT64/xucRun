@@ -427,26 +427,14 @@ xucRun is intended for experienced private users and developers on self-managed 
 personal development and test systems. It is not a solution for unattended elevation, centralized
 privilege management, or systems requiring an elevated level of protection.
 
-> **Important security notices:** xucRun uses Windows APIs to store credentials. For xucRun to
-> start a program under another user account, however, xucRun
-> must process the required credentials temporarily. Complete protection against reading or
-> misuse by sufficiently privileged malware or an already compromised system therefore cannot be
-> guaranteed. The source code of xucRun is
-> disclosed so that the implemented technical measures, their limits, and the remaining
-> risks can be understood and independently reviewed. Disclosure alone is neither a security
-> guarantee nor evidence of an independent security audit. Use xucRun at your own responsibility.
-> xucRun should be used only on trusted, self-managed systems that do not require an elevated level
-> of protection, and preferably with dedicated target accounts having the minimum
+> **Protection boundaries:** xucRun uses Windows APIs to store credentials and must process them
+> temporarily to start a program under another user account. It cannot provide complete protection
+> against reading or misuse by sufficiently privileged malware or an already compromised system.
+> xucRun should therefore be used only on trusted, self-managed systems that do not require an
+> elevated level of protection, and preferably with dedicated target accounts having the minimum
 > required privileges. Scripts, shortcuts, scheduled tasks, and configuration files that invoke
 > xucRun or provide its parameters must also be trusted and protected against unauthorized
 > modification.
-> These security notices are not exhaustive; not all risks and security vulnerabilities can be
-> anticipated or ruled out.
-> To the extent permitted by law, the author and contributors accept
-> no liability for damage, data loss, or other consequences arising from the use or incorrect use
-> of xucRun, software defects or security vulnerabilities, malware, or a compromised system. This
-> includes, in particular, the loss, disclosure, or misuse of credentials. The disclaimer of
-> warranty and limitation of liability in the [Apache License 2.0](../../LICENSE) govern.
 
 ## Broker service security model
 

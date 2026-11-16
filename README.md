@@ -14,9 +14,8 @@ Approach: Presents the shortest safe path to a first launch, then links to canon
 
 **xucRun** stands for **eXecute Under User Context**.
 
-> **Status:** xucRun is actively maintained and continues to evolve. It has been proven in
-> practical use on the author's Windows 10 and Windows 11 systems. Further changes are possible,
-> and defects cannot be ruled out.
+**Project status:** xucRun is actively maintained.<br>
+**License:** [Apache License 2.0](LICENSE)
 
 ## Overview
 
@@ -242,26 +241,14 @@ Windows Admin Approval Mode for the selected administrator account, particularly
 [requirements and intended use](docs/en/SECURITY_MODEL.md#requirements-and-intended-use) section
 explains the configuration and its system-wide effects.
 
-> **Important security notices:** xucRun uses Windows APIs to store credentials. For xucRun to
-> start a program under another user account, however, xucRun
-> must process the required credentials temporarily. Complete protection against reading or
-> misuse by sufficiently privileged malware or an already compromised system therefore cannot be
-> guaranteed. The source code of xucRun is
-> disclosed so that the implemented technical measures, their limits, and the remaining
-> risks can be understood and independently reviewed. Disclosure alone is neither a security
-> guarantee nor evidence of an independent security audit. Use xucRun at your own responsibility.
-> xucRun should be used only on trusted, self-managed systems that do not require an elevated level
-> of protection, and preferably with dedicated target accounts having the minimum
+> **Protection boundaries:** xucRun uses Windows APIs to store credentials and must process them
+> temporarily to start a program under another user account. It cannot provide complete protection
+> against reading or misuse by sufficiently privileged malware or an already compromised system.
+> xucRun should therefore be used only on trusted, self-managed systems that do not require an
+> elevated level of protection, and preferably with dedicated target accounts having the minimum
 > required privileges. Scripts, shortcuts, scheduled tasks, and configuration files that invoke
 > xucRun or provide its parameters must also be trusted and protected against unauthorized
 > modification.
-> These security notices are not exhaustive; not all risks and security vulnerabilities can be
-> anticipated or ruled out.
-> To the extent permitted by law, the author and contributors accept
-> no liability for damage, data loss, or other consequences arising from the use or incorrect use
-> of xucRun, software defects or security vulnerabilities, malware, or a compromised system. This
-> includes, in particular, the loss, disclosure, or misuse of credentials. The disclaimer of
-> warranty and limitation of liability in the [Apache License 2.0](LICENSE) govern.
 
 The complete [security model](docs/en/SECURITY_MODEL.md) documents the broker trust boundary,
 caller and launch-target validation, credential protection, fixed-invocation risks, and residual
