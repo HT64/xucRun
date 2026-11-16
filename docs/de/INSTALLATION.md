@@ -6,40 +6,53 @@ Approach: Walks through package verification, installer choices, and post-instal
 
 **Sprache:** Deutsch | [English](../en/INSTALLATION.md)
 
-Dieses Dokument beschreibt die grafische und die manuelle Installation von xucRun.
-
 ## Voraussetzungen
 
 - ein x64-Windows-System,
-- ein vollständiges xucRun-Paket,
+- der Installer oder das vollständig entpackte ZIP-Paket aus einem xucRun-Release,
 - Administratorrechte.
 
-## Grafische Installation
+## Releasepaket
 
 xucRun ist ein Open-Source-Projekt unter der [Apache License 2.0](../../LICENSE).
-Die bereitgestellte Installer-Datei ist nicht Authenticode-signiert. Windows kann
-deshalb beim ersten Start einen unbekannten Herausgeber melden. Laden Sie den Installer
-ausschließlich aus dem offiziellen GitHub Release herunter. Als optionale zusätzliche Prüfung kann
-vor dem Start die SHA-256-Prüfsumme mit der dort veröffentlichten Prüfsumme verglichen werden.
+Ein öffentliches Core-Release enthält:
+
+```text
+xucRun-Installer-<Version>-x64.exe
+xucRun-<Version>-x64.zip
+BUILD-TOOLCHAIN.txt
+SHA256SUMS.txt
+```
+
+`BUILD-TOOLCHAIN.txt` nennt den Quellcommit und die beim Build tatsächlich aufgelösten Versionen
+von Visual Studio, MSBuild, MSVC und Windows SDK. Seine SHA-256-Prüfsumme steht ebenfalls in
+`SHA256SUMS.txt`.
+
+Laden Sie die benötigten Dateien ausschließlich aus demselben
+[xucRun-GitHub-Release](https://github.com/HT64/xucRun/releases/latest) herunter. Die bereitgestellte
+Installer-Datei ist nicht Authenticode-signiert. Windows kann deshalb beim ersten Start einen
+unbekannten Herausgeber melden.
+
+Die lokale SHA-256-Prüfsumme des Installers kann beispielsweise so angezeigt werden:
+
+```powershell
+Get-FileHash .\xucRun-Installer-*-x64.exe -Algorithm SHA256
+```
+
+Der ausgegebene Hash muss vollständig mit dem Eintrag für diese Datei in `SHA256SUMS.txt`
+übereinstimmen. Bei einer Abweichung die Datei nicht ausführen.
+
+Das ZIP-Paket enthält die ausführbaren Dateien, Sprachressourcen, Installationsskripte, den
+grafischen Installer sowie `LICENSE` und `NOTICE`. Es ist für die nachfolgend beschriebene
+skriptbasierte Installation vorgesehen und kein portables Programmpaket.
+
+## Grafische Installation
 
 Der empfohlene Installationsweg ist ein Doppelklick auf:
 
 ```text
 xucRun-Installer-<Version>-x64.exe
 ```
-
-Bei Version 0.9.1.8 heißt die Datei beispielsweise
-`xucRun-Installer-0.9.1.8-x64.exe`. Der Dateiname wird bei der Paketerzeugung automatisch aus
-der Produktversion der intern weiterhin als `Installer.exe` gebauten Datei erzeugt.
-
-Die lokale SHA-256-Prüfsumme kann beispielsweise so angezeigt werden:
-
-```powershell
-Get-FileHash .\xucRun-Installer-0.9.1.8-x64.exe -Algorithm SHA256
-```
-
-Der ausgegebene Hash muss vollständig mit dem Eintrag für diese Datei in der zum GitHub Release
-gehörenden `SHA256SUMS.txt` übereinstimmen. Bei einer Abweichung die Datei nicht ausführen.
 
 Die Windows-Benutzerkontensteuerung fordert die erforderlichen Administratorrechte an. Danach
 können Programmsprache und Maschinen-PATH ausgewählt werden. Bei jeder Installation und
@@ -51,12 +64,22 @@ Link führt zur README.
 Bei einer vorhandenen Installation zeigt die Oberfläche deren registrierte Version und den
 Zeitpunkt der Installation beziehungsweise letzten Aktualisierung an.
 
+Fehlt Microsoft Visual C++ Redistributable v14 für x64, bietet der Installer den Download über den
+offiziellen Microsoft-Link oder die Auswahl einer vorhandenen `vc_redist.x64.exe` an. Vor der
+Ausführung prüft er Microsoft-Signatur und Originaldateiname.
+
+## Lokale Signierung und Vertrauen
+
+Der grafische Installer führt die lokale Signierung automatisch aus. Bei der manuellen
+Installation wird derselbe Ablauf vor dem Installationsskript separat gestartet.
+
 Der Installer sucht automatisch nach einem bereits vorhandenen gültigen lokalen xucRun-
 Codesignaturzertifikat mit privatem Schlüssel und verwendet es erneut. Ist keines vorhanden,
 erzeugt er ein neues nicht exportierbares, rechnerlokales Zertifikat. Er richtet das Vertrauen
-ausschließlich auf diesem Rechner ein und signiert die sechs installierbaren Dateien. Die
-Oberfläche zeigt vorab, ob das Zertifikat wiederverwendet oder neu erstellt wird. Bei einem
-vorhandenen Zertifikat zeigt sie außerdem „Gültig seit“, „Gültig bis“ und den Fingerabdruck an.
+ausschließlich auf diesem Rechner ein und signiert alle installierbaren xucRun-Komponenten
+einheitlich. Die Oberfläche zeigt vorab, ob das Zertifikat wiederverwendet oder neu erstellt wird.
+Bei einem vorhandenen Zertifikat zeigt sie außerdem „Gültig seit“, „Gültig bis“ und den
+Fingerabdruck an.
 
 Das Zertifikat ermöglicht Windows und xucRun die Prüfung, dass die installierten Programmteile zu
 derselben Installation gehören und nicht verändert oder durch abweichend signierte Dateien
@@ -69,15 +92,13 @@ eingetragen. Es
 begründet ausschließlich technisches Vertrauen auf diesem Rechner und belegt nicht die Herkunft
 des heruntergeladenen Pakets.
 
-Fehlt Microsoft Visual C++ Redistributable v14 für x64, bietet der Installer den Download über den
-offiziellen Microsoft-Link oder die Auswahl einer vorhandenen `vc_redist.x64.exe` an. Vor der
-Ausführung prüft er Microsoft-Signatur und Originaldateiname.
+Das lokale Zertifikat darf nicht auf andere Rechner verteilt werden. Bei der Deinstallation
+entfernt xucRun sein verifiziertes rechnerlokales Standardzertifikat einschließlich privatem
+Schlüssel aus den Zertifikatspeichern `My`, `Root` und `TrustedPublisher`. Individuell benannte,
+separat erzeugte Testzertifikate werden nicht pauschal gelöscht.
 
 ## Kein portables Programmpaket
 
-Das öffentliche `xucRun-<Version>-x64.zip` enthält die ausführbaren Dateien, Sprachressourcen,
-Installationsskripte, den grafischen Installer sowie `LICENSE` und `NOTICE`. Es ermöglicht damit
-eine grafische oder skriptbasierte Installation, ist aber kein portables Programmpaket.
 Beide Installationswege legen `LICENSE-xucRun.txt` und `NOTICE-xucRun.txt` unter
 `%ProgramFiles%\xucRun\Licenses` ab. Diese Textdateien sind nicht Authenticode-signiert.
 
@@ -104,8 +125,7 @@ PowerShell 5.1 als Administrator im Paketverzeichnis gestartet.
 
 ### Lokale Paketsignierung
 
-Der grafische Installer führt dieselbe lokale Signierung automatisch aus. Für den manuellen
-Installationsweg wird sie separat gestartet:
+Für den manuellen Installationsweg wird die lokale Signierung separat gestartet:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
@@ -114,15 +134,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 ```
 
 Das Skript verwendet ein bereits vorhandenes gültiges lokales xucRun-Codesignaturzertifikat mit
-privatem Schlüssel erneut. Ist keines vorhanden, erzeugt es ein neues nicht exportierbares
-Zertifikat. Es trägt das Zertifikat auf diesem Rechner als vertrauenswürdig ein, signiert die sechs
-installierbaren Dateien und, sofern vorhanden, den versionierten grafischen Installer damit und
-aktualisiert `SHA256SUMS.json`.
-
-Das lokale Zertifikat darf nicht auf andere Rechner verteilt werden. Bei der Deinstallation
-entfernt xucRun sein verifiziertes rechnerlokales Standardzertifikat einschließlich privatem
-Schlüssel aus den Zertifikatspeichern `My`, `Root` und `TrustedPublisher`. Individuell benannte,
-separat erzeugte Testzertifikate werden nicht pauschal gelöscht.
+privatem Schlüssel erneut oder erzeugt das unter
+[Lokale Signierung und Vertrauen](#lokale-signierung-und-vertrauen) beschriebene Zertifikat. Es
+signiert die installierbaren xucRun-Komponenten und, sofern vorhanden, den versionierten
+grafischen Installer und aktualisiert `SHA256SUMS.json`.
 
 ### Installieren
 
@@ -144,7 +159,21 @@ Das Installationsskript prüft Paket und Signierer erneut, installiert nach
 `C:\Program Files\xucRun`, konfiguriert den bedarfsgestarteten Brokerdienst und bindet dessen
 sensible Clientanforderungen an Pfad und Signierer des installierten Clients.
 
-## Aktualisieren
+## Installation prüfen
+
+Nach der grafischen oder manuellen Installation können die Laufzeitinformationen und die
+sicherheitsrelevanten Eigenschaften der Installation geprüft werden:
+
+```powershell
+& 'C:\Program Files\xucRun\xucRun.exe' /info
+& 'C:\Program Files\xucRun\xucRun.exe' /audit
+```
+
+`/info` zeigt unter anderem Version, Signierzertifikat, Brokerstatus und Konfiguration. `/audit`
+prüft die sicherheitsrelevanten Dateien, Signaturen, Berechtigungen und Windows-Schutzfunktionen
+der laufenden Installation.
+
+## Aktualisieren und reparieren
 
 Ein neueres Paket wird erneut mit seinem versionierten grafischen Installer installiert. Dabei
 wird das vorhandene gültige lokale xucRun-Zertifikat wiederverwendet. Beim manuellen Weg muss
@@ -152,11 +181,12 @@ zuerst die lokale Paketsignierung und danach derselbe Installationsbefehl ausgef
 eine erneute Installation derselben Version erzeugt keine doppelten PATH-Einträge.
 
 Bei einer erneuten Installation derselben xucRun-Version kann das separat installierte optionale
-[xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) installiert bleiben, wenn seine
+[xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray/blob/main/docs/de/INSTALLATION.md)
+installiert bleiben, wenn seine
 registrierte Version, Dateiversion und Signierer weiterhin exakt zum Core-Paket passen. Vor einem
 Versionswechsel muss es über seinen eigenen Windows-Deinstallationseintrag entfernt werden. Nach
-dem xucRun-Update kann aus dem öffentlichen Tray-Repository eine Tray-Version mit exakt derselben
-vierteiligen Version installiert werden.
+dem xucRun-Update kann anhand der verlinkten Tray-Installationsanleitung eine Tray-Version mit exakt
+derselben vierteiligen Version installiert werden.
 Der grafische Installer zeigt diese Kompatibilität bereits vor Beginn der Installation an und
 deaktiviert die Installation bei einem erkannten Konflikt. Das Installationsskript prüft sie
 unmittelbar vor jeder Installation erneut; dies gilt auch beim manuellen Aufruf.
@@ -185,25 +215,17 @@ vom Broker verwalteten Geheimnisse vor Dienst und Dateien gelöscht werden.
 
 Zusätzlich entfernt die Deinstallation Dienst, installierte Dateien, Uninstall-Eintrag, einen vom
 Installer hinzugefügten PATH-Eintrag und das verifizierte rechnerlokale
-xucRun-Standardzertifikat samt privatem Schlüssel und Vertrauenseinträgen. Die
-normale Deinstallation verlangt vor der ersten Änderung eine ausdrückliche Bestätigung. Bei Abbruch
-bleiben Installation und Daten unverändert. Die Erfolgsbestätigung führt die entfernten Komponenten, alle
-gegebenenfalls vorhandenen gespeicherten Daten sowie Name, Gültigkeitszeitraum und Fingerabdruck
-des entfernten Zertifikats auf.
-Separat erzeugte, individuell benannte Testzertifikate werden nicht entfernt.
-Beim manuellen Aufruf mit `-NoSuccessDialog` entfallen Bestätigung sowie Erfolgs- und Fehlerdialoge.
+xucRun-Standardzertifikat samt privatem Schlüssel und Vertrauenseinträgen. Die normale
+Deinstallation verlangt vor der ersten Änderung eine ausdrückliche Bestätigung. Bei Abbruch
+bleiben Installation und Daten unverändert. Separat erzeugte, individuell benannte
+Testzertifikate werden nicht entfernt.
 
 Ein Fehler der normalen Deinstallation wird auch beim Start über **Installierte Apps** in einem
 sichtbaren Dialog angezeigt. Das technische Diagnoseprotokoll wird nach Möglichkeit unter
-`%ProgramData%\xucRun\InstallerLogs` geschrieben; der Dialog zeigt den konkreten Dateipfad in
-einem kopierbaren Feld und kann den Ordner direkt öffnen. Kann das Protokoll nicht geschrieben
-werden, meldet der Dialog dies. Das Protokoll enthält Fehler-, Skript-
-und Systeminformationen, aber keine gespeicherten Kennwörter. Maßgeblich ist der im Dialog
-angezeigte Pfad. Eine später erfolgreiche Core-Deinstallation entfernt auch diese Protokolle.
+`%ProgramData%\xucRun\InstallerLogs` geschrieben und sein konkreter Pfad im Dialog angezeigt. Das
+Protokoll enthält Fehler-, Skript- und Systeminformationen, aber keine gespeicherten Kennwörter.
+Eine später erfolgreiche Core-Deinstallation entfernt auch diese Protokolle.
 
-Vor der xucRun-Deinstallation muss das optionale Tray-Add-on entfernt werden. Eine
-Reparaturinstallation derselben Core-Version ist mit einem vollständig passenden xucRun Tray zulässig;
-Versionswechsel oder abweichende Tray-Signierer werden mit einem erklärenden Hinweis abgebrochen.
-Wird die Deinstallation bei noch installiertem Tray gestartet, werden keine Core-Bestandteile oder
-gespeicherten Daten entfernt. Ein sichtbarer Fehlerdialog fordert dazu auf, zuerst **xucRun Tray**
-über **Installierte Apps** zu deinstallieren und danach die xucRun-Deinstallation erneut zu starten.
+Vor der xucRun-Deinstallation muss das optionale Tray-Add-on entfernt werden. Solange es
+installiert ist, entfernt die Core-Deinstallation keine Bestandteile oder gespeicherten Daten und
+fordert dazu auf, zuerst **xucRun Tray** über **Installierte Apps** zu deinstallieren.

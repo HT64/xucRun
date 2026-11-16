@@ -10,7 +10,8 @@ Approach: Zeigt den kürzesten sicheren Weg zum ersten Start und verweist danach
 
 **Dokumentation:** [Installation](docs/de/INSTALLATION.md) |
 [xucRun verwenden](docs/de/USAGE.md) | [Referenz](docs/de/REFERENCE.md) |
-[Sicherheitsmodell](docs/de/SECURITY_MODEL.md) | [Build-Anleitung](docs/de/BUILDING.md)
+[Sicherheitsmodell](docs/de/SECURITY_MODEL.md) | [Vergleich](docs/de/COMPARISON.md) |
+[Build-Anleitung](docs/de/BUILDING.md)
 
 **xucRun** steht für **eXecute Under User Context**.
 
@@ -52,14 +53,14 @@ Rechteerhöhung bleiben dabei getrennte Entscheidungen.
 
 xucRun richtet sich an erfahrene Windows-Anwender, die Windows-Konten, UAC und Berechtigungen
 verstehen. Der
-[Vergleich und die Entscheidungshilfe](docs/de/SECURITY_MODEL.md#vergleich-mit-windows-funktionen-und-anderen-lösungen)
+[Vergleich und die Entscheidungshilfe](docs/de/COMPARISON.md)
 erklären die Unterschiede zu schnellem Benutzerwechsel, UAC, Windows Sudo, `runas.exe /savecred`
 und anderen Ansätzen.
 
 ## xucRun installieren
 
-1. Das aktuelle x64-Paket oder den grafischen Installer aus der
-   [offiziellen Veröffentlichung](https://github.com/HT64/xucRun/releases/latest) herunterladen.
+1. Das aktuelle x64-Paket oder den grafischen Installer unter
+   [Releases](https://github.com/HT64/xucRun/releases/latest) herunterladen.
 2. Optional den SHA-256-Hash der heruntergeladenen Datei mit `SHA256SUMS.txt` aus der
    Veröffentlichung vergleichen. Bei Abweichung die Datei nicht ausführen.
 3. `xucRun-Installer-<Version>-x64.exe` starten und die Windows-UAC-Anforderung bestätigen.
@@ -196,17 +197,14 @@ xucRun.exe /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\
 
 Die Carets verhindern, dass `cmd.exe` `%LOCALAPPDATA%` bereits im Kontext des aufrufenden Kontos
 auflöst; xucRun reicht die Variable unverändert durch, und das gestartete Programm wertet sie erst
-nach dem Kontowechsel aus. Dieser Aufruf ist für die interaktive Eingabe in `cmd.exe` bestimmt.
+nach dem Kontowechsel aus.
 
 Interaktive Befehle können Programmnamen verwenden. Skripte, Verknüpfungen, geplante Aufgaben und
 andere fest konfigurierte Aufrufe sollten die tatsächlichen absoluten Pfade von `xucRun.exe` und
 dem Zielprogramm verwenden, um Risiken durch die Windows-Programmsuche zu verringern. Weitere
 Beispiele, Shell-Ersetzung, Batchdateien, Explorer, Desktopverknüpfungen und eine mögliche
 Integration über benutzerdefinierte Befehle in Total Commander stehen unter
-[xucRun verwenden](docs/de/USAGE.md). Der
-[Vergleich mit anderen Ansätzen](docs/de/SECURITY_MODEL.md#vergleich-mit-windows-funktionen-und-anderen-lösungen)
-erklärt die Unterschiede, ohne vorauszusetzen, dass eine Lösung für jeden Anwendungsfall die beste
-ist.
+[xucRun verwenden](docs/de/USAGE.md).
 
 ## Anmeldedaten und Freigaben
 
@@ -215,10 +213,11 @@ den angeforderten Start erlaubt. Freigaben können Zielkonto, Programm, Dateihas
 Arbeitsverzeichnis und weitere Merkmale mit unterschiedlichen Umfängen und Laufzeiten binden.
 Windows-UAC bleibt, soweit erforderlich, ein eigener interaktiver Schritt.
 
-`/showcred` zeigt gespeicherte Zielkonten, `/showapprovals` die aktiven Freigaben. Den vollständigen
-Verwaltungsablauf beschreibt
-[xucRun verwenden](docs/de/USAGE.md#anmeldedaten-und-freigaben-verwalten), das Autorisierungsmodell
-das [Sicherheitsmodell](docs/de/SECURITY_MODEL.md#freigaben-und-windows-uac).
+`/showcred` zeigt gespeicherte Zielkonten, `/showapprovals` die aktiven Freigaben. Wie gespeicherte
+Anmeldedaten und Freigaben angezeigt und verwaltet werden, beschreibt
+[xucRun verwenden](docs/de/USAGE.md#anmeldedaten-und-freigaben-verwalten). Das
+[Sicherheitsmodell](docs/de/SECURITY_MODEL.md#freigaben-und-windows-uac) erklärt das zugrunde
+liegende Autorisierungsmodell.
 
 ## Wichtige Befehle
 

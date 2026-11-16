@@ -6,59 +6,37 @@ Approach: Provides ordered cleanup and verification steps for each installed com
 
 **Sprache:** Deutsch | [English](../en/MANUAL_REMOVAL.md)
 
-Dieses Dokument listet die von xucRun angelegten Artefakte auf und beschreibt deren manuelle
-Entfernung. Verwenden Sie dieses Verfahren nur, wenn die normale Deinstallation nicht verwendet
-werden kann oder nicht erfolgreich abgeschlossen wird. Die normale Deinstallation ist sicherer:
-Sie prüft die Installation, fragt vor Änderungen nach einer Bestätigung, löscht die vom Broker
-verwalteten Geheimnisse im LocalSystem-Kontext und entfernt das verwaltete Signaturzertifikat erst
-nach dessen Überprüfung.
+Verwenden Sie dieses Verfahren nur, wenn die [normale Deinstallation](INSTALLATION.md#deinstallieren)
+nicht verfügbar ist oder nicht abgeschlossen werden kann. Sie überprüft die Installation und
+entfernt die Komponenten in der erforderlichen Reihenfolge; die manuelle Entfernung muss diese
+Prüfungen ausdrücklich nachbilden.
 
 Die manuelle Entfernung löscht gespeicherte Anmeldeinformationen, Freigaben, Sicherungen,
 Protokolle und die Konfiguration unwiderruflich. Sichern Sie zuvor alles, was erhalten bleiben soll.
 
-## Geltungsbereich
-
-Das Verfahren entfernt die von xucRun installierten Dateien und Einstellungen. Es löscht keine
-allgemeinen Windows-Historien wie bereits geschriebene Anwendungs- oder
-Dienststeuerungsereignisse, Prefetch, Amcache, Kompatibilitäts- oder Zuletzt-verwendet-Daten,
-Wiederherstellungspunkte, externe Sicherungen oder Aufzeichnungen von Sicherheits- und
-Verwaltungssoftware. Löschen Sie nicht das gemeinsame Windows-Anwendungsprotokoll, nur um
-xucRun-Ereignisse zu entfernen.
+Bereits geschriebene Windows-Ereignisse und externe Kopien werden nicht entfernt. Löschen Sie nicht
+das gemeinsame Windows-Anwendungsprotokoll, nur um vorhandene xucRun-Ereignisse zu entfernen.
 
 ## Artefaktinventar
 
 | Typ | Pfad oder Name | Hinweise |
 |---|---|---|
-| Programmverzeichnis | `%ProgramFiles%\xucRun` | Wird mit dem separat installierten optionalen [xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray) gemeinsam genutzt, solange es installiert ist |
-| Core-Programme | `xucRun.exe`, `xucRunBroker.exe`, `xucRunApproval.exe` | Im Programmverzeichnis |
-| Installationsskript | `Install-xucRun.ps1` | Im Programmverzeichnis |
-| Konfiguration | `xucRun.ini` | Im Programmverzeichnis |
-| Sprachdateien | `Languages\xucRun.de-DE.dll`, `Languages\xucRun.en-US.dll` | Im Programmverzeichnis |
-| Dienst | `xucRunBroker` | Einschließlich Registry-Unterschlüssel `Parameters` |
-| Dienst-Registry | `HKLM\SYSTEM\CurrentControlSet\Services\xucRunBroker` | Wird beim Löschen des Dienstes entfernt |
+| Programmverzeichnis | `%ProgramFiles%\xucRun` | Wird mit dem separat installierten optionalen [xucRun-Tray-Add-on](https://github.com/HT64/xucRun-Tray/blob/main/docs/de/MANUAL_REMOVAL.md) gemeinsam genutzt, solange es installiert ist |
+| Dienst | `xucRunBroker` | Einschließlich Dienstkonfiguration und Autorisierungsrichtlinie |
 | Ereignisquelle | `HKLM\SYSTEM\CurrentControlSet\Services\EventLog\Application\xucRunBroker` | Vorhandene Ereignisse bleiben im gemeinsamen Anwendungsprotokoll |
 | Deinstallationseintrag | `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun` | Rechnerweit |
 | Rechner-`PATH` | `%ProgramFiles%\xucRun` | Nur vorhanden, wenn bei der Installation ausgewählt |
-| Produktdaten | `%ProgramData%\xucRun` | Enthält Metadaten zu Anmeldeinformationen in `BrokerStore\v1`, verschlüsselte Archive und Wiederherstellungsjournale in `BrokerBackups\v3-a9` sowie `InstallerLogs` |
-| Broker-Geheimnisse | xucRun-Ziele für Anmeldeinformationen, Freigaben und Authentizitätsmarker | Über die Windows-Anmeldeinformationsverwaltung im LocalSystem-Kontext gespeichert |
+| Produktdaten | `%ProgramData%\xucRun` | Enthält Metadaten, verschlüsselte Sicherungen, Wiederherstellungsjournale und Installerprotokolle |
+| Broker-Daten | xucRun-Ziele für Anmeldeinformationen, Freigaben und Authentizitätsmarker | Über die Windows-Anmeldeinformationsverwaltung im LocalSystem-Kontext gespeichert |
 | Signaturzertifikat | Normalerweise `CN=xucRun Local Signing (<COMPUTERNAME>)` | Kann in `LocalMachine\My`, `LocalMachine\Root` und `LocalMachine\TrustedPublisher` liegen; `My` enthält den privaten Schlüssel |
 | Client-Protokolle | `xucRun_YYYYMMDD.log` | Nur bei konfiguriertem `[Logging] ClientLogDirectory`; das Verzeichnis kann beliebig liegen, Umgebungsvariablen werden je Benutzerkontext aufgelöst |
-| Temporäre Wrapper | `xucRun_wrapper_<32 hexadezimale Zeichen>.bat` | Nur für bestimmte Batch-Dateinamen; normalerweise von einem geeigneten Laufwerk namens `RamDisk` oder aus `%TEMP%` des Zielkontos gelöscht |
-| Reste fehlgeschlagener Installationen | `%ProgramData%\xucRun-Installer-<32 hexadezimale Zeichen>` | Geschützte Bereitstellungsverzeichnisse, die normalerweise automatisch gelöscht werden |
-| Reste fehlgeschlagener Signierung | `%ProgramData%\xucRun-Signing-<32 hexadezimale Zeichen>` | Geschützte Bereitstellungsverzeichnisse, die nur beim Signieren eines Pakets angelegt und normalerweise automatisch gelöscht werden |
-| Reste der Installerausgabe | `%TEMP%\xucRun-Installer-<32 hexadezimale Zeichen>.stdout.log` und `.stderr.log` | Werden normalerweise automatisch gelöscht |
-
-Der genannte Zertifikatsname gilt für ein mit dem Standardnamen erzeugtes Zertifikat. Wurde bei der
-manuellen Signierung bewusst ein anderer `CertificateName` verwendet, darf dieses Zertifikat nicht
-anhand eines unvollständigen Namens identifiziert werden. Notieren und prüfen Sie vor seiner
-Löschung den vollständigen Fingerabdruck.
 
 ## Verfahren zur manuellen Entfernung
 
-Führen Sie die folgenden Befehle in einem als Administrator gestarteten 64-Bit-Windows-PowerShell
-5.1 aus.
-Ermitteln Sie in diesem Fenster zuerst die vertrauenswürdigen Windows-Verzeichnisse über die
-Windows-APIs statt über geerbte Umgebungsvariablen:
+Starten Sie eine 64-Bit-Windows-PowerShell 5.1 als Administrator und führen Sie darin die
+folgenden Schritte vollständig in der angegebenen Reihenfolge aus. Ermitteln Sie in diesem Fenster
+zuerst die vertrauenswürdigen Windows-Verzeichnisse über die Windows-APIs statt über geerbte
+Umgebungsvariablen:
 
 ```powershell
 if (-not [Environment]::Is64BitProcess) {
@@ -85,14 +63,20 @@ des Tray-Projekts, wenn auch dessen normale Deinstallation nicht verfügbar ist.
 zuerst entfernt, können laufende Tray-Prozesse und geplante Aufgaben zurückbleiben, die auf Dateien
 im gemeinsamen Programmverzeichnis verweisen.
 
-### 2. Nicht standardmäßige Pfade und Signierer erfassen
+### 2. Nicht standardmäßige Pfade und verwaltetes Zertifikat erfassen
 
-Führen Sie diesen Schritt vor dem Löschen von `xucRun.ini` oder `xucRunBroker.exe` aus.
+Führen Sie diesen Schritt vor dem Löschen der Dienstkonfiguration, von `xucRun.ini` oder der
+Programmdateien aus. Die Zertifikatsprüfung verwendet dieselbe SHA-256-Bindung wie die normale
+Deinstallation.
 
 ```powershell
 $installDirectory = Join-Path $programFilesDirectory 'xucRun'
 $configurationPath = Join-Path $installDirectory 'xucRun.ini'
 $brokerPath = Join-Path $installDirectory 'xucRunBroker.exe'
+$clientPath = Join-Path $installDirectory 'xucRun.exe'
+$parametersPath = 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\xucRunBroker\Parameters'
+$machineEnvironmentPath =
+    'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
 
 $clientLogDirectory = $null
 if (Test-Path -LiteralPath $configurationPath -PathType Leaf) {
@@ -101,19 +85,73 @@ if (Test-Path -LiteralPath $configurationPath -PathType Leaf) {
         Select-Object -First 1) -replace '^\s*ClientLogDirectory\s*=\s*', ''
 }
 
-$signer = $null
-if (Test-Path -LiteralPath $brokerPath -PathType Leaf) {
-    $signature = Get-AuthenticodeSignature -LiteralPath $brokerPath
-    if ($signature.Status -eq 'Valid') {
-        $signer = $signature.SignerCertificate
-        $signer | Format-List Subject, Issuer, Thumbprint, NotBefore, NotAfter
+function Get-CertificateSha256 {
+    param(
+        [Parameter(Mandatory)]
+        [Security.Cryptography.X509Certificates.X509Certificate2]$Certificate
+    )
+
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try {
+        return ,$sha256.ComputeHash($Certificate.RawData)
+    }
+    finally {
+        $sha256.Dispose()
     }
 }
+
+function Get-VerifiedSigner {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][byte[]]$ExpectedSha256
+    )
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Die erforderliche xucRun-Datei fehlt: $Path"
+    }
+    $signature = Get-AuthenticodeSignature -LiteralPath $Path
+    if ($signature.Status -ne [Management.Automation.SignatureStatus]::Valid -or
+        -not $signature.SignerCertificate) {
+        throw "Die xucRun-Signatur ist nicht gültig: $Path ($($signature.Status))"
+    }
+    $actualSha256 = Get-CertificateSha256 -Certificate $signature.SignerCertificate
+    if ([Convert]::ToBase64String($actualSha256) -ne
+        [Convert]::ToBase64String($ExpectedSha256)) {
+        throw "Der Signierer entspricht nicht der Broker-Autorisierungsrichtlinie: $Path"
+    }
+    return $signature.SignerCertificate
+}
+
+if (-not (Test-Path -LiteralPath $parametersPath)) {
+    throw 'Die Broker-Autorisierungsrichtlinie fehlt.'
+}
+$parameters = Get-Item -LiteralPath $parametersPath
+$expectedSignerSha256 = $parameters.GetValue('SensitiveClientSignerSha256', $null)
+if ($expectedSignerSha256 -isnot [byte[]] -or $expectedSignerSha256.Count -ne 32) {
+    throw 'Die Broker-Autorisierungsrichtlinie enthält keinen gültigen Signierer.'
+}
+
+$brokerSigner = Get-VerifiedSigner -Path $brokerPath -ExpectedSha256 $expectedSignerSha256
+$null = Get-VerifiedSigner -Path $clientPath -ExpectedSha256 $expectedSignerSha256
+
+$expectedSubject = "CN=xucRun Local Signing ($env:COMPUTERNAME)"
+$managedSigner = if ($brokerSigner.Subject -eq $expectedSubject -and
+    $brokerSigner.Issuer -eq $expectedSubject) {
+    $brokerSigner
+}
+else {
+    $null
+    Write-Warning (
+        'Der verifizierte Signierer ist nicht das standardmäßig verwaltete xucRun-Zertifikat. ' +
+        'Das Zertifikat wird nicht automatisch entfernt.')
+}
+
+$brokerSigner | Format-List Subject, Issuer, Thumbprint, NotBefore, NotAfter
 ```
 
-Bewahren Sie den angezeigten Antragstellernamen, Aussteller und vollständigen Fingerabdruck auf.
-Ist `$signer` leer, raten Sie nicht, welches Zertifikat zu xucRun gehört. Ein Zertifikat darf nicht
-entfernt werden, wenn seine Identität unbekannt ist.
+Bricht die Prüfung ab, führen Sie keine vorhandene xucRun-Programmdatei aus und löschen Sie kein
+Zertifikat. Installieren Sie dieselbe vertrauenswürdige xucRun-Version erneut und beginnen Sie
+danach von vorn. Ein individuell benannter oder anderweitig verwendeter Signierer bleibt erhalten.
 
 Der konfigurierte Client-Protokollpfad kann Umgebungsvariablen enthalten. Lösen Sie ihn für jedes
 Windows-Konto, das xucRun verwendet hat, separat auf. Löschen Sie nur Dateien im Format
@@ -136,12 +174,11 @@ Authentizitätsmarker und Metadaten zu Anmeldeinformationen für alle Windows-Be
 Broker.
 
 Ist der Broker deaktiviert, führen Sie zuerst `xucRun.exe /enable-broker` aus und wiederholen
-anschließend `/clear-all`. Fehlen Programmdateien oder Dienst, sind sie beschädigt oder nicht mehr
-vertrauenswürdig, ersetzen Sie diesen Schritt nicht durch direkte Eingriffe in die
-Anmeldeinformationsverwaltung. Installieren Sie dieselbe vertrauenswürdige xucRun-Version erneut
-und verwenden Sie danach `/clear-all` oder die normale Deinstallation. Ohne erfolgreichen
-Broker-Löschvorgang können verbliebene LocalSystem-Ziele der Anmeldeinformationsverwaltung nicht
-ausgeschlossen werden.
+anschließend `/clear-all`. Fehlen Programmdateien oder Dienst, ersetzen Sie diesen Schritt nicht
+durch direkte Eingriffe in die Anmeldeinformationsverwaltung. Installieren Sie dieselbe
+vertrauenswürdige xucRun-Version erneut und verwenden Sie danach `/clear-all` oder die normale
+Deinstallation. Ohne erfolgreichen Broker-Löschvorgang können verbliebene LocalSystem-Ziele der
+Anmeldeinformationsverwaltung nicht ausgeschlossen werden.
 
 ### 4. xucRun-Prozesse beenden und Dienst löschen
 
@@ -157,10 +194,20 @@ Get-CimInstance Win32_Process |
             $installDirectory + '\',
             [StringComparison]::OrdinalIgnoreCase)
     } |
-    ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+    ForEach-Object {
+        Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop
+    }
 
-Stop-Service -Name 'xucRunBroker' -Force -ErrorAction SilentlyContinue
-& (Join-Path $systemDirectory 'sc.exe') delete 'xucRunBroker'
+$service = Get-Service -Name 'xucRunBroker' -ErrorAction SilentlyContinue
+if ($service) {
+    if ($service.Status -ne [ServiceProcess.ServiceControllerStatus]::Stopped) {
+        Stop-Service -Name 'xucRunBroker' -Force -ErrorAction Stop
+    }
+    & (Join-Path $systemDirectory 'sc.exe') delete 'xucRunBroker'
+    if ($LASTEXITCODE -ne 0) {
+        throw "Der Dienst konnte nicht gelöscht werden. sc.exe-Exitcode: $LASTEXITCODE"
+    }
+}
 ```
 
 `sc.exe` kann melden, dass der Dienst zum Löschen markiert ist, solange ein anderer Prozess noch
@@ -169,34 +216,62 @@ Sie den Dienst-Registry-Schlüssel nicht manuell, solange der Dienst noch regist
 
 ### 5. Optionalen Eintrag aus dem Rechner-`PATH` entfernen
 
-Dieser Befehl entfernt nur das exakte xucRun-Verzeichnis und erhält alle anderen Einträge:
+Dieser Code liest und schreibt den nicht expandierten Registry-Wert. Dadurch bleiben Einträge wie
+`%SystemRoot%` unverändert:
 
 ```powershell
 $xucRunPath = (Join-Path $programFilesDirectory 'xucRun').TrimEnd('\')
-$machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
-$remaining = @(
+$environmentKey = Get-Item -LiteralPath $machineEnvironmentPath
+$machinePath = [string]$environmentKey.GetValue(
+    'Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+$pathEntries = @(
     $machinePath -split ';' |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+)
+$remaining = @(
+    $pathEntries |
         Where-Object {
-            $_ -and
             $_.Trim().TrimEnd('\') -ine $xucRunPath
         }
 )
-[Environment]::SetEnvironmentVariable('Path', ($remaining -join ';'), 'Machine')
+if ($remaining.Count -ne $pathEntries.Count) {
+    Set-ItemProperty -LiteralPath $machineEnvironmentPath -Name Path `
+        -Type ExpandString -Value ($remaining -join ';')
+
+    if (-not ('Native.EnvironmentBroadcast' -as [type])) {
+        Add-Type -Namespace Native -Name EnvironmentBroadcast -MemberDefinition @'
+[DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+public static extern IntPtr SendMessageTimeout(
+    IntPtr hWnd, uint Msg, IntPtr wParam, string lParam,
+    uint flags, uint timeout, out IntPtr result);
+'@
+    }
+    $broadcastResult = [IntPtr]::Zero
+    [void][Native.EnvironmentBroadcast]::SendMessageTimeout(
+        [IntPtr]0xffff, 0x001a, [IntPtr]::Zero, 'Environment',
+        2, 5000, [ref]$broadcastResult)
+}
 ```
 
-Neue Prozesse sehen den geänderten Rechner-`PATH`; bereits laufende Prozesse behalten ihre
-bisherige Umgebung.
+Neue Prozesse übernehmen den geänderten Rechner-`PATH`; bereits laufende Prozesse behalten ihre
+bisherige Umgebung. Ist kein exakter xucRun-Eintrag vorhanden, bleibt der Wert unverändert.
 
 ### 6. Registry-Einträge entfernen
 
 ```powershell
-Remove-Item -LiteralPath `
-    'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun' `
-    -Recurse -Force -ErrorAction SilentlyContinue
+$uninstallPath =
+    'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun'
+$eventSourcePath =
+    'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\xucRunBroker'
 
-Remove-Item -LiteralPath `
-    'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\EventLog\Application\xucRunBroker' `
-    -Recurse -Force -ErrorAction SilentlyContinue
+foreach ($path in $uninstallPath, $eventSourcePath) {
+    if (Test-Path -LiteralPath $path) {
+        Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction Stop
+        if (Test-Path -LiteralPath $path) {
+            throw "Der Registry-Schlüssel konnte nicht vollständig entfernt werden: $path"
+        }
+    }
+}
 ```
 
 Der Dienstschlüssel `xucRunBroker` einschließlich `Parameters` wird durch `sc.exe delete` entfernt.
@@ -206,48 +281,71 @@ Ist er nach einem Neustart noch vorhanden, prüfen Sie zuerst, dass der Dienst n
 ### 7. Dateien und Produktdaten entfernen
 
 ```powershell
-Remove-Item -LiteralPath (Join-Path $programFilesDirectory 'xucRun') `
-    -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item -LiteralPath (Join-Path $programDataDirectory 'xucRun') `
-    -Recurse -Force -ErrorAction SilentlyContinue
+function Remove-xucRunDirectory {
+    param([Parameter(Mandatory)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    if (-not $item.PSIsContainer -or
+        ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Das xucRun-Verzeichnis ist kein normales Verzeichnis: $Path"
+    }
+    Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
+    if (Test-Path -LiteralPath $Path) {
+        throw "Das xucRun-Verzeichnis konnte nicht vollständig entfernt werden: $Path"
+    }
+}
+
+Remove-xucRunDirectory -Path (Join-Path $programFilesDirectory 'xucRun')
+Remove-xucRunDirectory -Path (Join-Path $programDataDirectory 'xucRun')
 ```
 
-Bleibt eines der Verzeichnisse bestehen, prüfen Sie den gemeldeten Zugriffs- oder Freigabefehler,
-statt den Besitz an fremden Dateien zu übernehmen. Starten Sie Windows neu, wenn eine überprüfte
-xucRun-Datei noch verwendet wird.
+Prüfen Sie einen gemeldeten Zugriffs-, Freigabe- oder Reparse-Point-Fehler, statt den Besitz an
+fremden Dateien zu übernehmen oder einem unerwarteten Verweis zu folgen. Starten Sie Windows neu,
+wenn eine überprüfte xucRun-Datei noch verwendet wird.
 
 Entfernen Sie konfigurierte Client-Protokolldateien an dem in Schritt 2 erfassten Ort. Löschen Sie
 nur Namen im exakten Format `xucRun_YYYYMMDD.log`.
 
 ### 8. Überprüftes verwaltetes Zertifikat entfernen
 
-Fahren Sie nur mit dem in Schritt 2 exakt erfassten Signierer fort. Beim standardmäßig erzeugten
-Zertifikat müssen Antragsteller und Aussteller
-`CN=xucRun Local Signing (<COMPUTERNAME>)` entsprechen. Ein mit individuellem Namen erzeugtes
-Zertifikat kann auch andere Software signieren und darf nur entfernt werden, wenn diese Auswirkung
-verstanden ist.
+Der folgende Code entfernt nur das in Schritt 2 über die Broker-Autorisierungsrichtlinie
+verifizierte Standardzertifikat. Ein individuell benannter oder anderweitig verwendeter Signierer
+bleibt erhalten.
 
 ```powershell
-if (-not $signer) {
-    throw 'Es wurde kein verifizierter xucRun-Signierer erfasst. Kein Zertifikat nur nach Namen löschen.'
+$managedSignerSha256 = if ($managedSigner) {
+    $expectedSignerSha256
+}
+else {
+    $null
 }
 
-$thumbprint = $signer.Thumbprint
-foreach ($storeName in 'TrustedPublisher', 'Root') {
-    $path = "Cert:\LocalMachine\$storeName\$thumbprint"
-    if (Test-Path -LiteralPath $path) {
-        Remove-Item -LiteralPath $path -Force
+if ($managedSignerSha256) {
+    $expectedHash = [Convert]::ToBase64String($managedSignerSha256)
+    foreach ($storeName in 'TrustedPublisher', 'Root', 'My') {
+        $matches = @(Get-ChildItem "Cert:\LocalMachine\$storeName" |
+            Where-Object {
+                [Convert]::ToBase64String(
+                    (Get-CertificateSha256 -Certificate $_)) -eq $expectedHash
+            })
+        foreach ($match in $matches) {
+            $path = "Cert:\LocalMachine\$storeName\$($match.Thumbprint)"
+            if ($storeName -eq 'My') {
+                Remove-Item -LiteralPath $path -DeleteKey -Force -ErrorAction Stop
+            }
+            else {
+                Remove-Item -LiteralPath $path -Force -ErrorAction Stop
+            }
+        }
     }
-}
-
-$personalPath = "Cert:\LocalMachine\My\$thumbprint"
-if (Test-Path -LiteralPath $personalPath) {
-    Remove-Item -LiteralPath $personalPath -DeleteKey -Force
 }
 ```
 
-Handelt es sich nicht um das vom Installer erzeugte verwaltete Zertifikat, ist das Beibehalten
-sicherer als das Löschen eines Zertifikats, dessen weitere Verwendungen unbekannt sind.
+Ein beibehaltenes individuelles Zertifikat kann außerhalb von xucRun weiter benötigt werden. Seine
+Entfernung gehört deshalb nicht zu diesem Verfahren.
 
 ### 9. Bedingte Reste und Spuren abgebrochener Vorgänge prüfen
 
@@ -258,8 +356,9 @@ Prüfen Sie nach dem Ende aller xucRun-Prozesse folgende Orte:
 - `%ProgramData%` auf Verzeichnisse namens
   `xucRun-Installer-<32 hexadezimale Zeichen>` und
   `xucRun-Signing-<32 hexadezimale Zeichen>`;
-- beim Konto, das einen Installer gestartet hat, auf die im Inventar aufgeführten passenden
-  `.stdout.log`- und `.stderr.log`-Dateien.
+- `%TEMP%` des Kontos, das einen Installer gestartet hat, auf
+  `xucRun-Installer-<32 hexadezimale Zeichen>.stdout.log` und die entsprechende
+  `.stderr.log`-Datei.
 
 Diese Artefakte werden normalerweise automatisch gelöscht und sollten nur nach Abbruch oder Fehler
 vorhanden sein. Prüfen Sie vollständigen Namen und Inhalt, bevor Sie einen einzelnen Rest löschen.
@@ -269,24 +368,45 @@ ein Benutzerprofil.
 ## Überprüfung
 
 ```powershell
-Get-Service -Name 'xucRunBroker' -ErrorAction SilentlyContinue
-Test-Path -LiteralPath (Join-Path $programFilesDirectory 'xucRun')
-Test-Path -LiteralPath (Join-Path $programDataDirectory 'xucRun')
-Test-Path -LiteralPath `
-    'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\xucRun'
-
 $xucRunPath = (Join-Path $programFilesDirectory 'xucRun').TrimEnd('\')
-([Environment]::GetEnvironmentVariable('Path', 'Machine') -split ';') |
-    Where-Object { $_.Trim().TrimEnd('\') -ieq $xucRunPath }
+$environmentKey = Get-Item -LiteralPath $machineEnvironmentPath
+$machinePath = [string]$environmentKey.GetValue(
+    'Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+$machinePathEntryPresent = @(
+    $machinePath -split ';' |
+        Where-Object { $_.Trim().TrimEnd('\') -ieq $xucRunPath }
+).Count -ne 0
 
-if ($signer) {
+$managedCertificatePresent = $false
+if ($managedSignerSha256) {
+    $expectedHash = [Convert]::ToBase64String($managedSignerSha256)
     foreach ($storeName in 'My', 'Root', 'TrustedPublisher') {
-        Get-Item -LiteralPath "Cert:\LocalMachine\$storeName\$($signer.Thumbprint)" `
-            -ErrorAction SilentlyContinue
+        if (@(Get-ChildItem "Cert:\LocalMachine\$storeName" |
+            Where-Object {
+                [Convert]::ToBase64String(
+                    (Get-CertificateSha256 -Certificate $_)) -eq $expectedHash
+            }).Count -ne 0) {
+            $managedCertificatePresent = $true
+        }
     }
+}
+
+[pscustomobject]@{
+    BrokerServicePresent = $null -ne (
+        Get-Service -Name 'xucRunBroker' -ErrorAction SilentlyContinue)
+    ProgramDirectoryPresent = Test-Path -LiteralPath (
+        Join-Path $programFilesDirectory 'xucRun')
+    ProductDataPresent = Test-Path -LiteralPath (
+        Join-Path $programDataDirectory 'xucRun')
+    UninstallEntryPresent = Test-Path -LiteralPath $uninstallPath
+    EventSourcePresent = Test-Path -LiteralPath $eventSourcePath
+    MachinePathEntryPresent = $machinePathEntryPresent
+    ManagedCertificateWasApplicable = $null -ne $managedSignerSha256
+    ManagedCertificatePresent = $managedCertificatePresent
 }
 ```
 
-Bei erfolgreicher Überprüfung erscheinen keine Ausgaben für Dienst, Registry, `PATH` oder
-Zertifikat; beide `Test-Path`-Aufrufe liefern `False`. Prüfen Sie außerdem die ausdrücklich
-erfassten Client-Protokollorte und alle auf diesem Computer zutreffenden bedingten Reste.
+Bei erfolgreicher Entfernung sind alle Eigenschaften mit dem Suffix `Present` gleich `False`.
+`ManagedCertificateWasApplicable` ist nur dann `True`, wenn das standardmäßig verwaltete Zertifikat
+entfernt werden sollte. Prüfen Sie außerdem die ausdrücklich erfassten Client-Protokollorte und
+alle auf diesem Computer zutreffenden bedingten Reste.

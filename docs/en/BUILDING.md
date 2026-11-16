@@ -6,12 +6,10 @@ Approach: Lists prerequisites and reproducible Visual Studio and command-line bu
 
 **Language:** [Deutsch](../de/BUILDING.md) | English
 
-This document describes how to build xucRun.
-
 ## Prerequisites
 
 - an x64 Windows build system,
-- Visual Studio or Build Tools with MSBuild and the Desktop C++ toolchain,
+- Visual Studio 2022 or Build Tools 2022 with MSBuild and the Desktop C++ toolchain,
 - a Windows 10 SDK,
 - a compiler with C++20 support,
 - Windows PowerShell 5.1 for package, signing, and installation scripts.
@@ -19,12 +17,39 @@ This document describes how to build xucRun.
 The projects use the available default MSVC toolset. Only the `Debug` and `Release` x64
 configurations are supported.
 
-## Build xucRun
+Run all commands from the repository root in **Developer PowerShell for Visual Studio 2022** or an
+equivalently initialized Build Tools environment.
+
+## Debug build
+
+```powershell
+& MSBuild.exe .\XUCRun.sln `
+  /t:Build /p:Configuration=Debug /p:Platform=x64 /m
+```
+
+## Release build
 
 ```powershell
 & MSBuild.exe .\XUCRun.sln `
   /t:Build /p:Configuration=Release /p:Platform=x64 /m
 ```
+
+## Toolchain report
+
+For a release build, durably record the exact Visual Studio, MSBuild, MSVC, and Windows SDK
+versions used:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\New-BuildToolchainReport.ps1 `
+  -ProjectPath .\xucRun\XUCRun.vcxproj `
+  -ProductName xucRun `
+  -Configuration Release `
+  -DestinationPath .\artifacts\BUILD-TOOLCHAIN.txt
+```
+
+The report belongs with the release artifacts but is not included in the installation package by
+`New-xucRun-Package.ps1`.
 
 ## Create the package
 
@@ -34,33 +59,21 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -Configuration Release
 ```
 
-The package is created under `artifacts\Package\Release`. Before installation, its six
-installable files must be signed consistently. The intended local test signing process is
-documented in [INSTALLATION.md](INSTALLATION.md).
+Replace `Release` with `Debug` to create a Debug package. The package is written to
+`artifacts\Package\<Configuration>`.
 
-## Create release assets
+## Validate the package
 
-After a successful Release build, the following script creates the versioned standalone
-installer, complete ZIP archive, and public SHA-256 file:
+`New-xucRun-Package.ps1` checks the required build outputs and expected package contents while
+creating the package. The complete installer smoke test installs, updates, and removes xucRun and
+is therefore suitable only for a clean, disposable Windows test system running elevated:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\New-xucRun-Release.ps1 `
-  -ExpectedVersion 0.9.1.8
+  -File .\Test-Installer.ps1 `
+  -PackageDirectory .\artifacts\Package\Release
 ```
 
-The files are created under `artifacts\Release\0.9.1.8`:
-
-```text
-xucRun-Installer-0.9.1.8-x64.exe
-xucRun-0.9.1.8-x64.zip
-SHA256SUMS.txt
-```
-
-The tag-triggered GitHub release workflow adds `BUILD-TOOLCHAIN.txt`. This file identifies the
-source commit and the Visual Studio, MSBuild, MSVC, and Windows SDK versions actually resolved for
-the build. Its SHA-256 checksum is also added to `SHA256SUMS.txt`.
-
-The release script deliberately rejects signed build outputs. Public releases are provided
-without a commercial publisher certificate; local signing takes place on the target computer
-through the graphical installer or before manual installation.
+Before a normal installation, the package's installable xucRun components must be signed
+consistently on the local computer. The intended process is documented under
+[Local signing and trust](INSTALLATION.md#local-signing-and-trust).

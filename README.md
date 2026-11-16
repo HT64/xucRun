@@ -10,7 +10,8 @@ Approach: Presents the shortest safe path to a first launch, then links to canon
 
 **Documentation:** [Installation](docs/en/INSTALLATION.md) |
 [Using xucRun](docs/en/USAGE.md) | [Reference](docs/en/REFERENCE.md) |
-[Security model](docs/en/SECURITY_MODEL.md) | [Build instructions](docs/en/BUILDING.md)
+[Security model](docs/en/SECURITY_MODEL.md) | [Comparison](docs/en/COMPARISON.md) |
+[Build instructions](docs/en/BUILDING.md)
 
 **xucRun** stands for **eXecute Under User Context**.
 
@@ -52,14 +53,14 @@ decisions.
 
 xucRun is intended for experienced Windows users who understand Windows accounts, UAC, and
 permissions. The
-[comparison and decision guidance](docs/en/SECURITY_MODEL.md#comparison-with-windows-features-and-other-solutions)
+[comparison and decision guidance](docs/en/COMPARISON.md)
 explains how it differs from Fast User Switching, UAC, Sudo for Windows, `runas.exe /savecred`,
 and other approaches.
 
 ## Install xucRun
 
-1. Download the current x64 package or graphical installer from the
-   [official release](https://github.com/HT64/xucRun/releases/latest).
+1. Download the current x64 package or graphical installer from
+   [Releases](https://github.com/HT64/xucRun/releases/latest).
 2. Optionally compare the downloaded file's SHA-256 hash with `SHA256SUMS.txt` from the release.
    If the hashes differ, do not run the file.
 3. Run `xucRun-Installer-<Version>-x64.exe` and approve the Windows UAC request.
@@ -192,15 +193,13 @@ xucRun.exe /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\
 
 The carets prevent `cmd.exe` from expanding `%LOCALAPPDATA%` in the calling account's context; the
 variable passes through xucRun unchanged, and the launched application expands it only after the
-account switch. This invocation is intended for interactive entry in `cmd.exe`.
+account switch.
 
 Interactive commands may use executable short names. Scripts, shortcuts, scheduled tasks, and
 other fixed invocations should use the actual absolute paths of both `xucRun.exe` and the target
 program to reduce executable-search redirection risks. More examples, shell replacement, batch
 files, Explorer, desktop shortcuts, and one possible integration using custom commands in Total
-Commander are covered in [Using xucRun](docs/en/USAGE.md). The
-[comparison with other approaches](docs/en/SECURITY_MODEL.md#comparison-with-windows-features-and-other-solutions)
-explains the differences without assuming that one solution is best for every use case.
+Commander are covered in [Using xucRun](docs/en/USAGE.md).
 
 ## Credentials and approvals
 
@@ -209,10 +208,11 @@ the requested launch. Approvals can bind the target account, program, file hash,
 working directory, and other characteristics with different scopes and durations. Windows UAC
 remains a separate interactive step where required.
 
-Use `/showcred` and `/showapprovals` to inspect stored target accounts and active approvals. The
-complete management workflow is described in
-[Using xucRun](docs/en/USAGE.md#managing-credentials-and-approvals); the authorization model is
-described in the [security model](docs/en/SECURITY_MODEL.md#approvals-and-windows-uac).
+Use `/showcred` and `/showapprovals` to inspect stored target accounts and active approvals.
+[Using xucRun](docs/en/USAGE.md#managing-credentials-and-approvals) describes how to view and
+manage stored credentials and approvals. The
+[security model](docs/en/SECURITY_MODEL.md#approvals-and-windows-uac) explains the underlying
+authorization model.
 
 ## Important commands
 

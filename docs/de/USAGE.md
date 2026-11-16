@@ -6,7 +6,8 @@ Approach: Bündelt Praxisbeispiele, Kontowahl, Verwaltung gespeicherter Daten un
 
 **Sprache:** [English](../en/USAGE.md) | Deutsch
 
-Dieses Handbuch beschreibt die alltägliche Verwendung von xucRun, die Kontowahl, die Verwaltung gespeicherter Daten und praktische Integrationen. Installation und ersten Start beschreibt zunächst die [README](../../README.de.md).
+Dieses Handbuch beschreibt die alltägliche Verwendung von xucRun, die Kontowahl, die Verwaltung
+gespeicherter Daten und praktische Integrationen.
 
 ## Anwendungsbeispiele
 
@@ -111,7 +112,7 @@ xucRun.exe /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\
 
 Die Carets verhindern, dass `cmd.exe` `%LOCALAPPDATA%` bereits im Kontext des aufrufenden Kontos
 auflöst; xucRun reicht die Variable unverändert durch, und das gestartete Programm wertet sie erst
-nach dem Kontowechsel aus. Dieser Aufruf ist für die interaktive Eingabe in `cmd.exe` bestimmt.
+nach dem Kontowechsel aus.
 
 Die aktuelle PowerShell durch eine PowerShell im automatisch gewählten Benutzer- und
 Berechtigungskontext ersetzen:
@@ -193,6 +194,87 @@ ursprünglichen Argumente weiter. `GOTO :eof` verhindert, dass der nicht erhöht
 erneuten Start fortgesetzt wird. Die Prüfung mit `NET SESSION` setzt voraus, dass der Windows-Dienst
 **Server** verfügbar ist. Das Beispiel nimmt die Windows-Standardpfade an. Beim Einrichten der
 Batchdatei muss der xucRun-Pfad durch den tatsächlichen absoluten Installationspfad ersetzt werden.
+
+## Kontowahl und Rechtemodus
+
+
+### Automatische Kontowahl und Schalter
+
+Kontowahl und Rechtemodus sind getrennte Entscheidungen. Ohne Benutzerschalter bestimmt xucRun
+anhand des angeforderten Rechtemodus einen passenden aktuellen Benutzerkontext oder ein Zielkonto
+mit gespeicherten xucRun-Anmeldedaten. Gibt es genau ein passendes Konto, wird es automatisch
+gewählt; bei mehreren erscheint eine Auswahl.
+
+Die vollständigen Aufrufformen und Benutzerschalter stehen unter
+[Aufrufsyntax und Kontowahl](REFERENCE.md#aufrufsyntax-und-kontowahl).
+
+### Erste Verwendung und Kontoauswahl
+
+[Demonstrationsvideo zum Start unter einem anderen Benutzerkonto öffnen oder
+herunterladen](../media/xucRun-other-user-profile.mp4) (38 Sekunden, MP4, englische
+Benutzeroberfläche): Es zeigt zunächst, wie xucRun den Windows-Dialog für Umgebungsvariablen unter
+einem ausdrücklich angegebenen Standardkonto öffnet. Der dort angezeigte Name des Standardkontos
+und die zugehörigen Profilpfade machen den Benutzerkontext des Zielkontos sichtbar. Anschließend
+zeigt `/user:*` die interaktive Zielkontoauswahl; `whoami` bestätigt das ausgewählte Konto.
+
+Findet `/user` keine gespeicherten xucRun-Anmeldedaten, öffnet xucRun statt eines Abbruchs
+automatisch die lokale Zielkontoauswahl zum Anlegen von Anmeldedaten. Nachdem die Anmeldedaten des
+gewählten Kontos über die geschützte Kennworteingabe gespeichert wurden, setzt xucRun den
+ursprünglichen Programm- oder Konsolenstart fort. Das aktuelle Konto wird zum Anlegen von
+Anmeldedaten nicht angeboten, weil xucRun für einen Start unter diesem Konto dessen vorhandenen
+Windows-Zugriffstoken verwendet. Das aufrufende Konto muss nicht selbst Administrator sein; ein
+Administratorkontext muss das geschützte Speichern jedoch interaktiv autorisieren.
+
+Lehnt Windows die eingegebenen Anmeldedaten ab – beispielsweise weil leere Kennwörter durch die
+lokale Sicherheitsrichtlinie eingeschränkt sind –, zeigt xucRun den von Windows gemeldeten Grund
+auf dem geschützten Desktop an und öffnet anschließend den Eingabedialog erneut.
+
+![Zielkontoauswahl bei der ersten Verwendung](images/first-use-target-user-selection.png)
+
+Die `:*`-Formen zeigen die lokale Zielkontoauswahl immer an, auch wenn nur ein geeignetes Konto
+oder nur ein passender Anmeldedatensatz vorhanden ist. Der Dialog kennzeichnet das aktuelle Konto,
+Konten mit gespeicherten xucRun-Anmeldedaten und die Mitgliedschaft in der lokalen
+Administratorengruppe. Beim aktuellen Konto verwendet xucRun den vorhandenen Windows-Zugriffstoken.
+Fehlen für ein anderes ausgewähltes Konto xucRun-Anmeldedaten, folgt die geschützte
+Kennworteingabe; nach erfolgreicher Speicherung wird der ursprüngliche Startauftrag fortgesetzt.
+
+Kann `/user-elevated` das aktuelle Konto nicht verwenden und findet xucRun mehrere Konten mit
+gespeicherten xucRun-Anmeldedaten, die Mitglieder der lokalen Administratorengruppe sind, erscheint
+die folgende Zielkontoauswahl:
+
+![Zielkonto mit gespeicherten Anmeldedaten auswählen](images/stored-target-account-selection.png)
+
+Kann `/user-elevated` das aktuelle Konto nicht verwenden und findet xucRun kein Konto mit
+gespeicherten xucRun-Anmeldedaten, das Mitglied der lokalen Administratorengruppe ist, bietet
+xucRun automatisch eine auf Mitglieder dieser Gruppe eingeschränkte lokale Zielkontoauswahl und
+anschließend die geschützte Kennworteingabe an. Das dabei gewählte Konto wird nach erfolgreicher
+Speicherung seiner Anmeldedaten als Zielkonto für den erhöhten Start verwendet.
+
+Auch bei einem nicht erhöhten Start unter einem anderen Standardkonto kann eine auf Mitglieder der
+lokalen Administratorengruppe beschränkte lokale Kontoauswahl erscheinen, wenn xucRun für diesen
+Start zusätzlich die Anmeldedaten eines Kontos ausschließlich zum Öffnen des geschützten
+xucRun-Freigabedialogs benötigt. Anders als die zuvor gezeigte Zielkontoauswahl ist dieser Dialog
+nicht auf Konten beschränkt, für die bereits xucRun-Anmeldedaten gespeichert sind; deshalb können
+zusätzliche Konten erscheinen. In diesem Fall ist das zusätzlich gewählte Konto nicht das
+Zielkonto. Das Zielprogramm läuft weiterhin unter dem zuvor ausgewählten Standardkonto.
+
+![Lokales Konto zum Speichern zusätzlicher Anmeldedaten auswählen](images/target-account-selection.png)
+
+Gespeicherte Anmeldedaten ersetzen keine erforderliche Windows-UAC-Bestätigung. Einzelheiten
+beschreibt
+[Verhältnis zwischen xucRun-Freigaben und Windows-UAC](SECURITY_MODEL.md#verhältnis-zwischen-xucrun-freigaben-und-windows-uac).
+
+### Start unter einem stärker eingeschränkten Konto
+
+Neben dem Start mit erhöhten Rechten unterstützt xucRun auch den umgekehrten Anwendungsfall: Ein
+Programm kann ohne Erhöhung unter einem anderen, bewusst stärker eingeschränkten Konto ausgeführt
+werden. Beispielsweise kann ein Programm unter einem dafür eingerichteten Standardkonto mit
+engeren Datei- oder Netzwerkberechtigungen und einer eigenen benutzerbezogenen Konfiguration
+ausgeführt werden. Der Prozess verwendet dabei den Windows-Zugriffstoken und das Benutzerprofil
+des Zielkontos. Dies ist keine Sandbox: Die wirksamen Einschränkungen ergeben sich aus den
+Gruppenmitgliedschaften, Berechtigungen und sonstigen Windows-Einstellungen des Zielkontos.
+
+## Integrationen
 
 ### Desktop-Verknüpfung für einen erhöhten Explorer
 
@@ -382,92 +464,6 @@ können.
 
 Auf dieselbe Weise können weitere Konten ergänzt werden. Dazu können für jedes weitere Konto ein
 eigener Befehl in `usercmd.ini` sowie ein darauf verweisender `MENUITEM` angelegt werden.
-
-## Kontowahl und Rechtemodus
-
-
-### Automatische Kontowahl und Schalter
-
-Kontowahl und Rechtemodus sind getrennte Entscheidungen. Ohne Benutzerschalter bestimmt xucRun
-anhand des angeforderten Rechtemodus einen passenden aktuellen Benutzerkontext oder ein Zielkonto
-mit gespeicherten xucRun-Anmeldedaten. Gibt es genau ein passendes Konto, wird es automatisch
-gewählt; bei mehreren erscheint eine Auswahl.
-
-| Aufruf | Verhalten |
-|---|---|
-| `xucRun.exe <Programm> [Argumente ...]` | Konto automatisch bestimmen; bei Bedarf erhöhte Rechte anfordern |
-| `xucRun.exe /user <Programm> [Argumente ...]` | Konto wählen, für das xucRun-Anmeldedaten gespeichert sind, ohne zusätzliche Erhöhung durch xucRun |
-| `xucRun.exe /user:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, ohne zusätzliche Erhöhung durch xucRun |
-| `xucRun.exe /user:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden, ohne zusätzliche Erhöhung durch xucRun |
-| `xucRun.exe /user-elevated <Programm> [Argumente ...]` | aktuelles Konto verwenden, wenn es Mitglied der lokalen Administratorengruppe ist, und bei Bedarf über UAC erhöhen; andernfalls passendes Konto mit gespeicherten xucRun-Anmeldedaten wählen |
-| `xucRun.exe /user-elevated:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, das Mitglied der lokalen Administratorengruppe ist, und erhöht starten |
-| `xucRun.exe /user-elevated:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden und erhöht starten; ist es kein Mitglied der lokalen Administratorengruppe, wird der Start abgebrochen |
-
-### Erste Verwendung und Kontoauswahl
-
-[Demonstrationsvideo zum Start unter einem anderen Benutzerkonto öffnen oder
-herunterladen](../media/xucRun-other-user-profile.mp4) (38 Sekunden, MP4, englische
-Benutzeroberfläche): Es zeigt zunächst, wie xucRun den Windows-Dialog für Umgebungsvariablen unter
-einem ausdrücklich angegebenen Standardkonto öffnet. Der dort angezeigte Name des Standardkontos
-und die zugehörigen Profilpfade machen den Benutzerkontext des Zielkontos sichtbar. Anschließend
-zeigt `/user:*` die interaktive Zielkontoauswahl; `whoami` bestätigt das ausgewählte Konto.
-
-Findet `/user` keine gespeicherten xucRun-Anmeldedaten, öffnet xucRun statt eines Abbruchs
-automatisch die lokale Zielkontoauswahl zum Anlegen von Anmeldedaten. Nachdem die Anmeldedaten des
-gewählten Kontos über die geschützte Kennworteingabe gespeichert wurden, setzt xucRun den
-ursprünglichen Programm- oder Konsolenstart fort. Das aktuelle Konto wird zum Anlegen von
-Anmeldedaten nicht angeboten, weil xucRun für einen Start unter diesem Konto dessen vorhandenen
-Windows-Zugriffstoken verwendet. Das aufrufende Konto muss nicht selbst Administrator sein; ein
-Administratorkontext muss das geschützte Speichern jedoch interaktiv autorisieren.
-
-Lehnt Windows die eingegebenen Anmeldedaten ab – beispielsweise weil leere Kennwörter durch die
-lokale Sicherheitsrichtlinie eingeschränkt sind –, zeigt xucRun den von Windows gemeldeten Grund
-auf dem geschützten Desktop an und öffnet anschließend den Eingabedialog erneut.
-
-![Zielkontoauswahl bei der ersten Verwendung](images/first-use-target-user-selection.png)
-
-Die `:*`-Formen zeigen die lokale Zielkontoauswahl immer an, auch wenn nur ein geeignetes Konto
-oder nur ein passender Anmeldedatensatz vorhanden ist. Der Dialog kennzeichnet das aktuelle Konto,
-Konten mit gespeicherten xucRun-Anmeldedaten und die Mitgliedschaft in der lokalen
-Administratorengruppe. Beim aktuellen Konto verwendet xucRun den vorhandenen Windows-Zugriffstoken.
-Fehlen für ein anderes ausgewähltes Konto xucRun-Anmeldedaten, folgt die geschützte
-Kennworteingabe; nach erfolgreicher Speicherung wird der ursprüngliche Startauftrag fortgesetzt.
-
-Kann `/user-elevated` das aktuelle Konto nicht verwenden und findet xucRun mehrere Konten mit
-gespeicherten xucRun-Anmeldedaten, die Mitglieder der lokalen Administratorengruppe sind, erscheint
-die folgende Zielkontoauswahl:
-
-![Zielkonto mit gespeicherten Anmeldedaten auswählen](images/stored-target-account-selection.png)
-
-Kann `/user-elevated` das aktuelle Konto nicht verwenden und findet xucRun kein Konto mit
-gespeicherten xucRun-Anmeldedaten, das Mitglied der lokalen Administratorengruppe ist, bietet
-xucRun automatisch eine auf Mitglieder dieser Gruppe eingeschränkte lokale Zielkontoauswahl und
-anschließend die geschützte Kennworteingabe an. Das dabei gewählte Konto wird nach erfolgreicher
-Speicherung seiner Anmeldedaten als Zielkonto für den erhöhten Start verwendet.
-
-Auch bei einem nicht erhöhten Start unter einem anderen Standardkonto kann eine auf Mitglieder der
-lokalen Administratorengruppe beschränkte lokale Kontoauswahl erscheinen, wenn xucRun für diesen
-Start zusätzlich die Anmeldedaten eines Kontos ausschließlich zum Öffnen des geschützten
-xucRun-Freigabedialogs benötigt. Anders als die zuvor gezeigte Zielkontoauswahl ist dieser Dialog
-nicht auf Konten beschränkt, für die bereits xucRun-Anmeldedaten gespeichert sind; deshalb können
-zusätzliche Konten erscheinen. In diesem Fall ist das zusätzlich gewählte Konto nicht das
-Zielkonto. Das Zielprogramm läuft weiterhin unter dem zuvor ausgewählten Standardkonto.
-
-![Lokales Konto zum Speichern zusätzlicher Anmeldedaten auswählen](images/target-account-selection.png)
-
-Gespeicherte Anmeldedaten ersetzen keine erforderliche Windows-UAC-Bestätigung. Einzelheiten
-beschreibt
-[Verhältnis zwischen xucRun-Freigaben und Windows-UAC](SECURITY_MODEL.md#verhältnis-zwischen-xucrun-freigaben-und-windows-uac).
-
-### Start unter einem stärker eingeschränkten Konto
-
-Neben dem Start mit erhöhten Rechten unterstützt xucRun auch den umgekehrten Anwendungsfall: Ein
-Programm kann ohne Erhöhung unter einem anderen, bewusst stärker eingeschränkten Konto ausgeführt
-werden. Beispielsweise kann ein Programm unter einem dafür eingerichteten Standardkonto mit
-engeren Datei- oder Netzwerkberechtigungen und einer eigenen benutzerbezogenen Konfiguration
-ausgeführt werden. Der Prozess verwendet dabei den Windows-Zugriffstoken und das Benutzerprofil
-des Zielkontos. Dies ist keine Sandbox: Die wirksamen Einschränkungen ergeben sich aus den
-Gruppenmitgliedschaften, Berechtigungen und sonstigen Windows-Einstellungen des Zielkontos.
 
 ## Anmeldedaten und Freigaben verwalten
 

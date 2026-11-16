@@ -6,7 +6,8 @@ Approach: Groups practical examples, account selection, stored-data management, 
 
 **Language:** English | [Deutsch](../de/USAGE.md)
 
-This guide explains everyday xucRun use, account selection, stored data management, and practical integrations. Start with the [README](../../README.md) for installation and the first launch.
+This guide explains everyday xucRun use, account selection, stored data management, and practical
+integrations.
 
 ## Usage examples
 
@@ -109,7 +110,7 @@ xucRun.exe /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\
 
 The carets prevent `cmd.exe` from expanding `%LOCALAPPDATA%` in the calling account's context; the
 variable passes through xucRun unchanged, and the launched application expands it only after the
-account switch. This invocation is intended for interactive entry in `cmd.exe`.
+account switch.
 
 Replace the current PowerShell with a PowerShell running in the automatically selected user and
 privilege context:
@@ -190,6 +191,85 @@ arguments. `GOTO :eof` prevents the non-elevated run from continuing after the r
 `NET SESSION` check requires the Windows **Server** service to be available. The example assumes
 the standard Windows paths. When configuring the batch file, replace the xucRun path with the
 actual absolute installation path.
+
+## Account selection and privilege mode
+
+
+### Automatic account selection and switches
+
+Account selection and privilege mode are separate decisions. Without a user switch, xucRun uses
+the requested privilege mode to determine a suitable current user context or target account with
+stored xucRun credentials. If exactly one account matches, it is selected automatically; if
+several match, a selection dialog is shown.
+
+The complete invocation forms and account switches are listed under
+[Invocation syntax and account selection](REFERENCE.md#invocation-syntax-and-account-selection).
+
+### First use and account selection
+
+[Open or download the demonstration video about launching under another user
+account](../media/xucRun-other-user-profile.mp4) (38 seconds, MP4, English user interface): It
+first shows xucRun opening the Windows environment-variables dialog under an explicitly specified
+standard account. The displayed standard-account name and associated profile paths make the
+target account's user context visible. It then shows interactive target-account selection with
+`/user:*`; `whoami` confirms the selected account.
+
+If `/user` finds no stored xucRun credentials, xucRun automatically opens local target-account
+selection for credential creation instead of aborting. After the selected account's credentials
+have been stored through protected password entry, xucRun continues the original program or
+console launch. The current account is not offered for credential creation because xucRun uses
+its existing Windows access token for a launch under that account. The invoking account does not
+itself have to be an administrator, but an administrator context must authorize protected
+credential storage interactively.
+
+If Windows rejects the entered credentials—for example because the local security policy
+restricts blank passwords—xucRun displays the reason reported by Windows on the protected desktop
+and then opens the credential dialog again.
+
+![First-use target-account selection](images/first-use-target-user-selection.png)
+
+The `:*` forms always show the local target-account selection, even when only one suitable
+account or stored credential is available. The dialog identifies the current account, accounts
+with stored xucRun credentials, and membership in the local Administrators group. For the current
+account, xucRun uses the existing Windows access token. Selecting another account without stored
+xucRun credentials starts protected password entry and continues the original launch after the
+credentials have been stored successfully.
+
+If `/user-elevated` cannot use the current account and xucRun finds multiple accounts with stored
+xucRun credentials that are members of the local Administrators group, the following
+target-account selection appears:
+
+![Select a target account with stored credentials](images/stored-target-account-selection.png)
+
+If `/user-elevated` cannot use the current account and xucRun finds no account with stored xucRun
+credentials that is a member of the local Administrators group, xucRun instead automatically
+offers local target-account selection restricted to members of that group, followed by protected
+password entry. After its credentials have been stored successfully, the selected account is used
+as the target account for the elevated launch.
+
+A non-elevated launch under another standard account can show a local account selection restricted
+to members of the local Administrators group when, for this launch, xucRun also requires
+credentials for an account solely to open the protected xucRun approval dialog. Unlike the
+target-account selection shown above, this dialog is not limited to accounts for which xucRun
+credentials are already stored; additional accounts can therefore appear. In this case, the
+additionally selected account is not the target account. The target program continues to run
+under the previously selected standard account.
+
+![Select a local account for storing additional credentials](images/target-account-selection.png)
+
+Stored credentials do not replace a required Windows UAC confirmation. For details, see
+[Relationship between xucRun approvals and Windows UAC](SECURITY_MODEL.md#relationship-between-xucrun-approvals-and-windows-uac).
+
+### Launching under a more restricted account
+
+In addition to starting programs with elevated privileges, xucRun also supports the opposite use
+case: a program can run without elevation under another, deliberately more restricted account.
+For example, an application can run under a dedicated standard account with narrower file or
+network permissions and its own user-specific configuration. The process uses the Windows access
+token and user profile of the target account. This is not a sandbox: the effective restrictions
+depend on the target account's group memberships, permissions, and other Windows settings.
+
+## Integrations
 
 ### Desktop shortcut for an elevated Explorer
 
@@ -367,90 +447,6 @@ elevated privileges and under different accounts.
 
 Additional accounts can be added in the same way. For each additional account, you can create a
 separate command in `usercmd.ini` and a corresponding `MENUITEM`.
-
-## Account selection and privilege mode
-
-
-### Automatic account selection and switches
-
-Account selection and privilege mode are separate decisions. Without a user switch, xucRun uses
-the requested privilege mode to determine a suitable current user context or target account with
-stored xucRun credentials. If exactly one account matches, it is selected automatically; if
-several match, a selection dialog is shown.
-
-| Invocation | Behavior |
-|---|---|
-| `xucRun.exe <Program> [Arguments ...]` | determine the account automatically and request elevation when required |
-| `xucRun.exe /user <Program> [Arguments ...]` | select an account for which xucRun credentials are stored, without additional elevation by xucRun |
-| `xucRun.exe /user:* <Program> [Arguments ...]` | always select an enabled local account, without additional elevation by xucRun |
-| `xucRun.exe /user:<Account> <Program> [Arguments ...]` | use a specific account without additional elevation by xucRun |
-| `xucRun.exe /user-elevated <Program> [Arguments ...]` | use the current account when it is a member of the local Administrators group and request UAC elevation if necessary; otherwise select a suitable account with stored xucRun credentials |
-| `xucRun.exe /user-elevated:* <Program> [Arguments ...]` | always select an enabled local account that is a member of the local Administrators group and start elevated |
-| `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated; abort if it is not a member of the local Administrators group |
-
-### First use and account selection
-
-[Open or download the demonstration video about launching under another user
-account](../media/xucRun-other-user-profile.mp4) (38 seconds, MP4, English user interface): It
-first shows xucRun opening the Windows environment-variables dialog under an explicitly specified
-standard account. The displayed standard-account name and associated profile paths make the
-target account's user context visible. It then shows interactive target-account selection with
-`/user:*`; `whoami` confirms the selected account.
-
-If `/user` finds no stored xucRun credentials, xucRun automatically opens local target-account
-selection for credential creation instead of aborting. After the selected account's credentials
-have been stored through protected password entry, xucRun continues the original program or
-console launch. The current account is not offered for credential creation because xucRun uses
-its existing Windows access token for a launch under that account. The invoking account does not
-itself have to be an administrator, but an administrator context must authorize protected
-credential storage interactively.
-
-If Windows rejects the entered credentials—for example because the local security policy
-restricts blank passwords—xucRun displays the reason reported by Windows on the protected desktop
-and then opens the credential dialog again.
-
-![First-use target-account selection](images/first-use-target-user-selection.png)
-
-The `:*` forms always show the local target-account selection, even when only one suitable
-account or stored credential is available. The dialog identifies the current account, accounts
-with stored xucRun credentials, and membership in the local Administrators group. For the current
-account, xucRun uses the existing Windows access token. Selecting another account without stored
-xucRun credentials starts protected password entry and continues the original launch after the
-credentials have been stored successfully.
-
-If `/user-elevated` cannot use the current account and xucRun finds multiple accounts with stored
-xucRun credentials that are members of the local Administrators group, the following
-target-account selection appears:
-
-![Select a target account with stored credentials](images/stored-target-account-selection.png)
-
-If `/user-elevated` cannot use the current account and xucRun finds no account with stored xucRun
-credentials that is a member of the local Administrators group, xucRun instead automatically
-offers local target-account selection restricted to members of that group, followed by protected
-password entry. After its credentials have been stored successfully, the selected account is used
-as the target account for the elevated launch.
-
-A non-elevated launch under another standard account can show a local account selection restricted
-to members of the local Administrators group when, for this launch, xucRun also requires
-credentials for an account solely to open the protected xucRun approval dialog. Unlike the
-target-account selection shown above, this dialog is not limited to accounts for which xucRun
-credentials are already stored; additional accounts can therefore appear. In this case, the
-additionally selected account is not the target account. The target program continues to run
-under the previously selected standard account.
-
-![Select a local account for storing additional credentials](images/target-account-selection.png)
-
-Stored credentials do not replace a required Windows UAC confirmation. For details, see
-[Relationship between xucRun approvals and Windows UAC](SECURITY_MODEL.md#relationship-between-xucrun-approvals-and-windows-uac).
-
-### Launching under a more restricted account
-
-In addition to starting programs with elevated privileges, xucRun also supports the opposite use
-case: a program can run without elevation under another, deliberately more restricted account.
-For example, an application can run under a dedicated standard account with narrower file or
-network permissions and its own user-specific configuration. The process uses the Windows access
-token and user profile of the target account. This is not a sandbox: the effective restrictions
-depend on the target account's group memberships, permissions, and other Windows settings.
 
 ## Managing credentials and approvals
 

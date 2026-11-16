@@ -6,12 +6,10 @@ Approach: Lists prerequisites and reproducible Visual Studio and command-line bu
 
 **Sprache:** Deutsch | [English](../en/BUILDING.md)
 
-Dieses Dokument beschreibt den Build von xucRun.
-
 ## Voraussetzungen
 
 - ein x64-Windows-Buildsystem,
-- Visual Studio oder Build Tools mit MSBuild und der Desktop-C++-Toolchain,
+- Visual Studio 2022 oder Build Tools 2022 mit MSBuild und der Desktop-C++-Toolchain,
 - ein Windows 10 SDK,
 - ein Compiler mit C++20-Unterstützung,
 - Windows PowerShell 5.1 für Paket-, Signier- und Installationsskripte.
@@ -19,12 +17,39 @@ Dieses Dokument beschreibt den Build von xucRun.
 Die Projekte verwenden das jeweils verfügbare Standard-MSVC-Toolset. Unterstützt werden nur die
 x64-Konfigurationen `Debug` und `Release`.
 
-## xucRun bauen
+Alle Befehle in einer **Developer PowerShell for Visual Studio 2022** oder einer entsprechend
+initialisierten Build-Tools-Umgebung im Stammverzeichnis des Repositorys ausführen.
+
+## Debug-Build
+
+```powershell
+& MSBuild.exe .\XUCRun.sln `
+  /t:Build /p:Configuration=Debug /p:Platform=x64 /m
+```
+
+## Release-Build
 
 ```powershell
 & MSBuild.exe .\XUCRun.sln `
   /t:Build /p:Configuration=Release /p:Platform=x64 /m
 ```
+
+## Toolchain-Bericht
+
+Für einen Release-Build die tatsächlich verwendeten Versionen von Visual Studio, MSBuild, MSVC und
+Windows SDK dauerhaft festhalten:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\New-BuildToolchainReport.ps1 `
+  -ProjectPath .\xucRun\XUCRun.vcxproj `
+  -ProductName xucRun `
+  -Configuration Release `
+  -DestinationPath .\artifacts\BUILD-TOOLCHAIN.txt
+```
+
+Der Bericht gehört zu den Releaseartefakten, wird aber nicht von `New-xucRun-Package.ps1` in das
+Installationspaket aufgenommen.
 
 ## Paket erstellen
 
@@ -34,33 +59,22 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -Configuration Release
 ```
 
-Das Paket entsteht unter `artifacts\Package\Release`. Vor der Installation müssen seine sechs
-installierbaren Dateien einheitlich signiert werden. Die dafür vorgesehene lokale Testsignierung
-ist in [INSTALLATION.md](INSTALLATION.md) beschrieben.
+Für ein Debug-Paket `Release` durch `Debug` ersetzen. Das Paket entsteht unter
+`artifacts\Package\<Configuration>`.
 
-## Release-Dateien erstellen
+## Paket prüfen
 
-Nach einem erfolgreichen Release-Build erzeugt das folgende Skript den versionierten
-Einzelinstaller, das vollständige ZIP-Archiv und die öffentliche SHA-256-Datei:
+`New-xucRun-Package.ps1` prüft beim Erstellen die benötigten Buildausgaben und den erwarteten
+Paketinhalt. Der vollständige Installer-Smoke-Test installiert, aktualisiert und entfernt xucRun
+und ist deshalb nur für ein sauberes, entbehrliches und erhöht ausgeführtes Windows-Testsystem
+geeignet:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\New-xucRun-Release.ps1 `
-  -ExpectedVersion 0.9.1.8
+  -File .\Test-Installer.ps1 `
+  -PackageDirectory .\artifacts\Package\Release
 ```
 
-Die Dateien entstehen unter `artifacts\Release\0.9.1.8`:
-
-```text
-xucRun-Installer-0.9.1.8-x64.exe
-xucRun-0.9.1.8-x64.zip
-SHA256SUMS.txt
-```
-
-Der taggesteuerte GitHub-Release-Workflow ergänzt `BUILD-TOOLCHAIN.txt`. Diese Datei nennt den
-Quellcommit und die beim Build tatsächlich aufgelösten Versionen von Visual Studio, MSBuild, MSVC
-und Windows SDK. Ihre SHA-256-Prüfsumme wird ebenfalls in `SHA256SUMS.txt` aufgenommen.
-
-Das Release-Skript lehnt signierte Buildausgaben bewusst ab. Öffentliche Releases werden ohne
-kommerzielles Herausgeberzertifikat bereitgestellt; die lokale Signierung erfolgt auf dem
-Zielrechner über den grafischen Installer oder vor der manuellen Installation.
+Vor einer normalen Installation müssen die installierbaren xucRun-Komponenten des Pakets
+einheitlich lokal signiert werden. Der vorgesehene Ablauf ist unter
+[Lokale Signierung und Vertrauen](INSTALLATION.md#lokale-signierung-und-vertrauen) beschrieben.

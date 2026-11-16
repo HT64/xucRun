@@ -8,10 +8,9 @@ Approach: Bewahrt die Maintainer-Erzählung getrennt von der aufgabenorientierte
 
 ## Persönliche Notiz
 
-
 Der Ausgangspunkt für xucRun war ein über Jahre wiederkehrender Bedarf auf mehreren Rechnern im
 privaten Umfeld, von denen einige auch von anderen Personen genutzt wurden. Ich arbeite
-grundsätzlich mit Windows-Standardkonten, muss aber dennoch einzelne Programme mit erhöhten
+grundsätzlich mit Windows-Standardkonten, möchte aber dennoch einzelne Programme mit erhöhten
 Rechten oder unter einem anderen Konto starten, ohne dafür in eine separate Sitzung zu wechseln
 oder bei jedem Start dieselben Anmeldedaten einzugeben. Ein zentraler Anwendungsfall ist das Öffnen
 eines Dateimanagers im Kontext eines anderen Kontos aus meiner bestehenden Sitzung heraus; daraus
@@ -23,50 +22,33 @@ das Thema von Grund auf anzugehen, und entwickelte eine eigenständige native L�
 
 Nachdem mit der Zeit immer mehr Arbeit in xucRun geflossen war, erschien es mir zu schade, das
 Werkzeug nur für mich zu behalten. Deshalb entschied ich mich, es als öffentliches
-Open-Source-Projekt auf GitHub zu veröffentlichen. Aus dieser Entscheidung ergab sich jedoch ein
-erheblicher zusätzlicher Aufwand: Um xucRun für die
-Nutzung durch andere aufzubereiten und seinen Einsatz, seine Funktionsweise sowie
-seine Grenzen nachvollziehbar zu erklären, mussten insbesondere das Sicherheitsmodell, die
-Funktionen zur Verwaltung gespeicherter Anmeldedaten und Programmfreigaben, die Konfigurations-
-und Diagnosefunktionen, die Benutzeroberflächen und ihre Dialoge, die Installer, die Lokalisierung,
-eine anwendergerechte Dokumentation und die automatisierten Tests systematisch weiterentwickelt
-und ausgearbeitet werden.
+Open-Source-Projekt auf GitHub zu veröffentlichen. Die Aufbereitung für andere Anwender erforderte
+jedoch zusätzliche Arbeit an Sicherheit, Bedienbarkeit, Installation und Dokumentation.
 
-Ein wesentlicher Teil dieses Aufwands entstand aus dem Ziel, den zusätzlichen Bedienkomfort nicht
+Ein wesentlicher Teil dieses Aufwands folgte aus dem Ziel, den zusätzlichen Bedienkomfort nicht
 durch eine pauschale, weitreichende Freigabe zu erkaufen. Stattdessen sollen Anwender das
 Verhältnis zwischen Bedienkomfort und enger Begrenzung für ihren konkreten Anwendungsfall selbst
-festlegen und die Wirkung ihrer Auswahl nachvollziehen können. Daraus entwickelte sich unter
-anderem der unter
-[Freigabedialog, Dauer und Umfang](SECURITY_MODEL.md#freigabedialog-dauer-und-umfang) beschriebene differenzierte
-Freigabedialog.
+festlegen und die Wirkung ihrer Auswahl nachvollziehen können. Daraus entstand unter anderem der
+differenzierte
+[Freigabedialog mit wählbarer Dauer und wählbarem Umfang](SECURITY_MODEL.md#freigabedialog-dauer-und-umfang).
 
-KI-gestützte Entwicklungswerkzeuge haben mir dabei geholfen, diesen zusätzlichen Entwicklungsaufwand
-als Einzelentwickler zu bewältigen. Dabei setzte ich sie in zahlreichen interaktiven
-Arbeitsschritten unterstützend ein. Die jeweiligen Entwicklungsstände nutzte ich bei meinen
-alltäglichen Tätigkeiten am Rechner selbst und entwickelte xucRun auf Grundlage dieser Erfahrungen
-weiter. Erst nachdem xucRun auf diese Weise einen aus meiner Sicht angemessenen Reifegrad erreicht
-hatte, stellte ich die erste öffentliche Version bereit.
+KI-gestützte Entwicklungswerkzeuge halfen mir als Einzelentwickler, diesen zusätzlichen Aufwand zu
+bewältigen. Die jeweiligen Entwicklungsstände setzte ich bei meinen alltäglichen Tätigkeiten selbst
+ein und entwickelte xucRun auf Grundlage dieser Erfahrungen weiter. Erst nachdem xucRun auf diese
+Weise einen aus meiner Sicht angemessenen Reifegrad erreicht hatte, stellte ich die erste
+öffentliche Version bereit.
 
 xucRun ist zwar kein Werkzeug, auf das die Welt gewartet hat, für das flexible Ausführen von
 Anwendungen in einem anderen Benutzerkontext – mit oder ohne Rechteerhöhung – jedoch eine Art
 Schweizer Taschenmesser.
 
-Die ausführliche Darstellung der Sicherheitsaspekte kann auf den ersten Blick ungewöhnlich
-kritisch wirken. Sie ist jedoch eine bewusste Folge der Veröffentlichung: Gerade weil xucRun
-gespeicherte Anmeldedaten verarbeitet und einen privilegierten Dienst verwendet, sah ich mich mit
-der Entscheidung zur Veröffentlichung in der Verantwortung, die damit verbundenen
-Sicherheitsfragen, die getroffenen Schutzmaßnahmen und die verbleibenden Grenzen so ausführlich
-und nachvollziehbar wie mir möglich darzustellen.
-Diese Ausführlichkeit ist weder als Aussage zu verstehen, xucRun sei unsicherer als weniger
-ausführlich dokumentierte Werkzeuge, noch als Zusage, alle Risiken erkannt oder ausgeschlossen zu
-haben.
+Weil xucRun gespeicherte Anmeldedaten verarbeitet und einen privilegierten Dienst verwendet, war
+mir eine nachvollziehbare Darstellung der Sicherheitsziele, Schutzmaßnahmen und verbleibenden
+Grenzen besonders wichtig.
 
-Kommerzielle Interessen verfolge ich mit xucRun nicht. Ebenso beabsichtige ich nicht, daraus ein
-kommerzielles Produkt zu machen und dafür einen bestimmten Funktionsumfang, Fehlerfreiheit,
-dauerhafte Verfügbarkeit, Support oder Weiterentwicklung zuzusagen.
+Ich entwickle xucRun ohne kommerzielle Absicht als öffentliches Open-Source-Projekt.
 
 Ich würde mich freuen, wenn xucRun auch für andere Privatanwender so nützlich ist wie für mich.
-Rückmeldungen und Anregungen sind willkommen. Hinweise auf mögliche Probleme helfen mir, xucRun
-weiter zu verbessern.
+Rückmeldungen und Anregungen zur Nutzung sind willkommen.
 
 — HT64

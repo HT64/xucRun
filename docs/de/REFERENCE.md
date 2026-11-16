@@ -6,7 +6,34 @@ Approach: Ordnet Syntax, erweiterte Befehle, Konfiguration, Datensicherungen und
 
 **Sprache:** [English](../en/REFERENCE.md) | Deutsch
 
-Diese Referenz bündelt Aufrufsyntax, erweiterte Startmodi, Konfiguration, Datensicherungen und Diagnose. Geführte Arbeitsabläufe stehen unter [xucRun verwenden](USAGE.md).
+Diese Referenz bündelt Aufrufsyntax, erweiterte Startmodi, Konfiguration, Datensicherungen und
+Diagnose. Geführte Arbeitsabläufe stehen unter [xucRun verwenden](USAGE.md).
+
+## Aufrufsyntax und Kontowahl
+
+Die allgemeine Aufrufform lautet:
+
+```text
+xucRun.exe [<Programm> [Argumente ...]]
+```
+
+Ohne Zielprogramm ersetzt xucRun eine unterstützte direkte Eltern-Shell durch denselben Shelltyp
+im automatisch bestimmten Benutzer- und Berechtigungskontext. Mit einem Zielprogramm gelten
+folgende Formen:
+
+| Aufruf | Verhalten |
+|---|---|
+| `xucRun.exe <Programm> [Argumente ...]` | Konto automatisch bestimmen; bei Bedarf erhöhte Rechte anfordern |
+| `xucRun.exe /user <Programm> [Argumente ...]` | Konto wählen, für das xucRun-Anmeldedaten gespeichert sind, ohne zusätzliche Erhöhung durch xucRun |
+| `xucRun.exe /user:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, ohne zusätzliche Erhöhung durch xucRun |
+| `xucRun.exe /user:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden, ohne zusätzliche Erhöhung durch xucRun |
+| `xucRun.exe /user-elevated <Programm> [Argumente ...]` | aktuelles Konto verwenden, wenn es Mitglied der lokalen Administratorengruppe ist, und bei Bedarf über UAC erhöhen; andernfalls passendes Konto mit gespeicherten xucRun-Anmeldedaten wählen |
+| `xucRun.exe /user-elevated:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, das Mitglied der lokalen Administratorengruppe ist, und erhöht starten |
+| `xucRun.exe /user-elevated:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden und erhöht starten; ist es kein Mitglied der lokalen Administratorengruppe, wird der Start abgebrochen |
+
+Kontowahl und Rechtemodus sind getrennte Entscheidungen. Das praktische Verhalten bei der ersten
+Verwendung, automatischer Auswahl und fehlenden Anmeldedaten beschreibt
+[Kontowahl und Rechtemodus](USAGE.md#kontowahl-und-rechtemodus).
 
 ## Programme, Argumente und Sonderzeichen
 
@@ -73,7 +100,7 @@ nicht verborgen oder überwacht.
 Vorgang fehlschlägt, abgelehnt oder abgebrochen wird. Der Exitcode eines gestarteten Zielprogramms
 wird nicht als Exitcode von `xucRun.exe` zurückgegeben.
 
-### Anwendung oder Ersatz-Shell als LocalSystem oder TrustedInstaller starten
+## LocalSystem und TrustedInstaller
 
 `xucRun.exe /system [<Anwendung> [Argumente...]]` startet die angegebene lokale Anwendung unter
 dem Windows-Konto `LocalSystem` in der interaktiven Sitzung des Aufrufers.
@@ -164,7 +191,7 @@ Metadaten. Datensicherungen werden getrennt von den aktiven Anmeldedaten und Fre
 Windows-APIs und bindet die Datensicherungen an den Rechner. xucRun stellt sie nur auf demselben
 Rechner wieder her; sie sind kein portabler Kennwortexport.
 
-Auch die [Deinstallation](INSTALLATION.md#aktualisieren) entfernt die lokalen Sicherungen.
+Auch die [Deinstallation](INSTALLATION.md#deinstallieren) entfernt die lokalen Sicherungen.
 
 ## Fehlerdiagnose
 
@@ -240,30 +267,23 @@ und nicht an eine Einstellung angehängt werden.
 - `Language=auto` folgt der Windows-Anzeigesprache des aktuellen Benutzers und verwendet bei einer
   deutschen Anzeigesprache Deutsch, andernfalls Englisch. `Language=de` wählt ausdrücklich Deutsch,
   `Language=en` ausdrücklich Englisch. Die Änderung gilt für neu gestartete xucRun-Prozesse.
-  Laufende Tray-Instanzen starten sich nach einer über xucRun gesetzten Sprachänderung neu. Eine
-  manuelle externe Änderung erkennt das Tray beim nächsten Öffnen seines Kontextmenüs und startet
-  sich dann neu. Andere bereits laufende xucRun-Prozesse übernehmen die Änderung nicht. Deutsch
-  und Englisch werden über getrennte, signierte Sprachressourcendateien bereitgestellt. Die
-  Lokalisierungsarchitektur kann um zusätzliche Sprachen erweitert werden; die aktuelle Version
-  unterstützt jedoch ausschließlich Deutsch und Englisch.
+  Andere bereits laufende xucRun-Prozesse übernehmen die Änderung nicht. Die aktuelle Version
+  unterstützt Deutsch und Englisch über getrennte, signierte Sprachressourcendateien.
 - Ein fehlendes oder leeres `ClientLogDirectory` deaktiviert das Client-Dateilog. Ein eingetragener
   Pfad aktiviert es. Umgebungsvariablen werden im Kontext des jeweils startenden Clients
   aufgelöst. Der Pfad muss für jedes verwendete Client- und Wrapperkonto erreichbar und mit den
   zum Erstellen, Anhängen und Löschen der Protokolldateien erforderlichen Rechten versehen sein.
   Ist das konfigurierte Verzeichnis, insbesondere ein Netzwerkpfad, nicht erreichbar, können
-  Windows-Dateisystemzeitüberschreitungen auch das Öffnen des Tray-Kontextmenüs verzögern. Das
-  Tray ermittelt dabei die vorhandenen Logdateien, um die zugehörigen Aktionen und deren
-  Dateianzahl zu aktualisieren.
-  xucRun verändert die Zugriffsrechte des Verzeichnisses nicht. Bei einem gemeinsamen Pfad muss
-  der Administrator deshalb die vorgesehenen Leser und Schreiber festlegen; Konten mit
-  Änderungsrechten können die Protokolle auch verändern oder löschen.
-  Änderungen gelten für neu gestartete Client- und Wrapperprozesse. Das laufende Tray liest den
-  Wert beim nächsten Öffnen seines Kontextmenüs neu; bis dahin verwendet es seine bisherige
-  Loggingkonfiguration. In jedes aufgelöste Protokollverzeichnis schreibt xucRun pro Tag eine
-  datierte Protokolldatei, rotiert oder löscht Client-Protokolle jedoch nicht automatisch. Diese
-  Protokolle können Programmpfade, Kontonamen, Befehlszeilen und Argumente des Zielprogramms
-  enthalten. Kennwörter oder andere Geheimnisse sollten deshalb nicht als Befehlszeilenargumente
-  übergeben werden.
+  Windows-Dateisystemzeitüberschreitungen betroffene Clientfunktionen verzögern. xucRun verändert
+  die Zugriffsrechte des Verzeichnisses nicht. Bei einem gemeinsamen Pfad muss der Administrator
+  deshalb die vorgesehenen Leser und Schreiber festlegen; Konten mit Änderungsrechten können die
+  Protokolle auch verändern oder löschen. Änderungen gelten für neu gestartete Client- und
+  Wrapperprozesse. In jedes aufgelöste Protokollverzeichnis schreibt xucRun pro Tag eine datierte
+  Protokolldatei, rotiert oder löscht Client-Protokolle jedoch nicht automatisch. Diese Protokolle
+  können Programmpfade, Kontonamen, Befehlszeilen und Argumente des Zielprogramms enthalten.
+  Kennwörter oder andere Geheimnisse sollten deshalb nicht als Befehlszeilenargumente übergeben
+  werden. Wie das optionale Tray Sprach- und Loggingänderungen übernimmt, beschreibt dessen
+  Abschnitt [Sprache und Protokolle](https://github.com/HT64/xucRun-Tray/blob/main/README.de.md#sprache-und-protokolle).
 - Warnungen, Fehler sowie Dienst- und ACL-Startmeldungen schreibt der Broker immer in das unter
   [Fehlerdiagnose](#fehlerdiagnose) genannte Ereignisprotokoll.
   `BrokerInformationEvents=true` ergänzt dort routinemäßige Informationsmeldungen zur Verarbeitung

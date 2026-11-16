@@ -6,7 +6,34 @@ Approach: Organizes syntax, advanced commands, configuration, backups, and diagn
 
 **Language:** English | [Deutsch](../de/REFERENCE.md)
 
-This reference collects command syntax, advanced launch modes, configuration, backups, and diagnostics. For guided workflows, see [Using xucRun](USAGE.md).
+This reference collects command syntax, advanced launch modes, configuration, backups, and
+diagnostics. For guided workflows, see [Using xucRun](USAGE.md).
+
+## Invocation syntax and account selection
+
+The general invocation syntax is:
+
+```text
+xucRun.exe [<Program> [Arguments ...]]
+```
+
+Without a target program, xucRun replaces a supported direct parent shell with the same shell type
+in the automatically determined account and privilege context. With a target program, the
+following forms apply:
+
+| Invocation | Behavior |
+|---|---|
+| `xucRun.exe <Program> [Arguments ...]` | determine the account automatically and request elevation when required |
+| `xucRun.exe /user <Program> [Arguments ...]` | select an account for which xucRun credentials are stored, without additional elevation by xucRun |
+| `xucRun.exe /user:* <Program> [Arguments ...]` | always select an enabled local account, without additional elevation by xucRun |
+| `xucRun.exe /user:<Account> <Program> [Arguments ...]` | use a specific account without additional elevation by xucRun |
+| `xucRun.exe /user-elevated <Program> [Arguments ...]` | use the current account when it is a member of the local Administrators group and request UAC elevation if necessary; otherwise select a suitable account with stored xucRun credentials |
+| `xucRun.exe /user-elevated:* <Program> [Arguments ...]` | always select an enabled local account that is a member of the local Administrators group and start elevated |
+| `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated; abort if it is not a member of the local Administrators group |
+
+Account selection and privilege mode are separate decisions. The practical behavior during first
+use, automatic selection, and missing credentials is described under
+[Account selection and privilege mode](USAGE.md#account-selection-and-privilege-mode).
 
 ## Programs, arguments, and special characters
 
@@ -72,7 +99,7 @@ these options.
 fails, is rejected, or is cancelled. The exit code of a launched target program is not returned as
 the exit code of `xucRun.exe`.
 
-### Starting an application or replacement shell as LocalSystem or TrustedInstaller
+## LocalSystem and TrustedInstaller
 
 `xucRun.exe /system [<Application> [Arguments...]]` starts the specified local application as the
 Windows `LocalSystem` account in the caller's interactive session.
@@ -161,7 +188,7 @@ Backups are stored separately from the active credentials and approvals under
 the computer. xucRun restores them only on the same computer; they are not a portable password
 export.
 
-[Uninstalling xucRun](INSTALLATION.md#update) also removes local backups.
+[Uninstalling xucRun](INSTALLATION.md#uninstall) also removes local backups.
 
 ## Troubleshooting
 
@@ -234,25 +261,21 @@ than appended to a setting.
 - `Language=auto` follows the current user's Windows display language, selecting German for a
   German display language and English otherwise. `Language=de` selects German explicitly, and
   `Language=en` selects English explicitly. The change applies to newly started xucRun processes.
-  Running Tray instances restart after a language change made through xucRun. Tray detects a
-  manual external change when its context menu is next opened and then restarts itself. Other
-  already running xucRun processes do not adopt the change. German and English are provided
-  through separate, signed language resource files. The localization architecture can be extended
-  with additional languages, but the current version supports only German and English.
+  Other already running xucRun processes do not adopt the change. The current version supports
+  German and English through separate, signed language resource files.
 - A missing or empty `ClientLogDirectory` disables client file logging. Specifying a path enables
   it. Environment variables are expanded in the context of each starting client. The path must
   be accessible to every client and wrapper account in use, with the permissions required to
-  create, append to, and delete log files. xucRun does not change the directory's access
-  permissions. If the configured directory, especially a network path, is unavailable, Windows
-  file-system timeouts can also delay the opening of the Tray context menu. The Tray enumerates
-  the existing log files at that point to update the corresponding actions and file count. For a
-  shared path, the administrator must therefore define the intended readers
-  and writers; accounts with modify access can also alter or delete the logs. Changes apply to
-  newly started client and wrapper processes. Running Tray reloads the value when its context menu
-  is next opened; until then, it continues to use its previous logging configuration. For each
+  create, append to, and delete log files. If the configured directory, especially a network
+  path, is unavailable, Windows file-system timeouts can delay affected client functions. xucRun
+  does not change the directory's access permissions. For a shared path, the administrator must
+  therefore define the intended readers and writers; accounts with modify access can also alter
+  or delete the logs. Changes apply to newly started client and wrapper processes. For each
   resolved log directory, xucRun appends to one dated log file per day but does not automatically
   rotate or delete client logs. These logs can contain program paths, account names, command
   lines, and target arguments. Do not pass passwords or other secrets as command-line arguments.
+  The optional Tray's response to language and logging changes is documented under
+  [Language and log files](https://github.com/HT64/xucRun-Tray/blob/main/README.md#language-and-log-files).
 - The broker always writes warnings, errors, and service and ACL startup messages to the event log
   described under [Troubleshooting](#troubleshooting). `BrokerInformationEvents=true`
   additionally logs routine information about pipe request processing there. If the setting is

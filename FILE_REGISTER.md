@@ -36,6 +36,7 @@ treats that encoding as binary.
 | `Directory.Build.targets` | MSBuild targets | Ensures changes to shared client resources are embedded in every dependent binary. |
 | `docs/de/BACKGROUND.md` | Documentation | Describes the motivation and personal history behind xucRun in German. |
 | `docs/de/BUILDING.md` | Documentation | Explains how users build xucRun from source in German. |
+| `docs/de/COMPARISON.md` | Documentation | Compares xucRun with Windows features and other approaches in German. |
 | `docs/de/images/administrative-status.png` | Documentation image | German documentation screenshot showing administrative status. |
 | `docs/de/images/approval-dialog.png` | Documentation image | German documentation screenshot showing approval dialog. |
 | `docs/de/images/approval-helper-uac.png` | Documentation image | German documentation screenshot showing approval helper uac. |
@@ -73,6 +74,7 @@ treats that encoding as binary.
 | `docs/de/USAGE.md` | Documentation | Explains everyday xucRun workflows, account selection, stored-data management, and integrations in German. |
 | `docs/en/BACKGROUND.md` | Documentation | Describes the motivation and personal history behind xucRun in English. |
 | `docs/en/BUILDING.md` | Documentation | Explains how users build xucRun from source in English. |
+| `docs/en/COMPARISON.md` | Documentation | Compares xucRun with Windows features and other approaches in English. |
 | `docs/en/images/administrative-status.png` | Documentation image | English documentation screenshot showing administrative status. |
 | `docs/en/images/approval-dialog.png` | Documentation image | English documentation screenshot showing approval dialog. |
 | `docs/en/images/approval-helper-uac.png` | Documentation image | English documentation screenshot showing approval helper uac. |
