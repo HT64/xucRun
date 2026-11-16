@@ -113,11 +113,12 @@ xucRun program approvals apply to starts using another account's stored credenti
 intended workflow from a non-elevated standard user account, any Windows UAC confirmation required
 for the specific launch remains interactive. For a launch where xucRun does not request additional
 elevation, UAC can confirm the user's presence through the xucRun Approval Helper. The target
-program then uses the target account's existing or Windows-created token. xucRun neither changes
-that token's elevation state nor creates an artificially restricted token; if the token is already
-elevated, the target program is elevated as well. With requested elevation, UAC can instead confirm
-the target program start and grant it the requested administrator privileges. The UAC prompt that
-Windows actually displays depends on the specific launch path and Windows configuration.
+program then starts with the privileges that Windows assigns to the target account in that
+situation. xucRun neither adds administrator privileges nor removes existing privileges.
+Depending on the Windows UAC configuration, an administrator account can therefore still start
+elevated. With requested elevation, UAC can instead confirm the target program start and grant it
+the requested administrator privileges. The UAC prompt that Windows actually displays depends on
+the specific launch path and Windows configuration.
 
 A matching reusable approval only avoids another xucRun approval dialog. It does not replace any
 Windows UAC confirmation required for the specific launch. The two decisions serve different

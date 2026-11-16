@@ -221,8 +221,8 @@ Findet `/user` keine gespeicherten xucRun-Anmeldedaten, öffnet xucRun statt ein
 automatisch die lokale Zielkontoauswahl zum Anlegen von Anmeldedaten. Nachdem die Anmeldedaten des
 gewählten Kontos über die geschützte Kennworteingabe gespeichert wurden, setzt xucRun den
 ursprünglichen Programm- oder Konsolenstart fort. Das aktuelle Konto wird zum Anlegen von
-Anmeldedaten nicht angeboten, weil xucRun für einen Start unter diesem Konto dessen vorhandenen
-Windows-Zugriffstoken verwendet. Das aufrufende Konto muss nicht selbst Administrator sein; ein
+Anmeldedaten nicht angeboten, weil xucRun für einen Start unter diesem Konto keine gespeicherten
+Anmeldedaten benötigt. Das aufrufende Konto muss nicht selbst Administrator sein; ein
 Administratorkontext muss das geschützte Speichern jedoch interaktiv autorisieren.
 
 Lehnt Windows die eingegebenen Anmeldedaten ab – beispielsweise weil leere Kennwörter durch die
@@ -234,7 +234,7 @@ auf dem geschützten Desktop an und öffnet anschließend den Eingabedialog erne
 Die `:*`-Formen zeigen die lokale Zielkontoauswahl immer an, auch wenn nur ein geeignetes Konto
 oder nur ein passender Anmeldedatensatz vorhanden ist. Der Dialog kennzeichnet das aktuelle Konto,
 Konten mit gespeicherten xucRun-Anmeldedaten und die Mitgliedschaft in der lokalen
-Administratorengruppe. Beim aktuellen Konto verwendet xucRun den vorhandenen Windows-Zugriffstoken.
+Administratorengruppe. Für das aktuelle Konto sind keine gespeicherten xucRun-Anmeldedaten nötig.
 Fehlen für ein anderes ausgewähltes Konto xucRun-Anmeldedaten, folgt die geschützte
 Kennworteingabe; nach erfolgreicher Speicherung wird der ursprüngliche Startauftrag fortgesetzt.
 
@@ -264,18 +264,20 @@ Gespeicherte Anmeldedaten ersetzen keine erforderliche Windows-UAC-Bestätigung.
 beschreibt
 [Verhältnis zwischen xucRun-Freigaben und Windows-UAC](SECURITY_MODEL.md#verhältnis-zwischen-xucrun-freigaben-und-windows-uac).
 
-### Start unter einem stärker eingeschränkten Konto
+### Programm unter einem anderen Konto mit weniger Rechten starten
 
-Neben dem Start mit erhöhten Rechten kann xucRun ein Programm unter einem anderen Konto starten,
-ohne dafür eine zusätzliche Rechteerhöhung anzufordern. Eine tatsächliche Einschränkung entsteht
-nur, wenn der dabei verwendete Windows-Zugriffstoken weniger Rechte besitzt. Dafür kann
-beispielsweise ein eigenes Standardkonto mit engeren Datei- oder Netzwerkberechtigungen und einer
-separaten benutzerbezogenen Konfiguration verwendet werden. Beim aktuellen Konto übernimmt xucRun
-dagegen den bereits vorhandenen Zugriffstoken; ist dieser erhöht, läuft auch das gestartete
-Programm erhöht. xucRun erzeugt keinen künstlich eingeschränkten Token. Der Prozess verwendet den
-Zugriffstoken und das Benutzerprofil des Zielkontos. Dies ist keine Sandbox: Die wirksamen
-Einschränkungen ergeben sich aus dem verwendeten Token, den Gruppenmitgliedschaften,
-Berechtigungen und sonstigen Windows-Einstellungen des Zielkontos.
+Sie können ein Programm bewusst unter einem anderen Standardkonto ausführen, beispielsweise mit
+eingeschränktem Datei- oder Netzwerkzugriff und einer eigenen benutzerbezogenen Konfiguration.
+xucRun fordert dafür keine zusätzlichen Administratorrechte an.
+
+Welche Rechte das Programm tatsächlich besitzt, bestimmt Windows anhand des gewählten Kontos und
+seiner Konfiguration. Verwenden Sie deshalb ein Standardkonto, wenn das Programm zuverlässig ohne
+Administratorrechte laufen soll. Bei einem Administratorkonto kann das Programm abhängig von der
+Windows-UAC-Konfiguration weiterhin erhöht starten. Auch ein bereits erhöht gestartetes xucRun
+entzieht dem Zielprogramm keine Rechte.
+
+Dies ist keine Sandbox: Das Programm läuft mit dem Benutzerprofil und den unter Windows
+eingerichteten Gruppenmitgliedschaften und Berechtigungen des gewählten Kontos.
 
 ## Integrationen
 

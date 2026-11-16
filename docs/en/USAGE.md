@@ -218,9 +218,9 @@ If `/user` finds no stored xucRun credentials, xucRun automatically opens local 
 selection for credential creation instead of aborting. After the selected account's credentials
 have been stored through protected password entry, xucRun continues the original program or
 console launch. The current account is not offered for credential creation because xucRun uses
-its existing Windows access token for a launch under that account. The invoking account does not
-itself have to be an administrator, but an administrator context must authorize protected
-credential storage interactively.
+no stored credentials for a launch under that account. The invoking account does not itself have
+to be an administrator, but an administrator context must authorize protected credential storage
+interactively.
 
 If Windows rejects the entered credentials—for example because the local security policy
 restricts blank passwords—xucRun displays the reason reported by Windows on the protected desktop
@@ -230,8 +230,8 @@ and then opens the credential dialog again.
 
 The `:*` forms always show the local target-account selection, even when only one suitable
 account or stored credential is available. The dialog identifies the current account, accounts
-with stored xucRun credentials, and membership in the local Administrators group. For the current
-account, xucRun uses the existing Windows access token. Selecting another account without stored
+with stored xucRun credentials, and membership in the local Administrators group. The current
+account does not require stored xucRun credentials. Selecting another account without stored
 xucRun credentials starts protected password entry and continues the original launch after the
 credentials have been stored successfully.
 
@@ -260,17 +260,20 @@ under the previously selected standard account.
 Stored credentials do not replace a required Windows UAC confirmation. For details, see
 [Relationship between xucRun approvals and Windows UAC](SECURITY_MODEL.md#relationship-between-xucrun-approvals-and-windows-uac).
 
-### Launching under a more restricted account
+### Launching a program under another account with fewer privileges
 
-In addition to starting programs with elevated privileges, xucRun can start a program under
-another account without requesting additional elevation. An actual restriction exists only when
-the Windows access token used for the launch has fewer privileges. For example, a dedicated
-standard account can provide narrower file or network permissions and a separate user-specific
-configuration. For the current account, xucRun instead reuses the existing access token; if that
-token is elevated, the launched program is elevated as well. xucRun does not create an
-artificially restricted token. The process uses the target account's access token and user
-profile. This is not a sandbox: the effective restrictions depend on the token used, the target
-account's group memberships, permissions, and other Windows settings.
+You can deliberately run a program under another standard account, for example with limited file
+or network access and its own user-specific configuration. xucRun does not request additional
+administrator privileges for this launch.
+
+Windows determines the program's actual privileges from the selected account and its
+configuration. Use a standard account when the program must reliably run without administrator
+privileges. With an administrator account, the program can still start elevated depending on the
+Windows UAC configuration. xucRun also does not remove privileges when xucRun itself is already
+running elevated.
+
+This is not a sandbox: the program uses the selected account's user profile, group memberships,
+and permissions as configured in Windows.
 
 ## Integrations
 

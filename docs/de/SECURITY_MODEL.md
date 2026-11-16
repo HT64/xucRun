@@ -119,10 +119,10 @@ xucRun-Programmfreigaben gelten für Starts mit den gespeicherten Anmeldedaten e
 Kontos. Im vorgesehenen Ablauf aus einem nicht erhöhten Standardbenutzerkonto bleibt eine für den
 konkreten Start erforderliche Windows-UAC-Bestätigung interaktiv. Bei einem Start, für den xucRun
 keine zusätzliche Erhöhung anfordert, kann UAC über den xucRun-Freigabehelper die Anwesenheit des
-Benutzers bestätigen. Das Zielprogramm verwendet danach den vorhandenen beziehungsweise von
-Windows erzeugten Token des Zielkontos. xucRun ändert dessen Erhöhungszustand nicht und erzeugt
-keinen künstlich eingeschränkten Token; ist der verwendete Token bereits erhöht, läuft auch das
-Zielprogramm erhöht. Bei einer angeforderten Erhöhung kann UAC stattdessen den Start des
+Benutzers bestätigen. Windows startet das Zielprogramm danach mit den Rechten, die dem Zielkonto
+in dieser Situation zugewiesen sind. xucRun fügt weder Administratorrechte hinzu noch entzieht es
+vorhandene Rechte. Abhängig von der Windows-UAC-Konfiguration kann ein Administratorkonto daher
+weiterhin erhöht starten. Bei einer angeforderten Erhöhung kann UAC stattdessen den Start des
 Zielprogramms bestätigen und ihm die angeforderten Administratorrechte erteilen. Welche
 UAC-Abfrage Windows tatsächlich zeigt, hängt vom konkreten Startpfad und der Windows-Konfiguration
 ab.
