@@ -65,7 +65,7 @@ und anderen Ansätzen.
    Veröffentlichung vergleichen. Bei Abweichung die Datei nicht ausführen.
 3. `xucRun-Installer-<Version>-x64.exe` starten und die Windows-UAC-Anforderung bestätigen.
 4. Optional xucRun durch den Installer in den maschinenweiten PATH aufnehmen lassen, damit
-   `xucRun.exe` in interaktiven Befehlen ohne absoluten Pfad funktioniert.
+   `xucrun` in interaktiven Befehlen ohne absoluten Pfad funktioniert.
 
 Windows kann beim ersten Start einen unbekannten Herausgeber melden, weil der öffentliche
 Installer nicht Authenticode-signiert ist. Der Installer erzeugt oder verwendet ein
@@ -85,7 +85,7 @@ Nach der Installation PowerShell oder Eingabeaufforderung öffnen. Der kürzeste
 lautet:
 
 ```powershell
-xucRun.exe
+xucrun
 ```
 
 Ohne Argumente ersetzt xucRun eine unterstützte Eltern-Shell durch denselben Shelltyp im
@@ -101,8 +101,8 @@ sowie den erhöhten Start eines einzelnen Programms.
 Programme und ihre Argumente können direkt gestartet werden:
 
 ```powershell
-xucRun.exe powershell.exe -NoExit
-xucRun.exe regedit.exe
+xucrun powershell.exe -NoExit
+xucrun regedit.exe
 ```
 
 Fehlen noch erforderliche Angaben oder Bestätigungen, fordert xucRun sie bei Bedarf an:
@@ -134,8 +134,8 @@ Desktopverknüpfungen.
 Windows-Verwaltungswerkzeuge aus einer Standardbenutzersitzung mit erhöhten Rechten öffnen:
 
 ```cmd
-xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
-xucRun.exe /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\diskmgmt.msc"
+xucrun /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\devmgmt.msc"
+xucrun /user-elevated "C:\Windows\System32\mmc.exe" "C:\Windows\System32\diskmgmt.msc"
 ```
 
 xucRun behandelt die jeweilige `.msc`-Datei als Argument der ausdrücklich angegebenen `mmc.exe`.
@@ -166,14 +166,14 @@ angeforderte Erhöhung starten:
     'C:\Program Files\Mozilla Thunderbird\thunderbird.exe'
 ```
 
-Dieses Beispiel wechselt bewusst das Windows-Konto, ohne eine Rechteerhöhung anzufordern.
+Dieses Beispiel wechselt gezielt das Windows-Konto, ohne eine Rechteerhöhung anzufordern.
 Thunderbird verwendet Profil, Einstellungen und gespeicherte Anwendungsanmeldungen des Zielkontos.
 
 Mehrere strukturierte Argumente einschließlich Werten und eines Pfads mit Leerzeichen direkt an
 `netsh.exe` übergeben:
 
 ```cmd
-xucRun.exe /user-elevated "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Lokaler Beispielserver" dir=in action=allow program="C:\Program Files\Beispielserver\server.exe" enable=yes profile=private
+xucrun /user-elevated "C:\Windows\System32\netsh.exe" advfirewall firewall add rule name="Lokaler Beispielserver" dir=in action=allow program="C:\Program Files\Beispielserver\server.exe" enable=yes profile=private
 ```
 
 xucRun hält das Zielprogramm und seine Argumente über die erforderlichen Prozessgrenzen hinweg
@@ -185,14 +185,14 @@ beispielsweise [Total Commander](https://www.ghisler.com/deutsch.htm) mit vorgeg
 Panelpfaden:
 
 ```cmd
-xucRun.exe /user-elevated "C:\totalcmd\TOTALCMD64.EXE" /L="C:\Windows\System32\config" /R="C:\Program Files" /P=L
+xucrun /user-elevated "C:\totalcmd\TOTALCMD64.EXE" /L="C:\Windows\System32\config" /R="C:\Program Files" /P=L
 ```
 
 Dasselbe Programm kann stattdessen ohne angeforderte Rechteerhöhung unter dem Windows-Konto
 `Robert` mit dessen `%LOCALAPPDATA%`-Verzeichnis geöffnet werden:
 
 ```cmd
-xucRun.exe /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\Program Files" /P=L
+xucrun /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\Program Files" /P=L
 ```
 
 Die Carets verhindern, dass `cmd.exe` `%LOCALAPPDATA%` bereits im Kontext des aufrufenden Kontos
@@ -223,14 +223,14 @@ liegende Autorisierungsmodell.
 
 | Befehl | Zweck |
 |---|---|
-| `xucRun.exe [<Programm> [Argumente...]]` | Programm starten oder eine unterstützte Eltern-Shell ersetzen |
-| `xucRun.exe /addcred [<Konto>]` | Anmeldedaten optional vor dem ersten Programmstart speichern |
-| `xucRun.exe /showcred` | Konten mit gespeicherten xucRun-Anmeldedaten anzeigen |
-| `xucRun.exe /showapprovals` | aktive Freigaben anzeigen |
-| `xucRun.exe /backup` | lokale Datensicherungen verwalten |
-| `xucRun.exe /info` | Version, Signierung, Broker und Konfiguration anzeigen |
-| `xucRun.exe /audit` | Sicherheitsdiagnose ausführen |
-| `xucRun.exe /help` | vollständige integrierte Hilfe anzeigen |
+| `xucrun [<Programm> [Argumente...]]` | Programm starten oder eine unterstützte Eltern-Shell ersetzen |
+| `xucrun /addcred [<Konto>]` | Anmeldedaten optional vor dem ersten Programmstart speichern |
+| `xucrun /showcred` | Konten mit gespeicherten xucRun-Anmeldedaten anzeigen |
+| `xucrun /showapprovals` | aktive Freigaben anzeigen |
+| `xucrun /backup` | lokale Datensicherungen verwalten |
+| `xucrun /info` | Version, Signierung, Broker und Konfiguration anzeigen |
+| `xucrun /audit` | Sicherheitsdiagnose ausführen |
+| `xucrun /help` | vollständige integrierte Hilfe anzeigen |
 
 Die [Befehls- und Konfigurationsreferenz](docs/de/REFERENCE.md) dokumentiert alle Schalter,
 erweiterte Starts als LocalSystem oder TrustedInstaller, Exitcodes, Datensicherungen, Konfiguration
