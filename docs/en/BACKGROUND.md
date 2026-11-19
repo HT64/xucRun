@@ -31,13 +31,13 @@ effect of their selection. This led, among other things, to the
 
 AI-assisted development tools made it possible for me as a sole developer to take xucRun beyond my
 own use case and develop it to a point where it could be published for others as a usable and
-comprehensively documented project. I use them for source code, tests, and documentation in
-numerous interactive development steps that I direct and review. They do not replace my technical
-decisions, verification of the results, or release approval. Responsibility for the resulting
-software remains mine. I used successive development versions in my everyday computer work and
-continued developing xucRun based on that experience. Only after xucRun had reached what I
-considered an appropriate level of maturity in this way did I make the first public version
-available.
+comprehensively documented project. I use them in numerous interactive development steps—for
+programming and refactoring, for creating and running automated tests, and for documentation. They
+do not replace my technical decisions, verification of the results, or release approval.
+Responsibility for the resulting software remains mine. I used successive development versions in
+my everyday computer work and continued developing xucRun based on that experience. Only after
+xucRun had reached what I considered an appropriate level of maturity did I make the first public
+version available.
 
 xucRun may not be a tool the world has been waiting for, but for launching applications in a
 different user context—with or without elevation—it is something of a Swiss Army knife.

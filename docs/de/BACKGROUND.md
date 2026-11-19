@@ -34,14 +34,14 @@ differenzierte
 
 KI-gestützte Entwicklungswerkzeuge machten es mir als Einzelentwickler erst möglich, xucRun über
 meinen eigenen Anwendungsfall hinaus so weit auszuarbeiten, dass es für andere nutzbar und umfassend
-dokumentiert veröffentlicht werden konnte. Ich setze sie für Quelltext, Tests und Dokumentation in
-zahlreichen interaktiven Entwicklungsschritten ein, die ich selbst steuere und prüfe. Sie ersetzen
-weder meine fachlichen Entscheidungen noch die Prüfung der Ergebnisse oder meine Freigabe einer
-Veröffentlichung. Die Verantwortung für die entstandene Software liegt bei mir. Die jeweiligen
-Entwicklungsstände setzte ich bei meinen alltäglichen Tätigkeiten selbst ein und entwickelte
-xucRun auf Grundlage dieser Erfahrungen weiter. Erst nachdem xucRun auf diese Weise einen aus
-meiner Sicht angemessenen Reifegrad erreicht hatte, stellte ich die erste öffentliche Version
-bereit.
+dokumentiert veröffentlicht werden konnte. Ich setze sie in zahlreichen interaktiven
+Entwicklungsschritten ein – bei der Programmierung und Refaktorierung, bei der Erstellung und
+Ausführung automatisierter Tests sowie bei der Dokumentation. Sie ersetzen weder meine fachlichen
+Entscheidungen noch die Prüfung der Ergebnisse oder meine Freigabe einer Veröffentlichung. Die
+Verantwortung für die entstandene Software liegt bei mir. Die jeweiligen Entwicklungsstände setzte
+ich bei meinen alltäglichen Tätigkeiten selbst ein und entwickelte xucRun auf Grundlage dieser
+Erfahrungen weiter. Erst nachdem xucRun einen aus meiner Sicht angemessenen Reifegrad erreicht
+hatte, stellte ich die erste öffentliche Version bereit.
 
 xucRun ist zwar kein Werkzeug, auf das die Welt gewartet hat, für das flexible Ausführen von
 Anwendungen in einem anderen Benutzerkontext – mit oder ohne Rechteerhöhung – jedoch eine Art
