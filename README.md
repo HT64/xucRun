@@ -100,8 +100,11 @@ Programs and their arguments can be started directly:
 
 ```powershell
 xucrun powershell.exe -NoExit
-xucrun regedit.exe
+xucrun sc.exe stop ExampleService
 ```
+
+The second invocation stops a running service with administrator privileges. Replace
+`ExampleService` with the actual service name.
 
 When required information or confirmations are missing, xucRun requests them as needed:
 
@@ -142,7 +145,7 @@ The first invocation opens Device Manager, and the second opens Windows Disk Man
 invocation contains the administrator account or its password. The examples use `/user-elevated`
 to explicitly request an elevated launch under a suitable account in the local Administrators
 group. **If automatic account selection already unambiguously results in such a launch, the switch
-can be omitted. This also applies to the examples below.**
+can be omitted. This also applies to the examples below that use `/user-elevated`.**
 
 Open PowerShell under an account selected for this launch:
 
@@ -194,6 +197,18 @@ xucrun /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\Prog
 The carets prevent `cmd.exe` from expanding `%LOCALAPPDATA%` in the calling account's context; the
 variable passes through xucRun unchanged, and the launched application expands it only after the
 account switch.
+
+For specialized maintenance tasks, programs can also be launched as LocalSystem (`/system`) or
+with the TrustedInstaller identity (`/trustedinstaller`), so that no additional tools are needed
+for these special cases. For example, Registry Editor can be launched with the TrustedInstaller
+identity:
+
+```cmd
+xucrun /trustedinstaller regedit.exe
+```
+
+Both modes require administrator privileges and a separate confirmation for every invocation.
+[Guidance and examples](docs/en/REFERENCE.md#localsystem-and-trustedinstaller)
 
 Interactive commands may use executable short names. Scripts, shortcuts, scheduled tasks, and
 other fixed invocations should use the actual absolute paths of both `xucRun.exe` and the target

@@ -102,8 +102,11 @@ Programme und ihre Argumente können direkt gestartet werden:
 
 ```powershell
 xucrun powershell.exe -NoExit
-xucrun regedit.exe
+xucrun sc.exe stop BeispielDienst
 ```
+
+Der zweite Aufruf beendet einen laufenden Dienst mit Administratorrechten. Ersetzen Sie
+`BeispielDienst` durch den tatsächlichen Dienstnamen.
 
 Fehlen noch erforderliche Angaben oder Bestätigungen, fordert xucRun sie bei Bedarf an:
 
@@ -144,7 +147,8 @@ Der erste Aufruf öffnet den Gerätemanager, der zweite die Windows-Datenträger
 Aufrufe enthalten weder das Administratorkonto noch dessen Kennwort. Die Beispiele verwenden
 `/user-elevated`, um ausdrücklich einen erhöhten Start unter einem geeigneten Konto aus der lokalen
 Administratorengruppe anzufordern. **Ergibt die automatische Kontowahl bereits eindeutig einen
-solchen Start, kann der Schalter entfallen. Das gilt auch für die nachfolgenden Beispiele.**
+solchen Start, kann der Schalter entfallen. Das gilt auch für die nachfolgenden Beispiele mit
+`/user-elevated`.**
 
 PowerShell unter einem für diesen Start ausgewählten Konto öffnen:
 
@@ -198,6 +202,18 @@ xucrun /user:Robert "C:\totalcmd\TOTALCMD64.EXE" /L=^%LOCALAPPDATA^% /R="C:\Prog
 Die Carets verhindern, dass `cmd.exe` `%LOCALAPPDATA%` bereits im Kontext des aufrufenden Kontos
 auflöst; xucRun reicht die Variable unverändert durch, und das gestartete Programm wertet sie erst
 nach dem Kontowechsel aus.
+
+Für besondere Wartungsarbeiten sind auch Starts als LocalSystem (`/system`) oder mit
+TrustedInstaller-Identität (`/trustedinstaller`) möglich, damit für diese speziellen Fälle keine
+zusätzlichen Werkzeuge benötigt werden. Beispielsweise lässt sich der Registrierungseditor mit
+TrustedInstaller-Identität starten:
+
+```cmd
+xucrun /trustedinstaller regedit.exe
+```
+
+Beide Modi erfordern Administratorrechte und eine gesonderte Bestätigung bei jedem Aufruf.
+[Hinweise und Beispiele](docs/de/REFERENCE.md#localsystem-und-trustedinstaller)
 
 Interaktive Befehle können Programmnamen verwenden. Skripte, Verknüpfungen, geplante Aufgaben und
 andere fest konfigurierte Aufrufe sollten die tatsächlichen absoluten Pfade von `xucRun.exe` und
