@@ -6,30 +6,32 @@ Approach: Organizes syntax, advanced commands, configuration, backups, and diagn
 
 **Language:** English | [Deutsch](../de/REFERENCE.md)
 
-This reference collects command syntax, advanced launch modes, configuration, backups, and
-diagnostics. For guided workflows, see [Using xucRun](USAGE.md).
+This reference describes command syntax, advanced launch modes, configuration, backups, and
+diagnostics. For practical instructions and examples, see [Using xucRun](USAGE.md).
 
 ## Invocation syntax and account selection
 
 The general invocation syntax is:
 
 ```text
-xucRun.exe [<Program> [Arguments ...]]
+xucrun [Options] [<Program> [Arguments ...]]
 ```
 
-Without a target program, xucRun replaces a supported direct parent shell with the same shell type
-in the automatically determined account and privilege context. With a target program, the
-following forms apply:
+Without a target program, xucRun replaces the invoking shell—Command Prompt (`cmd.exe`),
+Windows PowerShell (`powershell.exe`), PowerShell 7 (`pwsh.exe`), or TCC (`tcc.exe`)—with the same
+shell type under the automatically selected account and with the privileges determined for that
+launch. TCC is [JP Software's command-line processor](https://jpsoft.com/products/tcc.html).
+With a target program, the following forms apply:
 
 | Invocation | Behavior |
 |---|---|
-| `xucRun.exe <Program> [Arguments ...]` | determine the account automatically and request elevation when required |
-| `xucRun.exe /user <Program> [Arguments ...]` | select an account for which xucRun credentials are stored, without additional elevation by xucRun |
-| `xucRun.exe /user:* <Program> [Arguments ...]` | always select an enabled local account, without additional elevation by xucRun |
-| `xucRun.exe /user:<Account> <Program> [Arguments ...]` | use a specific account without additional elevation by xucRun |
-| `xucRun.exe /user-elevated <Program> [Arguments ...]` | use the current account when it is a member of the local Administrators group and request UAC elevation if necessary; otherwise select a suitable account with stored xucRun credentials |
-| `xucRun.exe /user-elevated:* <Program> [Arguments ...]` | always select an enabled local account that is a member of the local Administrators group and start elevated |
-| `xucRun.exe /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated; abort if it is not a member of the local Administrators group |
+| `xucrun <Program> [Arguments ...]` | determine the account automatically and request elevation when required |
+| `xucrun /user <Program> [Arguments ...]` | select an account for which xucRun credentials are stored, without additional elevation by xucRun |
+| `xucrun /user:* <Program> [Arguments ...]` | always select an enabled local account, without additional elevation by xucRun |
+| `xucrun /user:<Account> <Program> [Arguments ...]` | use a specific account without additional elevation by xucRun |
+| `xucrun /user-elevated <Program> [Arguments ...]` | use the current account when it is a member of the local Administrators group and request UAC elevation if necessary; otherwise select a suitable account with stored xucRun credentials |
+| `xucrun /user-elevated:* <Program> [Arguments ...]` | always select an enabled local account that is a member of the local Administrators group and start elevated |
+| `xucrun /user-elevated:<Account> <Program> [Arguments ...]` | use a specific account and start elevated; abort if it is not a member of the local Administrators group |
 
 Account selection and privilege mode are separate decisions. The practical behavior during first
 use, automatic selection, and missing credentials is described under
@@ -38,12 +40,12 @@ use, automatic selection, and missing credentials is described under
 ## Programs, arguments, and special characters
 
 
-The first argument that is not an xucRun switch is the target program. All following arguments
-belong exclusively to that program:
+The first argument that is not an xucRun switch identifies the target program. All subsequent
+arguments are passed to that program:
 
 ```powershell
-xucRun.exe cmd.exe /c dir
-xucRun.exe /user:Administrator app.exe /config:value
+xucrun cmd.exe /c dir
+xucrun /user:Administrator app.exe /config:value
 ```
 
 Here, `/c` and `/config:value` are not interpreted by xucRun. Shell-internal commands must be run
@@ -67,7 +69,7 @@ CMD metacharacters `& | ( ) ! % ^`, the broker creates a temporary wrapper named
 named `RamDisk`, or otherwise in the target account's `%TEMP%` directory. The broker protects the
 wrapper until the launched process exits and then attempts to delete it, or does so during error
 cleanup if the launch fails. If a deletion error or unexpected broker termination leaves it
-behind, a local administrator can remove it after it has been released. There is no later
+behind, a local administrator can remove it once the file is no longer in use. There is no later
 automatic cleanup; the wrapper contains no credentials, stored arguments, or reusable
 authorization.
 
@@ -76,24 +78,35 @@ authorization.
 
 | Command | Purpose |
 |---|---|
-| `xucRun.exe /addcred [<Account>]` | store credentials |
-| `xucRun.exe /deletecred [<Account>]` | select and delete stored credentials |
-| `xucRun.exe /showcred` | show accounts for which xucRun credentials are stored |
-| `xucRun.exe /showapprovals` | show stored approvals |
-| `xucRun.exe /resetapprovals[:<Account>]` | reset approvals |
-| `xucRun.exe /system [<Application> [Arguments...]]` | start a local application or replacement shell as `LocalSystem` |
-| `xucRun.exe /trustedinstaller [<Application> [Arguments...]]` | start a local application or replacement shell with `LocalSystem` privileges and the TrustedInstaller service identity |
-| `xucRun.exe /info` | show version, copyright, Apache License 2.0, signing certificate, broker status, and current configuration |
-| `xucRun.exe /admin-status` | show and manage data for all Windows users with elevation |
-| `xucRun.exe /backup` | manage local backups |
-| `xucRun.exe /audit` | run security diagnostics |
-| `xucRun.exe /enable-broker` | re-enable a disabled broker |
-| `xucRun.exe /clear-all` | delete stored credentials, approvals, per-user identifiers shown in protected xucRun dialogs, and associated metadata |
-| `xucRun.exe /help` | show complete help |
+| `xucrun /addcred [<Account>]` | store credentials |
+| `xucrun /deletecred [<Account>]` | select and delete stored credentials |
+| `xucrun /showcred` | show accounts for which xucRun credentials are stored |
+| `xucrun /showapprovals` | show stored approvals |
+| `xucrun /resetapprovals[:<Account>]` | reset approvals |
+| `xucrun /system [<Application> [Arguments...]]` | start a local application or replacement shell as `LocalSystem` |
+| `xucrun /trustedinstaller [<Application> [Arguments...]]` | start a local application or replacement shell with `LocalSystem` privileges and the TrustedInstaller service identity |
+| `xucrun /info` | show version, copyright, Apache License 2.0, signing certificate, broker status, and current configuration |
+| `xucrun /admin-status` | show and manage data for all Windows users with elevation |
+| `xucrun /backup` | manage local backups |
+| `xucrun /audit` | run security diagnostics |
+| `xucrun /enable-broker` | re-enable a disabled broker |
+| `xucrun /clear-all` | delete stored credentials, approvals, per-user identifiers shown in protected xucRun dialogs, and associated metadata |
+| `xucrun /help` | show complete help |
 
-`/hidden` hides the directly started target program. `/hidden-monitor` also monitors its exit code
-and displays a notice when it fails. Dialogs and child processes are not hidden or monitored by
-these options.
+### Hide program windows and report errors
+
+`/hidden` starts the directly invoked target program with the Windows setting for a hidden
+window start. Graphical programs may still display windows.
+`/hidden-monitor` also monitors the directly started target program's
+exit code and displays a notice if the program returns a failure exit code. Both options are
+useful, for example, for helper commands or intermediate consoles whose windows should remain
+hidden when invoked from a shortcut or file manager. Dialogs and child processes are not hidden
+or monitored by these options; required confirmation dialogs remain visible.
+
+The [Total Commander integration](USAGE.md#total-commander-integration) shows an example
+with a hidden intermediate Command Prompt.
+
+### Exit codes
 
 `xucRun.exe` uses exit code `0` for a successful operation and exit code `1` when the operation
 fails, is rejected, or is cancelled. The exit code of a launched target program is not returned as
@@ -101,9 +114,9 @@ the exit code of `xucRun.exe`.
 
 ## LocalSystem and TrustedInstaller
 
-`xucRun.exe /system [<Application> [Arguments...]]` starts the specified local application as the
+`xucrun /system [<Application> [Arguments...]]` starts the specified local application as the
 Windows `LocalSystem` account in the caller's interactive session.
-`xucRun.exe /trustedinstaller [<Application> [Arguments...]]` starts it with `LocalSystem`
+`xucrun /trustedinstaller [<Application> [Arguments...]]` starts it with `LocalSystem`
 privileges plus the effective `NT SERVICE\TrustedInstaller` service identity.
 
 Both modes are available only to members of the local Administrators group. An administrator who
@@ -113,8 +126,8 @@ an elevation request. The elevated account that is a member of the local Adminis
 differ from the account signed in to the interactive session, so both modes can also be invoked
 from an elevated replacement shell in another user's session.
 
-Without an application, both modes replace an invoking TCC, Command Prompt, Windows PowerShell,
-or PowerShell Core shell with the same shell type running under the selected identity. The
+Without an application, both modes replace the invoking Command Prompt, Windows PowerShell,
+PowerShell 7, or TCC with the same shell type running under the selected identity. The
 current working directory is preserved, the new shell is brought to the foreground, and the
 previous shell is closed only after the confirmed replacement started successfully. Unknown
 parent shells are rejected.
@@ -155,8 +168,8 @@ If xucRun cannot establish the required TrustedInstaller identity, the launch fa
 fallback to a normal `/system` launch.
 
 ```cmd
-xucRun.exe /system "C:\Windows\regedit.exe" /m
-xucRun.exe /trustedinstaller "C:\Windows\regedit.exe"
+xucrun /system "C:\Windows\regedit.exe" /m
+xucrun /trustedinstaller "C:\Windows\regedit.exe"
 ```
 
 Use both modes only for deliberate maintenance and diagnostic work. The TrustedInstaller identity
@@ -168,17 +181,17 @@ whenever one exists.
 ## Backups
 
 
-`xucRun.exe /backup` opens the interactive local backup manager. The following commands are also
+`xucrun /backup` opens the interactive local backup manager. The following commands are also
 available:
 
 ![Local backup manager](images/data-backups.png)
 
 ```text
-xucRun.exe /backup-create [<Description>]
-xucRun.exe /backup-list
-xucRun.exe /backup-restore
-xucRun.exe /backup-restore:<Backup-ID>
-xucRun.exe /backup-delete-all
+xucrun /backup-create [<Description>]
+xucrun /backup-list
+xucrun /backup-restore
+xucrun /backup-restore:<Backup-ID>
+xucrun /backup-delete-all
 ```
 
 A backup contains stored credentials, approvals, xucRun dialog security identifiers, and
@@ -192,19 +205,30 @@ export.
 
 ## Troubleshooting
 
+`xucrun /help` displays the complete local command overview. If the broker service was disabled,
+`xucrun /enable-broker` enables it again.
 
-`xucRun.exe /info` shows the shared client runtime information also used by the separately
+<a id="runtime-information"></a>
+
+### Display runtime information
+
+`xucrun /info` shows the shared client runtime information also used by the separately
 installed optional xucRun Tray add-on: version, copyright, path, architecture, effective language
 and loaded language DLL, signing certificate, current account including SID and elevation,
 configuration file, and client logging. The common configuration section also identifies the
 installed maintenance script. Core-specific sections add broker status, broker information
 events, and stored-data counts.
-`xucRun.exe /audit` checks security-relevant properties of the running installation and also
+
+![xucRun runtime information](images/runtime-information.png)
+
+<a id="security-diagnostics"></a>
+
+### Check the installation for security issues
+
+`xucrun /audit` checks security-relevant properties of the running installation and also
 identifies the verified certificate when the client signature is valid. If xucRun Tray is
 installed separately, the diagnostics also check its installed files and signatures, uninstall
-registration, and per-user autostart tasks. If the broker service was disabled,
-`xucRun.exe /enable-broker` enables it again. `xucRun.exe /help` displays the complete local command
-overview.
+registration, and per-user autostart tasks.
 
 The diagnostics explicitly verify the file protection, Authenticode trust, and expected signer
 of the installed `Install-xucRun.ps1` maintenance script and, when Tray is installed,
@@ -214,6 +238,10 @@ The report also confirms whether all required Windows protections of the running
 are active. A successful report summarizes the protected areas; a deviation identifies the
 affected protection and provides a restart and reinstall recommendation.
 
+![xucRun security diagnostics](images/security-audit.png)
+
+### Blocked elevated launch
+
 If xucRun reports that an elevated launch was blocked because UAC confirmation was unavailable,
 Windows Admin Approval Mode is not effective for the selected different account that is a member
 of the local Administrators group. This can particularly affect the built-in `Administrator`
@@ -221,22 +249,17 @@ account.
 
 ![Elevated cross-account launch blocked because UAC confirmation is unavailable](images/cross-account-elevation-blocked.png)
 
-### Runtime information
-
-![xucRun runtime information](images/runtime-information.png)
-
-### Security diagnostics
-
-![xucRun security diagnostics](images/security-audit.png)
+### Logs for troubleshooting
 
 For additional diagnostics, `ClientLogDirectory` can be configured to enable client log files
 named `xucRun_YYYYMMDD.log`. Broker warnings and errors are always written to the Windows
 Application event log under the `xucRunBroker` source and can be viewed in Windows Event Viewer
 under **Windows Logs → Application**. See
-[Configuration file and language](#configuration-file-and-language) for configuration details.
+[Configuration, language, and logging](#configuration-language-and-logging) for configuration details.
 
-## Configuration file and language
+<a id="configuration-file-and-language"></a>
 
+## Configuration, language, and logging
 
 xucRun uses the machine-wide configuration file
 `%ProgramFiles%\xucRun\xucRun.ini`. The installer creates it and updates the selected language

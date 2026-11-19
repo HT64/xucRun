@@ -6,30 +6,32 @@ Approach: Ordnet Syntax, erweiterte Befehle, Konfiguration, Datensicherungen und
 
 **Sprache:** [English](../en/REFERENCE.md) | Deutsch
 
-Diese Referenz bündelt Aufrufsyntax, erweiterte Startmodi, Konfiguration, Datensicherungen und
-Diagnose. Geführte Arbeitsabläufe stehen unter [xucRun verwenden](USAGE.md).
+Diese Referenz beschreibt Aufrufsyntax, erweiterte Startmodi, Konfiguration, Datensicherungen und
+Diagnose. Praktische Anleitungen und Beispiele enthält [xucRun verwenden](USAGE.md).
 
 ## Aufrufsyntax und Kontowahl
 
 Die allgemeine Aufrufform lautet:
 
 ```text
-xucRun.exe [<Programm> [Argumente ...]]
+xucrun [Optionen] [<Programm> [Argumente ...]]
 ```
 
-Ohne Zielprogramm ersetzt xucRun eine unterstützte direkte Eltern-Shell durch denselben Shelltyp
-im automatisch bestimmten Benutzer- und Berechtigungskontext. Mit einem Zielprogramm gelten
-folgende Formen:
+Ohne Zielprogramm ersetzt xucRun die aufrufende Shell – Eingabeaufforderung (`cmd.exe`),
+Windows PowerShell (`powershell.exe`), PowerShell 7 (`pwsh.exe`) oder TCC (`tcc.exe`) – durch
+denselben Shelltyp unter dem automatisch gewählten Konto und mit den dafür bestimmten Rechten.
+TCC ist der [Kommandozeilenprozessor von JP Software](https://jpsoft.com/products/tcc.html).
+Mit einem Zielprogramm gelten folgende Formen:
 
 | Aufruf | Verhalten |
 |---|---|
-| `xucRun.exe <Programm> [Argumente ...]` | Konto automatisch bestimmen; bei Bedarf erhöhte Rechte anfordern |
-| `xucRun.exe /user <Programm> [Argumente ...]` | Konto wählen, für das xucRun-Anmeldedaten gespeichert sind, ohne zusätzliche Erhöhung durch xucRun |
-| `xucRun.exe /user:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, ohne zusätzliche Erhöhung durch xucRun |
-| `xucRun.exe /user:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden, ohne zusätzliche Erhöhung durch xucRun |
-| `xucRun.exe /user-elevated <Programm> [Argumente ...]` | aktuelles Konto verwenden, wenn es Mitglied der lokalen Administratorengruppe ist, und bei Bedarf über UAC erhöhen; andernfalls passendes Konto mit gespeicherten xucRun-Anmeldedaten wählen |
-| `xucRun.exe /user-elevated:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, das Mitglied der lokalen Administratorengruppe ist, und erhöht starten |
-| `xucRun.exe /user-elevated:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden und erhöht starten; ist es kein Mitglied der lokalen Administratorengruppe, wird der Start abgebrochen |
+| `xucrun <Programm> [Argumente ...]` | Konto automatisch bestimmen; bei Bedarf erhöhte Rechte anfordern |
+| `xucrun /user <Programm> [Argumente ...]` | Konto wählen, für das xucRun-Anmeldedaten gespeichert sind, ohne zusätzliche Erhöhung durch xucRun |
+| `xucrun /user:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, ohne zusätzliche Erhöhung durch xucRun |
+| `xucrun /user:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden, ohne zusätzliche Erhöhung durch xucRun |
+| `xucrun /user-elevated <Programm> [Argumente ...]` | aktuelles Konto verwenden, wenn es Mitglied der lokalen Administratorengruppe ist, und bei Bedarf über UAC erhöhen; andernfalls passendes Konto mit gespeicherten xucRun-Anmeldedaten wählen |
+| `xucrun /user-elevated:* <Programm> [Argumente ...]` | immer ein aktiviertes lokales Konto wählen, das Mitglied der lokalen Administratorengruppe ist, und erhöht starten |
+| `xucrun /user-elevated:<Konto> <Programm> [Argumente ...]` | bestimmtes Konto verwenden und erhöht starten; ist es kein Mitglied der lokalen Administratorengruppe, wird der Start abgebrochen |
 
 Kontowahl und Rechtemodus sind getrennte Entscheidungen. Das praktische Verhalten bei der ersten
 Verwendung, automatischer Auswahl und fehlenden Anmeldedaten beschreibt
@@ -38,12 +40,12 @@ Verwendung, automatischer Auswahl und fehlenden Anmeldedaten beschreibt
 ## Programme, Argumente und Sonderzeichen
 
 
-Der erste Nicht-xucRun-Schalter ist das Zielprogramm. Alle folgenden Argumente gehören
-ausschließlich diesem Programm:
+Das erste Argument, das kein xucRun-Schalter ist, bezeichnet das Zielprogramm. Alle danach
+folgenden Argumente werden an dieses Programm weitergegeben:
 
 ```powershell
-xucRun.exe cmd.exe /c dir
-xucRun.exe /user:Administrator app.exe /config:value
+xucrun cmd.exe /c dir
+xucrun /user:Administrator app.exe /config:value
 ```
 
 `/c` und `/config:value` werden hier nicht von xucRun ausgewertet. Shell-interne Befehle müssen
@@ -68,8 +70,8 @@ der CMD-Metazeichen `& | ( ) ! % ^` enthält, erzeugt der Broker einen temporär
 `RamDisk` ab, andernfalls im `%TEMP%`-Verzeichnis des Zielkontos. Der Broker schützt den Wrapper bis
 zum Ende des gestarteten Prozesses und versucht ihn anschließend oder bei einem fehlgeschlagenen
 Start während der Fehlerbereinigung zu löschen. Bleibt er wegen eines Löschfehlers oder
-unerwarteten Brokerendes zurück, kann ein lokaler Administrator ihn nach Freigabe manuell
-entfernen. Eine automatische Nachbereinigung gibt es nicht; der Wrapper enthält keine
+unerwarteten Brokerendes zurück, kann ein lokaler Administrator ihn manuell entfernen, sobald
+die Datei nicht mehr verwendet wird. Eine automatische Nachbereinigung gibt es nicht; der Wrapper enthält keine
 Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
 
 ## Nützliche Befehle
@@ -77,24 +79,36 @@ Anmeldedaten, gespeicherten Argumente oder wiederverwendbare Autorisierung.
 
 | Befehl | Zweck |
 |---|---|
-| `xucRun.exe /addcred [<Konto>]` | Anmeldedaten speichern |
-| `xucRun.exe /deletecred [<Konto>]` | gespeicherte Anmeldedaten auswählen und löschen |
-| `xucRun.exe /showcred` | Konten anzeigen, für die xucRun-Anmeldedaten gespeichert sind |
-| `xucRun.exe /showapprovals` | gespeicherte Freigaben anzeigen |
-| `xucRun.exe /resetapprovals[:<Konto>]` | Freigaben zurücksetzen |
-| `xucRun.exe /system [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell als `LocalSystem` starten |
-| `xucRun.exe /trustedinstaller [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell mit `LocalSystem`-Rechten und der TrustedInstaller-Dienstidentität starten |
-| `xucRun.exe /info` | Version, Copyright, Apache License 2.0, Signierzertifikat, Brokerstatus und aktuelle Konfiguration anzeigen |
-| `xucRun.exe /admin-status` | Daten aller Windows-Benutzer erhöht anzeigen und verwalten |
-| `xucRun.exe /backup` | lokale Datensicherungen verwalten |
-| `xucRun.exe /audit` | Sicherheitsdiagnose ausführen |
-| `xucRun.exe /enable-broker` | einen deaktivierten Broker wieder aktivieren |
-| `xucRun.exe /clear-all` | gespeicherte Anmeldedaten, Freigaben, in geschützten xucRun-Dialogen angezeigte benutzerbezogene Merkmale und zugehörige Metadaten löschen |
-| `xucRun.exe /help` | vollständige Hilfe anzeigen |
+| `xucrun /addcred [<Konto>]` | Anmeldedaten speichern |
+| `xucrun /deletecred [<Konto>]` | gespeicherte Anmeldedaten auswählen und löschen |
+| `xucrun /showcred` | Konten anzeigen, für die xucRun-Anmeldedaten gespeichert sind |
+| `xucrun /showapprovals` | gespeicherte Freigaben anzeigen |
+| `xucrun /resetapprovals[:<Konto>]` | Freigaben zurücksetzen |
+| `xucrun /system [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell als `LocalSystem` starten |
+| `xucrun /trustedinstaller [<Anwendung> [Argumente...]]` | eine lokale Anwendung oder Ersatz-Shell mit `LocalSystem`-Rechten und der TrustedInstaller-Dienstidentität starten |
+| `xucrun /info` | Version, Copyright, Apache License 2.0, Signierzertifikat, Brokerstatus und aktuelle Konfiguration anzeigen |
+| `xucrun /admin-status` | Daten aller Windows-Benutzer erhöht anzeigen und verwalten |
+| `xucrun /backup` | lokale Datensicherungen verwalten |
+| `xucrun /audit` | Sicherheitsdiagnose ausführen |
+| `xucrun /enable-broker` | einen deaktivierten Broker wieder aktivieren |
+| `xucrun /clear-all` | gespeicherte Anmeldedaten, Freigaben, in geschützten xucRun-Dialogen angezeigte benutzerbezogene Merkmale und zugehörige Metadaten löschen |
+| `xucrun /help` | vollständige Hilfe anzeigen |
 
-`/hidden` verbirgt das unmittelbar gestartete Zielprogramm. `/hidden-monitor` überwacht zusätzlich
-dessen Exitcode und zeigt bei einem Fehler einen Hinweis. Dialoge und Kindprozesse werden dadurch
-nicht verborgen oder überwacht.
+### Programmfenster verbergen und Fehler melden
+
+`/hidden` startet das unmittelbar aufgerufene Zielprogramm mit der Windows-Vorgabe für einen
+verborgenen Fensterstart. Grafische Programme können dennoch Fenster anzeigen.
+`/hidden-monitor` überwacht zusätzlich
+den Exitcode des unmittelbar gestarteten Zielprogramms und zeigt einen Hinweis, wenn das
+Programm einen Fehlerexitcode zurückgibt. Beide Optionen eignen sich beispielsweise für Hilfsbefehle oder
+zwischengeschaltete Konsolen, deren Fenster beim Aufruf aus einer Verknüpfung oder einem
+Dateimanager verborgen bleiben sollen. Dialoge und Kindprozesse werden dadurch nicht verborgen
+oder überwacht; erforderliche Bestätigungsdialoge bleiben sichtbar.
+
+Ein Beispiel mit einer verborgenen zwischengeschalteten Eingabeaufforderung zeigt die
+[Integration in Total Commander](USAGE.md#integration-in-total-commander).
+
+### Exitcodes
 
 `xucRun.exe` verwendet Exitcode `0` für einen erfolgreichen Vorgang und Exitcode `1`, wenn der
 Vorgang fehlschlägt, abgelehnt oder abgebrochen wird. Der Exitcode eines gestarteten Zielprogramms
@@ -102,9 +116,9 @@ wird nicht als Exitcode von `xucRun.exe` zurückgegeben.
 
 ## LocalSystem und TrustedInstaller
 
-`xucRun.exe /system [<Anwendung> [Argumente...]]` startet die angegebene lokale Anwendung unter
+`xucrun /system [<Anwendung> [Argumente...]]` startet die angegebene lokale Anwendung unter
 dem Windows-Konto `LocalSystem` in der interaktiven Sitzung des Aufrufers.
-`xucRun.exe /trustedinstaller [<Anwendung> [Argumente...]]` startet sie mit `LocalSystem`-Rechten
+`xucrun /trustedinstaller [<Anwendung> [Argumente...]]` startet sie mit `LocalSystem`-Rechten
 und zusätzlich der wirksamen Dienstidentität `NT SERVICE\TrustedInstaller`.
 
 Beide Modi stehen nur Mitgliedern der lokalen Administratorengruppe zur Verfügung. Ein noch nicht
@@ -115,8 +129,8 @@ Administratorengruppe ist, darf vom in der interaktiven Sitzung angemeldeten Kon
 beide Modi können deshalb auch aus einer erhöhten Ersatz-Shell in der Sitzung eines anderen
 Benutzers aufgerufen werden.
 
-Ohne Anwendung ersetzen beide Modi eine aufrufende TCC-, Eingabeaufforderungs-, Windows-
-PowerShell- oder PowerShell-Core-Shell durch denselben Shelltyp unter der gewählten Identität.
+Ohne Anwendung ersetzen beide Modi die aufrufende Eingabeaufforderung, Windows PowerShell,
+PowerShell 7 oder TCC durch denselben Shelltyp unter der gewählten Identität.
 Das aktuelle Arbeitsverzeichnis bleibt erhalten, die neue Shell wird in den Vordergrund gebracht
 und die bisherige Shell erst nach dem bestätigten und erfolgreichen Ersatzstart geschlossen.
 Unbekannte Eltern-Shells werden abgewiesen.
@@ -159,8 +173,8 @@ erforderliche TrustedInstaller-Identität nicht herstellen, schlägt der Start f
 Rückfall auf einen normalen `/system`-Start.
 
 ```cmd
-xucRun.exe /system "C:\Windows\regedit.exe" /m
-xucRun.exe /trustedinstaller "C:\Windows\regedit.exe"
+xucrun /system "C:\Windows\regedit.exe" /m
+xucrun /trustedinstaller "C:\Windows\regedit.exe"
 ```
 
 Verwenden Sie beide Modi nur bewusst für Wartung und Diagnose. Die TrustedInstaller-Identität
@@ -172,17 +186,17 @@ Windows Update oder einen anderen dokumentierten Windows-Wartungsweg, wenn ein s
 ## Datensicherungen
 
 
-`xucRun.exe /backup` öffnet die interaktive Verwaltung lokaler Datensicherungen. Zusätzlich stehen
+`xucrun /backup` öffnet die interaktive Verwaltung lokaler Datensicherungen. Zusätzlich stehen
 folgende Befehle zur Verfügung:
 
 ![Verwaltung lokaler Datensicherungen](images/data-backups.png)
 
 ```text
-xucRun.exe /backup-create [<Beschreibung>]
-xucRun.exe /backup-list
-xucRun.exe /backup-restore
-xucRun.exe /backup-restore:<Backup-ID>
-xucRun.exe /backup-delete-all
+xucrun /backup-create [<Beschreibung>]
+xucrun /backup-list
+xucrun /backup-restore
+xucrun /backup-restore:<Backup-ID>
+xucrun /backup-delete-all
 ```
 
 Eine Sicherung umfasst gespeicherte Anmeldedaten, Freigaben, Sicherheitsmerkmale und zugehörige
@@ -195,19 +209,30 @@ Auch die [Deinstallation](INSTALLATION.md#deinstallieren) entfernt die lokalen S
 
 ## Fehlerdiagnose
 
+`xucrun /help` zeigt die vollständige lokale Befehlsübersicht. Wurde der Brokerdienst
+deaktiviert, kann er mit `xucrun /enable-broker` wieder aktiviert werden.
 
-`xucRun.exe /info` zeigt die auch vom separat installierten optionalen xucRun-Tray-Add-on
+<a id="laufzeitinformationen"></a>
+
+### Laufzeitinformationen anzeigen
+
+`xucrun /info` zeigt die auch vom separat installierten optionalen xucRun-Tray-Add-on
 verwendeten gemeinsamen Client-Laufzeitinformationen: Version, Copyright, Pfad, Architektur,
 wirksame Sprache und geladene Sprach-DLL, Signierzertifikat, aktuelles Konto einschließlich SID
 und Rechteerhöhung, Konfigurationsdatei und Client-Protokollierung. Der gemeinsame
 Konfigurationsabschnitt nennt außerdem das installierte Wartungsskript. Core-spezifische
 Abschnitte ergänzen Brokerstatus, Broker-Informationsereignisse und Anzahlen gespeicherter Daten.
-`xucRun.exe /audit` prüft sicherheitsrelevante Eigenschaften der laufenden Installation und nennt
+
+![xucRun-Laufzeitinformationen](images/runtime-information.png)
+
+<a id="sicherheitsdiagnose"></a>
+
+### Installation auf Sicherheitsprobleme prüfen
+
+`xucrun /audit` prüft sicherheitsrelevante Eigenschaften der laufenden Installation und nennt
 bei gültiger Clientsignatur ebenfalls das geprüfte Zertifikat. Ist xucRun Tray separat
 installiert, prüft die Diagnose zusätzlich dessen installierte Dateien und Signaturen,
-Deinstallationsregistrierung und benutzerbezogene Autostartaufgaben. Wurde der Brokerdienst
-deaktiviert, kann er mit `xucRun.exe /enable-broker` wieder aktiviert werden.
-`xucRun.exe /help` zeigt die vollständige lokale Befehlsübersicht.
+Deinstallationsregistrierung und benutzerbezogene Autostartaufgaben.
 
 Die Diagnose prüft ausdrücklich den Dateiobjektschutz, das Authenticode-Vertrauen und den
 erwarteten Signierer des installierten Wartungsskripts `Install-xucRun.ps1` sowie bei installiertem
@@ -219,6 +244,10 @@ Brokerprozesses aktiv sind. Bei Erfolg fasst er die geschützten Bereiche zusamm
 Abweichung nennt er die betroffene Schutzfunktion sowie eine Empfehlung zu Neustart und
 Neuinstallation.
 
+![xucRun-Sicherheitsdiagnose](images/security-audit.png)
+
+### Blockierter erhöhter Start
+
 Meldet xucRun, dass ein erhöhter Start wegen fehlender UAC-Bestätigung blockiert wurde, ist für
 das ausgewählte andere Konto, das Mitglied der lokalen Administratorengruppe ist, der
 Windows-Administratorbestätigungsmodus nicht wirksam. Das kann insbesondere das integrierte Konto
@@ -226,23 +255,18 @@ Windows-Administratorbestätigungsmodus nicht wirksam. Das kann insbesondere das
 
 ![Blockierter kontenübergreifender erhöhter Start wegen fehlender UAC-Bestätigung](images/cross-account-elevation-blocked.png)
 
-### Laufzeitinformationen
-
-![xucRun-Laufzeitinformationen](images/runtime-information.png)
-
-### Sicherheitsdiagnose
-
-![xucRun-Sicherheitsdiagnose](images/security-audit.png)
+### Protokolle zur Fehlerdiagnose
 
 Für eine weitergehende Fehlerdiagnose kann über `ClientLogDirectory` das Client-Dateilog mit
 Dateien im Format `xucRun_YYYYMMDD.log` aktiviert werden. Warnungen und Fehler des Brokers werden
 immer im Windows-Anwendungsereignislog unter der Quelle `xucRunBroker` erfasst und können in der
 Windows-Ereignisanzeige unter **Windows-Protokolle → Anwendung** eingesehen werden. Einzelheiten
 zur Konfiguration enthält der Abschnitt
-[Konfigurationsdatei und Sprache](#konfigurationsdatei-und-sprache).
+[Konfiguration, Sprache und Protokollierung](#konfiguration-sprache-und-protokollierung).
 
-## Konfigurationsdatei und Sprache
+<a id="konfigurationsdatei-und-sprache"></a>
 
+## Konfiguration, Sprache und Protokollierung
 
 xucRun verwendet die maschinenweite Konfigurationsdatei
 `%ProgramFiles%\xucRun\xucRun.ini`. Der Installer legt sie an und aktualisiert bei einer

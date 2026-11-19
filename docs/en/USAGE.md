@@ -517,7 +517,7 @@ The separately installed optional
 interface whose icon appears in the notification area of the Windows taskbar next to the clock. It
 is a separate project that displays information from xucRun and provides access to existing xucRun
 management functions. Its menu can set the machine-wide xucRun language to Automatic, German, or
-English. See [Configuration file and language](REFERENCE.md#configuration-file-and-language) for details
+English. See [Configuration, language, and logging](REFERENCE.md#configuration-language-and-logging) for details
 about the setting's effect.
 
 The Tray is particularly helpful during initial setup, when checking the operating state, and when

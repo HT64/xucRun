@@ -539,7 +539,7 @@ erscheint. Es ist ein eigenständiges Projekt, zeigt Informationen aus xucRun an
 Zugriff auf dessen vorhandene Verwaltungsfunktionen bereit. Über sein Menü lässt sich die
 computerweite xucRun-Sprache auf Automatisch, Deutsch oder Englisch setzen. Einzelheiten zur
 Wirkung der Einstellung enthält der Abschnitt
-[Konfigurationsdatei und Sprache](REFERENCE.md#konfigurationsdatei-und-sprache).
+[Konfiguration, Sprache und Protokollierung](REFERENCE.md#konfiguration-sprache-und-protokollierung).
 
 Das Tray ist insbesondere bei der Inbetriebnahme, bei der Kontrolle des Betriebszustands und bei
 späteren Änderungen an Anmeldedaten, Freigaben, Sprache, Protokollierung oder Brokerzustand
